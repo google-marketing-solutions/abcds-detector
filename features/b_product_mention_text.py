@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+###########################################################################
+#
+#  Copyright 2024 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+###########################################################################
+
+"""Module to detect Brand: Product Mention (Text) & Product Mention (Text) (First 5 seconds)
+Annotations used:
+    1. Text annotations to identify products in text overlays (text)
+"""
+
+### REMOVE FOR COLAB - START
+from input_parameters import (
+    GEMINI_PRO,
+    llm_location,
+    llm_generation_config,
+    context_and_examples,
+    use_llms,
+    use_annotations,
+)
+
+from helpers.helpers import (
+    LLMParameters,
+    detect_feature_with_llm,
+    detected_text_in_first_5_seconds,
+    get_n_secs_video_uri_from_uri,
+)
+
+### REMOVE FOR COLAB - END
+
+# @title 12, 13) Brand: Product Mention (Text) & Product Mention (Text) (First 5 seconds)
+
+# @markdown **Features:**
+
+# @markdown **Product Mention (Text):** The branded product names or generic product categories are present in any text or overlay at any time in the video.
+
+# @markdown **Product Mention (Text) (First 5 seconds):** The branded product names or generic product categories are present in any text or overlay in the first 5 seconds (up to 4.99s) of the video.
+
+# Features
+product_mention_text_feature = "Product Mention (Text)"
+product_mention_text_1st_5_secs_feature = "Product Mention (Text) (First 5 seconds)"
+
+
+def detect_product_mention_text(
+    text_annotation_results: any,
+    video_uri: str,
+    branded_products: list[str],
+    branded_products_categories: list[str],
+) -> tuple[bool, bool]:
+    """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
+    Args:
+        text_annotation_results: text annotations
+        video_location: video location in gcs
+        branded_products: list of products
+        branded_products_categories: list of products categories
+    Returns:
+        product_mention_text,
+        product_mention_text_1st_5_secs: evaluation
+    """
+    product_mention_text = False
+    product_mention_text_1st_5_secs = False
+
+    if use_annotations:
+        if "text_annotations" in text_annotation_results:
+            # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
+            for text_annotation in text_annotation_results.get("text_annotations"):
+                text = text_annotation.get("text")
+                found_branded_products = [
+                    prod for prod in branded_products if prod.lower() in text.lower()
+                ]
+                found_branded_products_categories = [
+                    prod
+                    for prod in branded_products_categories
+                    if prod.lower() in text.lower()
+                ]
+                if (
+                    len(found_branded_products) > 0
+                    or len(found_branded_products_categories) > 0
+                ):
+                    product_mention_text = True
+                    pmt_1st_5_secs, frame = detected_text_in_first_5_seconds(
+                        text_annotation
+                    )
+                    if pmt_1st_5_secs:
+                        product_mention_text_1st_5_secs = True
+        else:
+            print(
+                f"No Text annotations found. Skipping {product_mention_text_feature} evaluation with Video Intelligence API."
+            )
+
+    if use_llms:
+        llm_params = LLMParameters(
+            model_name=GEMINI_PRO,
+            location=llm_location,
+            generation_config=llm_generation_config,
+        )
+        # 1. Evaluate product_mention_text_feature
+        product_mention_text_criteria = """The branded product names or generic product categories
+        are present in any text or overlay at any time in the video."""
+        prompt = (
+            """Is any of the following products: {branded_products}
+            or product categories: {branded_products_categories}
+            present in any text or overlay at any time in the video?
+            Consider the following criteria for your answer: {criteria}
+            Provide the exact timestamp when the products {branded_products}
+            or product categories: {branded_products_categories} are found
+            in any text or overlay in the video.
+            {context_and_examples}
+        """.replace(
+                "{branded_products}", f"{', '.join(branded_products)}"
+            )
+            .replace(
+                "{branded_products_categories}",
+                f"{', '.join(branded_products_categories)}",
+            )
+            .replace("{feature}", product_mention_text_feature)
+            .replace("{criteria}", product_mention_text_criteria)
+            .replace("{context_and_examples}", context_and_examples)
+        )
+        # Use full video for this feature
+        llm_params.set_modality({"type": "video", "video_uri": video_uri})
+        feature_detected = detect_feature_with_llm(
+            product_mention_text_feature, prompt, llm_params
+        )
+        if feature_detected:
+            product_mention_text = True
+
+        # 2. Evaluate product_mention_text_1st_5_secs_feature
+        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+        product_mention_text_1st_5_secs_criteria = """The branded product names or generic product categories
+        are present in any text or overlay in the video."""
+        prompt = (
+            """Is any of the following products: {branded_products}
+            or product categories: {branded_products_categories}
+            present in any text or overlay in the video?
+            Consider the following criteria for your answer: {criteria}
+            Provide the exact timestamp when the products {branded_products}
+            or product categories: {branded_products_categories} are found
+            in any text or overlay in the video.
+            {context_and_examples}
+        """.replace(
+                "{branded_products}", f"{', '.join(branded_products)}"
+            )
+            .replace(
+                "{branded_products_categories}",
+                f"{', '.join(branded_products_categories)}",
+            )
+            .replace("{feature}", product_mention_text_1st_5_secs_feature)
+            .replace("{criteria}", product_mention_text_1st_5_secs_criteria)
+            .replace("{context_and_examples}", context_and_examples)
+        )
+        # Use first 5 secs video for this feature
+        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
+        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        feature_detected = detect_feature_with_llm(
+            product_mention_text_1st_5_secs_feature, prompt, llm_params
+        )
+        if feature_detected:
+            product_mention_text_1st_5_secs = True
+
+    print(f"{product_mention_text_feature}: {product_mention_text}")
+    print(
+        f"{product_mention_text_1st_5_secs_feature}: {product_mention_text_1st_5_secs}"
+    )
+
+    return product_mention_text, product_mention_text_1st_5_secs
