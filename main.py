@@ -65,7 +65,7 @@ from features.d_call_to_action import (
 
 
 def player(video_url: str):
-    """Test function"""
+    """Placeholder function to test locally"""
     print(video_url)
 
 

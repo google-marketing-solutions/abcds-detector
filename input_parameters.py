@@ -49,28 +49,6 @@ branded_products_str = "Google pixel, Google pixel buds, Google pixel watch"  # 
 branded_products_categories_str = "phone, watch, buds"  # @param {type:"string"}
 branded_call_to_actions_str = "buy it!"  # @param {type:"string"}
 
-def convert_string_to_list(list_str: str):
-    """Converts a string to a list and
-    removes white spaces from strings in list
-    Args:
-        list_str
-    """
-    cleaned_list = []
-    for item in list_str.split(","):
-        cleaned_list.append(item.strip())
-    return cleaned_list
-
-
-brand_variations = convert_string_to_list(brand_variations_str)
-brand_variations.append(brand_name)
-print(brand_variations)
-branded_products = convert_string_to_list(branded_products_str)
-print(branded_products)
-branded_products_categories = convert_string_to_list(branded_products_categories_str)
-print(branded_products_categories)
-branded_call_to_actions = convert_string_to_list(branded_call_to_actions_str)
-print(branded_call_to_actions)
-
 
 # @markdown ### ABCD Framework Details
 
@@ -94,12 +72,40 @@ max_output_tokens = 8192  # @param {type:"number"}
 temperature = 1  # @param {type:"number"}
 top_p = 0.95  # @param {type:"number"}
 top_k = 32  # @param {type:"number"}
+
+
+### DO NOT EDIT, vars built from user's input ###
+def convert_string_to_list(list_str: str):
+    """Converts a string to a list and
+    removes white spaces from strings in list
+    Args:
+        list_str
+    """
+    cleaned_list = []
+    for item in list_str.split(","):
+        cleaned_list.append(item.strip())
+    return cleaned_list
+
+brand_variations = convert_string_to_list(brand_variations_str)
+brand_variations.append(brand_name)
+branded_products = convert_string_to_list(branded_products_str)
+branded_products_categories = convert_string_to_list(branded_products_categories_str)
+branded_call_to_actions = convert_string_to_list(branded_call_to_actions_str)
+
+if VERBOSE:
+    print("ABCD Detector parameters:")
+    print(f"Brand Variations: {brand_variations}")
+    print(f"Brand products: {branded_products}")
+    print(f"Brand categories: {branded_products_categories}")
+    print(f"Brand call to actions: {branded_call_to_actions}")
+
 llm_generation_config = {
     "max_output_tokens": max_output_tokens,
     "temperature": temperature,
     "top_p": top_p,
     "top_k": top_k,
 }
+
 context_and_examples = """Only base your answers strictly on what information is available in the video attached.
 Do not make up any information that is not part of the video.
 Explain in a very detailed way the reasoning behind your answer.
