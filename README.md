@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-# ABCD Detector
+# ABCDs Detector
 
-The ABCD Detector solution streamlines the assessment of your video ads against YouTube's ABCD framework. Powered by Google AI, this tool automates the evaluation process, providing detailed reports on how well your ads align with key attention-driving metrics. Simplify your YouTube ad analysis and gain valuable insights for optimization with the ABCD Detector.
+The ABCDs Detector solution streamlines the assessment of your video ads against YouTube's ABCD framework. Powered by Google AI, this tool automates the evaluation process, providing detailed reports on how well your ads align with key attention-driving metrics. Simplify your YouTube ad analysis and gain valuable insights for optimization with the ABCDs Detector.
 
 ## The Approach
 
@@ -26,7 +26,7 @@ The solution leverages:
 
 **Large Language Model (LLM) integration:** LLMs are used to assess features against YouTube's ABCD framework rubrics. This enables the detector to "ask questions" and determine if the ad adheres to each rubric.
 
-By combining these techniques, ABCD Detector automates the evaluation process and delivers comprehensive reports on how well your ads align with the ABCD framework. This empowers you to optimize your YouTube ad campaigns for maximum impact.
+By combining these techniques, ABCDs Detector automates the evaluation process and delivers comprehensive reports on how well your ads align with the ABCD framework. This empowers you to optimize your YouTube ad campaigns for maximum impact.
 
 ### Detailed approach
 
@@ -43,9 +43,9 @@ By combining these techniques, ABCD Detector automates the evaluation process an
 
 2. Gemini Pro Vision & Gemini Pro: To perform video Q&A about the features to evaluate if the video adheres to the ABCD rubrics. The colab will send a request to Gemini with tailored prompts to evaluate each rubric.
 
-ABCD Detector will perform 2 verifications, first with annotations and then with LLMs. Since the LLM approach is prone to hallucinations, False Positives or False Negatives will be expected. The solution will still require human QA if 100% accuracy is required for the evaluation.
+ABCDs Detector will perform 2 verifications, first with annotations and then with LLMs. Since the LLM approach is prone to hallucinations, False Positives or False Negatives will be expected. The solution will still require human QA if 100% accuracy is required for the evaluation.
 
-ABCD Detector MVP supports a single video evaluation for the following features/rubrics:
+ABCDs Detector MVP supports a single video evaluation for the following features/rubrics:
   - Quick Pacing
   - Quick Pacing (First 5 seconds)
   - Dynamic Start
@@ -104,7 +104,7 @@ as ### REMOVE FOR COLAB - START and ### REMOVE FOR COLAB - END, since those are 
 
 ## Solution Setup
 
-Please follow the steps below before executing the ABCD Detector solution.
+Please follow the steps below before executing the ABCDs Detector solution.
 
 1. Store your videos on Google Cloud Storage with the following folder structure: bucket_name/brand_name/videos/my_video.mp4. For example: abcd-detector/Nike/videos/my_video.mp4. The brand_name should be the same as defined in the **"Define Brand & Videos Details"** section below.
   - **Video considerations:**
@@ -119,7 +119,7 @@ Please follow the steps below before executing the ABCD Detector solution.
 
     2.2. Generate an API Key to connect to the Knowledge Graph API to find entities such as brands, products, etc., to match with video annotation results. To generate an API key, please follow the steps [here.](https://support.google.com/googleapi/answer/6158862?hl=en)
 
-    2.5. Fill out the project details, brand/video details and ABCD Assessment thresholds in the **"Define ABCD Detector parameters"** section below. For brand and product details, you can be as generic or specific as possible depending on your video asset.
+    2.5. Fill out the project details, brand/video details and ABCD Assessment thresholds in the **"Define ABCDs Detector parameters"** section below. For brand and product details, you can be as generic or specific as possible depending on your video asset.
 
     **Note:** Please check the official [Gemini API documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini) to learn more about the LLM parameters (temperature, top_k, top_p, etc) that are used in this colab.
 
