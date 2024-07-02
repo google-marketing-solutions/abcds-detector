@@ -21,6 +21,7 @@
 """Module to load helper functions"""
 
 import json
+import os
 import time
 import urllib
 from google.cloud import storage
@@ -28,6 +29,8 @@ import vertexai
 import vertexai.preview.generative_models as generative_models
 from vertexai.preview.generative_models import GenerativeModel, Part
 from googleapiclient.errors import HttpError
+from moviepy.editor import VideoFileClip
+
 
 ### REMOVE FOR COLAB - START
 from input_parameters import (
@@ -50,7 +53,6 @@ storage_client = storage.Client()
 bucket = storage_client.get_bucket(BUCKET_NAME)
 
 # Knowledge Graph module
-
 
 def get_knowledge_graph_entities(queries: list[str]) -> dict[str, dict]:
     """Get the knowledge Graph Entities for a list of queries
@@ -436,10 +438,10 @@ class VertexAIService:
                     modality_params,
                     generation_config=params.generation_config,
                     safety_settings={
-                        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                        generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
                     },
                     stream=False,
                 )
@@ -531,13 +533,21 @@ def detect_feature_with_llm(
         llm_response_json = json.loads(clean_llm_response(llm_response))
         if STORE_TEST_RESULTS:
             store_test_results(feature, prompt, llm_params, llm_response)
-        if VERBOSE:
-            print("***Powered by LLMs***")
-            print(
-                f"Feature detected: {feature}: {llm_response_json['feature_detected']}"
-            )
-            print(f"Explanation: {llm_response_json['explanation']}\n")
-        return llm_response_json["feature_detected"] == "True"
+        if 'feature_detected' in llm_response_json and 'explanation' in llm_response_json:
+            if VERBOSE:
+                print("***Powered by LLMs***")
+                print(
+                    f"Feature detected: {feature}: {llm_response_json['feature_detected']}"
+                )
+                print(f"Explanation: {llm_response_json['explanation']}\n")
+            return llm_response_json['feature_detected'] == 'True' or llm_response_json['feature_detected'] == 'true'
+        else:
+            if VERBOSE:
+                print("***Powered by LLMs***")
+                print('JSON parse was successful but the JSON keys: feature_detected and explanation were not found')
+                print("Using string version...\n")
+                print(llm_response)
+            return '"feature_detected" : "True"' in llm_response or '"feature_detected" : "true"' in llm_response
     except json.JSONDecodeError as ex:
         if STORE_TEST_RESULTS:
             store_test_results(feature, prompt, llm_params, llm_response)
@@ -584,8 +594,10 @@ def store_test_results(
 
 def store_test_results_local_file():
     """Store test results in a file"""
+    file_name = f"content/test_results/{brand_name}_test_results.json"
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
     with open(
-        f"test_results/{brand_name}_test_results.json", "w", encoding="utf-8"
+        file_name, "w", encoding="utf-8"
     ) as f:
         json.dump(TEST_RESULTS, f, ensure_ascii=False, indent=4)
 
@@ -653,3 +665,103 @@ def download_video_annotations(
         logo_annotation_results,
         speech_annotation_results,
     )
+
+
+def trim_videos(brand_name: str):
+    """Trims videos to create new versions of 5 secs
+    Args:
+        brand_name: the brand to trim the videos for
+    """
+    local_videos_path = "abcd_videos"
+    # Check if the directory exists
+    if not os.path.exists(local_videos_path):
+        os.makedirs(local_videos_path)
+    # Get videos from GCS
+    brand_videos_folder = f"{brand_name}/videos"
+    blobs = bucket.list_blobs(prefix=brand_videos_folder)
+    # Video processing
+    for video in blobs:
+        if video.name == f"{brand_videos_folder}/" or "1st_5_secs" in video.name:
+            # Skip parent folder and trimmed versions of videos
+            continue
+        video_name, video_name_with_format = get_file_name_from_gcs_url(video.name)
+        video_name_1st_5_secs = (
+            f"{video_name}_1st_5_secs.{get_video_format(video_name_with_format)}"
+        )
+        video_name_1st_5_secs_parent_folder = (
+            f"{brand_videos_folder}/{video_name_1st_5_secs}"
+        )
+        video_1st_5_secs_metadata = bucket.get_blob(video_name_1st_5_secs_parent_folder)
+        # Only process the video if it was not previously trimmed
+        if not video_1st_5_secs_metadata:
+            # Download the video from GCS
+            download_and_save_video(
+                output_path=local_videos_path,
+                video_name_with_format=video_name_with_format,
+                video_uri=video.name,
+            )
+            # Trim the video
+            trim_and_push_video_to_gcs(
+                local_videos_path=local_videos_path,
+                gcs_output_path=brand_videos_folder,
+                video_name_with_format=video_name_with_format,
+                new_video_name=video_name_1st_5_secs,
+                trim_start=0,
+                trim_end=5,
+            )
+        else:
+            print(f"Video {video.name} has already been trimmed. Skipping...\n")
+
+
+def download_and_save_video(
+    output_path: str, video_name_with_format: str, video_uri: str
+) -> None:
+    """Downloads a video from Google Cloud Storage
+    and saves it locally
+    Args:
+        bucket: bucket where the video lives
+        video_uri: the video location
+    """
+    video_blob = bucket.blob(video_uri)
+    video = video_blob.download_as_string(client=None)
+    with open(f"{output_path}/{video_name_with_format}", "wb") as f:
+        f.write(video)  # writing content to file
+        if VERBOSE:
+            print(f"Video {video_uri} downloaded and saved!\n")
+
+
+def trim_and_push_video_to_gcs(
+    local_videos_path: str,
+    gcs_output_path: str,
+    video_name_with_format: str,
+    new_video_name: str,
+    trim_start: int,
+    trim_end: int,
+) -> None:
+    """Trims a video to generate a 5 secs version
+    Args:
+        local_videos_path: where the videos are stored locally
+        gcs_output_path: the path to store the video in Google Cloud storage
+        video_name_with_format: the original video name with format
+        new_video_name: the new name for the trimmed video
+        trim_start: the start time to trim the video
+        trim_end: the end time to trim the video
+    """
+    # Load video dsa gfg intro video
+    local_video_path = f"{local_videos_path}/{video_name_with_format}"
+    clip = VideoFileClip(local_video_path)
+    # Get only first N seconds
+    clip = clip.subclip(trim_start, trim_end)
+    # Save the clip
+    new_video_name_path = f"{local_videos_path}/{new_video_name}"
+    clip.write_videofile(new_video_name_path)
+    # Upload back to Google Cloud Storage
+    blob = bucket.blob(f"{gcs_output_path}/{new_video_name}")
+    # Optional: set a generation-match precondition to avoid potential race conditions
+    # and data corruptions.
+    generation_match_precondition = 0
+    blob.upload_from_filename(
+        new_video_name_path, if_generation_match=generation_match_precondition
+    )
+    if VERBOSE:
+        print(f"File {new_video_name} uploaded to {gcs_output_path}.\n")
