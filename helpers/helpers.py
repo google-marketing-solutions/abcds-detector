@@ -66,22 +66,28 @@ def get_knowledge_graph_entities(queries: list[str]) -> dict[str, dict]:
         }
     """
     kg_entities = {}
-    for query in queries:
-        service_url = "https://kgsearch.googleapis.com/v1/entities:search"
-        params = {
-            "query": query,
-            "limit": 10,
-            "indent": True,
-            "key": KNOWLEDGE_GRAPH_API_KEY,
-        }
-        url = f"{service_url}?{urllib.parse.urlencode(params)}"
-        response = json.loads(urllib.request.urlopen(url).read())
-        for element in response["itemListElement"]:
-            kg_entity_name = element["result"]["name"]
-            # To only add the exact KG entity
-            if query.lower() == kg_entity_name.lower():
-                kg_entities[element["result"]["@id"][3:]] = element["result"]
-    return kg_entities
+    try:
+        for query in queries:
+            service_url = "https://kgsearch.googleapis.com/v1/entities:search"
+            params = {
+                "query": query,
+                "limit": 10,
+                "indent": True,
+                "key": KNOWLEDGE_GRAPH_API_KEY,
+            }
+            url = f"{service_url}?{urllib.parse.urlencode(params)}"
+            response = json.loads(urllib.request.urlopen(url).read())
+            for element in response["itemListElement"]:
+                kg_entity_name = element["result"]["name"]
+                # To only add the exact KG entity
+                if query.lower() == kg_entity_name.lower():
+                    kg_entities[element["result"]["@id"][3:]] = element["result"]
+        return kg_entities
+    except Exception as ex:
+        print(
+            f"\n\x1b[31mERROR: There was an error fetching the Knowledge Graph entities. Please check that your API key is correct. ERROR: {ex}\x1b[0m"
+        )
+        raise
 
 
 def calculate_time_seconds(part_obj: dict, part: str) -> float:
@@ -533,21 +539,32 @@ def detect_feature_with_llm(
         llm_response_json = json.loads(clean_llm_response(llm_response))
         if STORE_TEST_RESULTS:
             store_test_results(feature, prompt, llm_params, llm_response)
-        if 'feature_detected' in llm_response_json and 'explanation' in llm_response_json:
+        if (
+            "feature_detected" in llm_response_json
+            and "explanation" in llm_response_json
+        ):
             if VERBOSE:
                 print("***Powered by LLMs***")
                 print(
                     f"Feature detected: {feature}: {llm_response_json['feature_detected']}"
                 )
                 print(f"Explanation: {llm_response_json['explanation']}\n")
-            return llm_response_json['feature_detected'] == 'True' or llm_response_json['feature_detected'] == 'true'
+            return (
+                llm_response_json["feature_detected"] == "True"
+                or llm_response_json["feature_detected"] == "true"
+            )
         else:
             if VERBOSE:
                 print("***Powered by LLMs***")
-                print('JSON parse was successful but the JSON keys: feature_detected and explanation were not found')
+                print(
+                    "JSON parse was successful but the JSON keys: feature_detected and explanation were not found"
+                )
                 print("Using string version...\n")
                 print(llm_response)
-            return '"feature_detected" : "True"' in llm_response or '"feature_detected" : "true"' in llm_response
+            return (
+                '"feature_detected" : "True"' in llm_response
+                or '"feature_detected" : "true"' in llm_response
+            )
     except json.JSONDecodeError as ex:
         if STORE_TEST_RESULTS:
             store_test_results(feature, prompt, llm_params, llm_response)
@@ -594,11 +611,9 @@ def store_test_results(
 
 def store_test_results_local_file():
     """Store test results in a file"""
-    file_name = f"content/test_results/{brand_name}_test_results.json"
+    file_name = f"test_results/{brand_name}_test_results.json"
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
-    with open(
-        file_name, "w", encoding="utf-8"
-    ) as f:
+    with open(file_name, "w", encoding="utf-8") as f:
         json.dump(TEST_RESULTS, f, ensure_ascii=False, indent=4)
 
 
