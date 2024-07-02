@@ -24,7 +24,6 @@
 from generate_video_annotations.generate_video_annotations import (
     generate_video_annotations,
 )
-from trim_videos.trim_videos import trim_videos
 
 from input_parameters import (
     BUCKET_NAME,
@@ -44,6 +43,7 @@ from helpers.helpers import (
     get_file_name_from_gcs_url,
     download_video_annotations,
     store_test_results_local_file,
+    trim_videos
 )
 
 from features.a_quick_pacing import detect_quick_pacing

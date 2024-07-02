@@ -155,6 +155,8 @@ def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) ->
                     )
                     if feature_detected:
                         audio_speech_early = True
+                else:
+                    audio_speech_early = False
             else:
                 print(
                     f"No Speech annotations found. Skipping {audio_speech_early_feature} evaluation with LLM."

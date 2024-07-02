@@ -214,6 +214,8 @@ def detect_supers_with_audio(
                     )
                     if feature_detected:
                         supers_with_audio = True
+                else:
+                    supers_with_audio = False
             else:
                 print(
                     f"No Speech annotations found. Skipping {supers_with_audio_feature} evaluation with LLM."

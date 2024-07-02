@@ -190,6 +190,8 @@ def detect_call_to_action_speech(
                     )
                     if feature_detected:
                         call_to_action_speech = True
+                else:
+                    call_to_action_speech = False
             else:
                 print(
                     f"No Speech annotations found. Skipping {call_to_action_speech_feature} evaluation with Video Intelligence API."

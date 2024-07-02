@@ -181,6 +181,8 @@ def detect_brand_mention_speech(
                     )
                     if feature_detected:
                         brand_mention_speech = True
+                else:
+                    brand_mention_speech = False
 
                 # 2. Evaluate brand_mention_speech_feature_1st_5_secs
                 transcript_1st_5_secs = get_speech_transcript_1st_5_secs(
@@ -208,6 +210,8 @@ def detect_brand_mention_speech(
                     )
                     if feature_detected:
                         brand_mention_speech_1st_5_secs = True
+                else:
+                    brand_mention_speech_1st_5_secs = False
             else:
                 print(
                     f"No Speech annotations found. Skipping {brand_mention_speech_feature} evaluation with LLM."
