@@ -85,9 +85,10 @@ For questions, please reach out to: abcds-detector@google.com
 ## Requirements:
 
 * Google Cloud Project with enabled APIs:
-    * [Video Intelligence API](https://cloud.google.com/video-intelligence?hl=en)
-    * [Vertex AI API](https://cloud.google.com/vertex-ai/docs/reference)
-    * [Knowledge Graph API](https://developers.google.com/knowledge-graph)
+    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com)
+    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
+    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
+    * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
 * Project Billing enabled
 * Python libraries:
     * `google-cloud-videointelligence`
