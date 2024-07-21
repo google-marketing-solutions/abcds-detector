@@ -35,10 +35,11 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    calculate_time_seconds,
-    detect_feature_with_llm,
+from helpers.annotations_helpers import calculate_time_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
 
@@ -52,25 +53,45 @@ from helpers.helpers import (
 
 # @markdown  **Presence of People (First 5 seconds):** People are shown in any capacity in the first 5 seconds (up to 4.99s) of the video. Any human body parts are acceptable to pass this guideline. Alternate representations of people such as Animations or Cartoons ARE acceptable.
 
-# Features
-presence_of_people_feature = "Presence of People"
-presence_of_people_1st_5_secs_feature = "Presence of People (First 5 seconds)"
-
 
 def detect_presence_of_people(
     people_annotation_results: any, video_uri: str
-) -> tuple[bool, bool]:
+) -> tuple[dict, dict]:
     """Detect Presence of People & Presence of People (First 5 seconds)
     Args:
         people_annotation_results: people annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        presence_of_people,
-        presence_of_people_1st_5_secs: evaluation
+        presence_of_people_eval_details,
+        presence_of_people_1st_5_secs_eval_details: presence of people evaluation
     """
+    # Feature Presence of People
+    presence_of_people_feature = "Presence of People"
     presence_of_people = False
+    presence_of_people_criteria = """People are shown in any capacity at any time in the video.
+        Any human body parts are acceptable to pass this guideline. Alternate representations of
+        people such as Animations or Cartoons ARE acceptable."""
+    presence_of_people_eval_details = {
+        "feature": presence_of_people_feature,
+        "feature_description": presence_of_people_criteria,
+        "feature_detected": presence_of_people,
+        "llm_details": [],
+    }
+    # Feature Presence of People (First 5 seconds)
+    presence_of_people_1st_5_secs_feature = "Presence of People (First 5 seconds)"
     presence_of_people_1st_5_secs = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    presence_of_people_1st_5_secs_criteria = """People are shown in any capacity in the video.
+    Any human body parts are acceptable to pass this guideline. Alternate
+    representations of people such as Animations or Cartoons ARE acceptable."""
+    presence_of_people_1st_5_secs_eval_details = {
+        "feature": presence_of_people_1st_5_secs_feature,
+        "feature_description": presence_of_people_1st_5_secs_criteria,
+        "feature_detected": presence_of_people_1st_5_secs,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate presence_of_people_feature and presence_of_people_1st_5_secs_feature
     if use_annotations:
         if "person_detection_annotations" in people_annotation_results:
             # Video API: Evaluate presence_of_people_feature and presence_of_people_1st_5_secs_feature
@@ -93,6 +114,7 @@ def detect_presence_of_people(
                 f"No People annotations found. Skipping {presence_of_people_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate presence_of_people_feature and presence_of_people_1st_5_secs_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -100,9 +122,6 @@ def detect_presence_of_people(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate presence_of_people_feature
-        presence_of_people_criteria = """People are shown in any capacity at any time in the video.
-        Any human body parts are acceptable to pass this guideline. Alternate representations of
-        people such as Animations or Cartoons ARE acceptable."""
         prompt = (
             """Are there people present at any time in the video?
             Consider the following criteria for your answer: {criteria}
@@ -117,17 +136,22 @@ def detect_presence_of_people(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             presence_of_people_feature, prompt, llm_params
         )
         if feature_detected:
             presence_of_people = True
 
+        # Include llm details
+        presence_of_people_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
         # 2. Evaluate presence_of_people_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        presence_of_people_1st_5_secs_criteria = """People are shown in any capacity in the video.
-        Any human body parts are acceptable to pass this guideline. Alternate
-        representations of people such as Animations or Cartoons ARE acceptable."""
         prompt = (
             """Are there people present in the video?
             Consider the following criteria for your answer: {criteria}
@@ -143,13 +167,26 @@ def detect_presence_of_people(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             presence_of_people_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             presence_of_people_1st_5_secs = True
 
-    print(f"{presence_of_people_feature}: {presence_of_people}")
-    print(f"{presence_of_people_1st_5_secs_feature}: {presence_of_people_1st_5_secs}")
+        # Include llm details
+        presence_of_people_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return presence_of_people, presence_of_people_1st_5_secs
+    print(f"{presence_of_people_feature}: {presence_of_people}")
+    presence_of_people_eval_details["feature_detected"] = presence_of_people
+    print(f"{presence_of_people_1st_5_secs_feature}: {presence_of_people_1st_5_secs}")
+    presence_of_people_1st_5_secs_eval_details["feature_detected"] = (
+        presence_of_people_1st_5_secs
+    )
+
+    return presence_of_people_eval_details, presence_of_people_1st_5_secs_eval_details

@@ -34,12 +34,13 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    calculate_time_seconds,
-    detect_feature_with_llm,
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
+
+from helpers.annotations_helpers import calculate_time_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 ### REMOVE FOR COLAB - END
 
@@ -51,10 +52,6 @@ from helpers.helpers import (
 
 # @markdown **Quick Pacing (First 5 seconds):** There are at least 5 shot changes or visual cuts detected within the first 5 seconds (up to 4.99s) of the video. These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms, depth of field changes, tracking shots and movement of the camera.
 
-# Features
-quick_pacing_feature = "Quick Pacing"
-quick_pacing_1st_5_secs_feature = "Quick Pacing (First 5 seconds)"
-
 
 def detect_quick_pacing(
     shot_annotation_results: any, video_uri: str
@@ -62,19 +59,41 @@ def detect_quick_pacing(
     """Detect Quick Pacing & Quick Pacing (First 5 seconds)
     Args:
         shot_annotation_results: shot annotations
+        video_uri: video location in gcs
     Returns:
         quick_pacing, quick_pacing_1st_5_secs: quick pacing evaluation tuple
     """
     required_secs_for_quick_pacing = 5
     required_shots_for_quick_pacing = 5
-    # Quick Pacing calculation
+    # Feature Quick Pacing
+    quick_pacing_feature = "Quick Pacing"
     quick_pacing = False
+    quick_pacing_criteria = """Within ANY 5 consecutive seconds there are 5 or more shots in the video.
+        These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms,
+        depth of field changes, tracking shots and movement of the camera."""
     total_shots_count = 0
     total_time_all_shots = 0
-    # Quick Pacing (First 5 secs) calculation
+    quick_pacing_eval_details = {
+        "feature": quick_pacing_feature,
+        "feature_description": quick_pacing_criteria,
+        "feature_detected": quick_pacing,
+        "llm_details": [],
+    }
+    # Feature Quick Pacing (First 5 secs)
+    quick_pacing_1st_5_secs_feature = "Quick Pacing (First 5 seconds)"
     quick_pacing_1st_5_secs = False
+    quick_pacing_1st_5_secs_criteria = """There are at least 5 shot changes or visual cuts detected in the video.
+        These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms, depth of
+        field changes, tracking shots and movement of the camera."""
     total_shots_count_1st_5_secs = 0
+    quick_pacing_1st_5_secs_eval_details = {
+        "feature": quick_pacing_1st_5_secs_feature,
+        "feature_description": quick_pacing_1st_5_secs_criteria,
+        "feature_detected": quick_pacing_1st_5_secs,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate quick_pacing_feature and quick_pacing_1st_5_secs_feature
     if use_annotations:
         if "shot_annotations" in shot_annotation_results:
             sorted_shots = sorted(
@@ -109,6 +128,7 @@ def detect_quick_pacing(
                 f"No Shot annotations found. Skipping {quick_pacing_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate quick_pacing_feature and quick_pacing_1st_5_secs_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -116,9 +136,6 @@ def detect_quick_pacing(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate quick_pacing_feature
-        quick_pacing_criteria = """Within ANY 5 consecutive seconds there are 5 or more shots in the video.
-        These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms,
-        depth of field changes, tracking shots and movement of the camera."""
         prompt = (
             """Are there 5 or more shots within ANY 5 consecutive seconds in the video?
             Consider the following criteria for your answer: {criteria}
@@ -136,17 +153,23 @@ def detect_quick_pacing(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             quick_pacing_feature, prompt, llm_params
         )
         if feature_detected:
             quick_pacing = True
 
+        # Include llm details
+        quick_pacing_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
         # 2. Evaluate quick_pacing_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        quick_pacing_1st_5_secs_criteria = """There are at least 5 shot changes or visual cuts detected in the video.
-        These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms, depth of
-        field changes, tracking shots and movement of the camera."""
+        # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
         prompt = (
             """Are there at least 5 shot changes or visual cuts detected in the video?
             Consider the following criteria for your answer: {criteria}
@@ -165,13 +188,24 @@ def detect_quick_pacing(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             quick_pacing_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             quick_pacing_1st_5_secs = True
 
-    print(f"{quick_pacing_feature}: {quick_pacing}")
-    print(f"{quick_pacing_1st_5_secs_feature}: {quick_pacing_1st_5_secs}")
+        # Include llm details
+        quick_pacing_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return quick_pacing, quick_pacing_1st_5_secs
+    print(f"{quick_pacing_feature}: {quick_pacing}")
+    quick_pacing_eval_details["feature_detected"] = quick_pacing
+    print(f"{quick_pacing_1st_5_secs_feature}: {quick_pacing_1st_5_secs}")
+    quick_pacing_1st_5_secs_eval_details["feature_detected"] = quick_pacing_1st_5_secs
+
+    return quick_pacing_eval_details, quick_pacing_1st_5_secs_eval_details

@@ -35,11 +35,12 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
+from helpers.annotations_helpers import calculate_time_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
     get_knowledge_graph_entities,
-    calculate_time_seconds,
-    detect_feature_with_llm,
     get_n_secs_video_uri_from_uri,
 )
 
@@ -52,10 +53,6 @@ from helpers.helpers import (
 # @markdown 1. **Product Visuals:** A product or branded packaging is visually present at any time in the video. Where the product is a service a relevant substitute should be shown such as via a branded app or branded service personnel.
 
 # @markdown 2. **Product Visuals (First 5 seconds):** A product or branded packaging is visually present in the first 5 seconds (up to 4.99s) of the video. Where the product is a service a relevant substitute should be shown such as via a branded app or branded service personnel.
-
-# Features
-product_visuals_feature = "Product Visuals"
-product_visuals_1st_5_secs_feature = "Product Visuals (First 5 seconds)"
 
 
 def detect(
@@ -112,7 +109,7 @@ def detect_product_visuals(
     video_uri: str,
     branded_products: list[str],
     branded_products_categories: list[str],
-) -> tuple[bool, bool]:
+) -> tuple[dict, dict]:
     """Detect Product Visuals & Product Visuals (First 5 seconds)
     Args:
         label_annotation_results: label annotations
@@ -120,13 +117,38 @@ def detect_product_visuals(
         branded_products: list of products
         branded_products_categories: list of products categories
     Returns:
-        product_visuals,
-        product_visuals_1st_5_secs: evaluation
+        product_visuals_eval_details,
+        product_visuals_1st_5_secs_eval_details: product visuals evaluation
     """
+    # Feature Product Visuals
+    product_visuals_feature = "Product Visuals"
     product_visuals = False
+    product_visuals_criteria = """A product or branded packaging is visually present at any time in the video.
+        Where the product is a service a relevant substitute should be shown such as via a branded app or branded
+        service personnel."""
+    product_visuals_eval_details = {
+        "feature": product_visuals_feature,
+        "feature_description": product_visuals_criteria,
+        "feature_detected": product_visuals,
+        "llm_details": [],
+    }
+    # Feature Product Visuals (First 5 seconds)
+    product_visuals_1st_5_secs_feature = "Product Visuals (First 5 seconds)"
     product_visuals_1st_5_secs = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    product_visuals_1st_5_secs_criteria = """A product or branded packaging is visually present the video.
+    Where the product is a service a relevant substitute should be shown such as via a
+    branded app or branded service personnel."""
+    product_visuals_1st_5_secs_eval_details = {
+        "feature": product_visuals_1st_5_secs_feature,
+        "feature_description": product_visuals_1st_5_secs_criteria,
+        "feature_detected": product_visuals_1st_5_secs,
+        "llm_details": [],
+    }
+
     branded_products_kg_entities = get_knowledge_graph_entities(branded_products)
 
+    # Video API: Evaluate product_visuals_feature and product_visuals_1st_5_secs_feature
     if use_annotations:
         # Video API: Evaluate product_visuals and product_visuals_1st_5_secs
         # Check in annotations at segment level
@@ -194,6 +216,7 @@ def detect_product_visuals(
                 f"No Frame Label annotations found. Skipping {product_visuals_feature} Frame Label evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate product_visuals_feature and product_visuals_1st_5_secs_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -201,9 +224,6 @@ def detect_product_visuals(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate product_visuals_feature
-        product_visuals_criteria = """A product or branded packaging is visually present at any time in the video.
-        Where the product is a service a relevant substitute should be shown such as via a branded app or branded
-        service personnel."""
         prompt = (
             """Is any of the following products: {branded_products}
             or product categories: {branded_products_categories}
@@ -224,17 +244,22 @@ def detect_product_visuals(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             product_visuals_feature, prompt, llm_params
         )
         if feature_detected:
             product_visuals = True
 
+        # Include llm details
+        product_visuals_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
         # 2. Evaluate product_visuals_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        product_visuals_1st_5_secs_criteria = """A product or branded packaging is visually present the video.
-        Where the product is a service a relevant substitute should be shown such as via a
-        branded app or branded service personnel."""
         prompt = (
             """Is any of the following products: {branded_products}
             or product categories: {branded_products_categories}
@@ -258,13 +283,25 @@ def detect_product_visuals(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             product_visuals_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             product_visuals_1st_5_secs = True
 
-    print(f"{product_visuals_feature}: {product_visuals}")
-    print(f"{product_visuals_1st_5_secs_feature}: {product_visuals_1st_5_secs}")
+        product_visuals_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return product_visuals, product_visuals_1st_5_secs
+    print(f"{product_visuals_feature}: {product_visuals}")
+    product_visuals_eval_details["feature_detected"] = product_visuals
+    print(f"{product_visuals_1st_5_secs_feature}: {product_visuals_1st_5_secs}")
+    product_visuals_1st_5_secs_eval_details["feature_detected"] = (
+        product_visuals_1st_5_secs
+    )
+
+    return product_visuals_eval_details, product_visuals_1st_5_secs_eval_details
