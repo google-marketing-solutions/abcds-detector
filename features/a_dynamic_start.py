@@ -34,11 +34,11 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    detect_feature_with_llm,
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 ### REMOVE FOR COLAB - START
 
@@ -49,19 +49,29 @@ from helpers.helpers import (
 
 # @markdown **Dynamic Start:** The first shot in the video changes in less than 3 seconds.
 
-# Features
-dynamic_start_feature = "Dynamic Start"
 
-
-def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> bool:
+def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> dict:
     """Detects Dynamic Start
     Args:
         shot_annotation_results: shot annotations
+        video_uri: video location in gcs
     Returns:
-        dynamic_start: start evaluation
+        dynamic_start_eval_details: dynamic start evaluation
     """
+    # Feature Dynamic Start
+    dynamic_start_feature = "Dynamic Start"
     dynamic_start = False
+    dynamic_start_criteria = (
+        """The first shot in the video changes in less than 3 seconds."""
+    )
+    dynamic_start_eval_details = {
+        "feature": dynamic_start_feature,
+        "feature_description": dynamic_start_criteria,
+        "feature_detected": dynamic_start,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate dynamic_start_feature
     if use_annotations:
         if "shot_annotations" in shot_annotation_results:
             first_shot_end_time_off_set = shot_annotation_results.get(
@@ -85,11 +95,9 @@ def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> bool:
                 f"No Shot annotations found. Skipping {dynamic_start_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate dynamic_start_feature
     if use_llms:
         # 1. Evaluate dynamic_start_feature
-        dynamic_start_criteria = (
-            """The first shot in the video changes in less than 3 seconds."""
-        )
         prompt = (
             """Does the first shot in the video change in less than 3 seconds?
             Consider the following criteria for your answer: {criteria}
@@ -111,12 +119,22 @@ def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> bool:
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             dynamic_start_feature, prompt, llm_params
         )
         if feature_detected:
             dynamic_start = True
 
-    print(f"{dynamic_start_feature}: {dynamic_start}")
+        # Include llm details
+        dynamic_start_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return dynamic_start
+    print(f"{dynamic_start_feature}: {dynamic_start}")
+    dynamic_start_eval_details["feature_detected"] = dynamic_start
+
+    return dynamic_start_eval_details

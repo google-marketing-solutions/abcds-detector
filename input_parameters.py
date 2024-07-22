@@ -33,7 +33,7 @@ VERBOSE = True  # @param {type:"boolean"}
 use_llms = True  # @param {type:"boolean"}
 use_annotations = True # @param {type:"boolean"}
 # For local testing outside colab ONLY, set to False for colab
-STORE_TEST_RESULTS = False
+STORE_ASSESSMENT_RESULTS_LOCALLY = False
 TEST_RESULTS = []
 
 # @markdown #### Knowledge Graph API Configuration

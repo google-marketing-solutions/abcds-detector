@@ -37,12 +37,15 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    get_knowledge_graph_entities,
+from helpers.annotations_helpers import (
     calculate_time_seconds,
     detected_text_in_first_5_seconds,
-    detect_feature_with_llm,
+)
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
+    get_knowledge_graph_entities,
     get_n_secs_video_uri_from_uri,
 )
 
@@ -56,10 +59,6 @@ from helpers.helpers import (
 
 # @markdown 2. **Brand Visuals (First 5 seconds):** Branding, defined as the brand name or brand logo are shown in-situation or overlaid in the first 5 seconds (up to 4.99s) of the video.
 # @markdown Including Logo Big & Logo Early. Is Logo larger than x% (3.5% default) of screen in the first 5 seconds?
-
-# Features
-brand_visuals_feature = "Brand Visuals"
-brand_visuals_1st_5_secs_feature = "Brand Visuals (First 5 seconds)"
 
 
 def calculate_surface_area(points) -> float:
@@ -82,24 +81,46 @@ def detect_brand_visuals(
     video_uri: str,
     brand_name: str,
     brand_variations: list[str],
-) -> tuple[bool, bool, bool]:
+) -> tuple[dict, dict, bool]:
     """Detect Brand Visuals & Brand Visuals (First 5 seconds)
     Args:
         text_annotation_results: text annotations
         logo_annotation_results: logo annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
         brand_name: name of the brand
         brand_variations: a list of brand name variations
     Returns:
-        brand_visuals,
-        brand_visuals_1st_5_secs,
-        brand_visuals_logo_big_1st_5_secs: evaluation
+        brand_visuals_eval_details,
+        brand_visuals_1st_5_secs_eval_details,
+        brand_visuals_logo_big_1st_5_secs: brand visuals evaluation
     """
-    # Video API: Evaluate brand_visuals_feature * brand_visuals_1st_5_secs_feature 1st_5_secs
+    # Feature Brand Visuals
+    brand_visuals_feature = "Brand Visuals"
     brand_visuals = False
+    brand_visuals_criteria = """Branding, defined as the brand name or brand logo are shown
+        in-situation or overlaid at any time in the video."""
+    brand_visuals_eval_details = {
+        "feature": brand_visuals_feature,
+        "feature_description": brand_visuals_criteria,
+        "feature_detected": brand_visuals,
+        "llm_details": [],
+    }
+    # Feature Brand Visuals (First 5 seconds)
+    brand_visuals_1st_5_secs_feature = "Brand Visuals (First 5 seconds)"
     brand_visuals_1st_5_secs = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    brand_visuals_1st_5_secs_criteria = """Branding, defined as the brand name or brand logo are shown in-situation
+    or overlaid in the video"""
+    brand_visuals_1st_5_secs_eval_details = {
+        "feature": brand_visuals_1st_5_secs_feature,
+        "feature_description": brand_visuals_1st_5_secs_criteria,
+        "feature_detected": brand_visuals_1st_5_secs,
+        "llm_details": [],
+    }
+    # Feature Logo Big (First 5 seconds)
     brand_visuals_logo_big_1st_5_secs = False
 
+    # Video API: Evaluate brand_visuals_feature and brand_visuals_1st_5_secs_feature 1st_5_secs
     if use_annotations:
         # Evaluate brand_visuals_brand_feature & brand_visuals_brand_1st_5_secs
         # in text annotations
@@ -205,6 +226,7 @@ def detect_brand_visuals(
                 f"No Logo annotations found. Skipping {brand_visuals_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate brand_visuals_feature and brand_visuals_1st_5_secs_feature 1st_5_secs
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -212,8 +234,6 @@ def detect_brand_visuals(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate brand_visuals_feature
-        brand_visuals_criteria = """Branding, defined as the brand name or brand logo are shown
-        in-situation or overlaid at any time in the video."""
         prompt = (
             """Is the brand {brand_name} or brand logo {brand_name} visible at any time in the video?
             Consider the following criteria for your answer: {criteria}
@@ -229,16 +249,22 @@ def detect_brand_visuals(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             brand_visuals_feature, prompt, llm_params
         )
         if feature_detected:
             brand_visuals = True
 
+        # Include llm details
+        brand_visuals_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
         # 2. Evaluate brand_visuals_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        brand_visuals_1st_5_secs_criteria = """Branding, defined as the brand name or brand logo are shown in-situation
-        or overlaid in the video"""
         prompt = (
             """Is the brand {brand_name} or brand logo {brand_name} visible in the video?
             Consider the following criteria for your answer: {criteria}
@@ -255,20 +281,31 @@ def detect_brand_visuals(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             brand_visuals_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             brand_visuals_1st_5_secs = True
 
+        # Include llm details
+        brand_visuals_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
     print(f"{brand_visuals_feature}: {brand_visuals}")
+    brand_visuals_eval_details["feature_detected"] = brand_visuals
     print(
         f"""{brand_visuals_1st_5_secs_feature}: {brand_visuals_1st_5_secs}
         Logo Big: {brand_visuals_logo_big_1st_5_secs}"""
     )
+    brand_visuals_1st_5_secs_eval_details["feature_detected"] = brand_visuals_1st_5_secs
 
     return (
-        brand_visuals,
-        brand_visuals_1st_5_secs,
+        brand_visuals_eval_details,
+        brand_visuals_1st_5_secs_eval_details,
         brand_visuals_logo_big_1st_5_secs,
     )

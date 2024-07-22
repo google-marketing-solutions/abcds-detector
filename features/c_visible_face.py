@@ -36,10 +36,11 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    calculate_time_seconds,
-    detect_feature_with_llm,
+from helpers.annotations_helpers import calculate_time_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
 
@@ -53,10 +54,6 @@ from helpers.helpers import (
 
 # @markdown  **Visible Face (Close Up):** There is a close up of a human face at any time in the video.
 
-# Features
-visible_face_1st_5_secs_feature = "Visible Face (First 5 seconds)"
-visible_face_close_up_feature = "Visible Face (Close Up)"
-
 
 def detect_visible_face(
     face_annotation_results: any, video_uri: str
@@ -64,14 +61,37 @@ def detect_visible_face(
     """Detect Visible Face (First 5 seconds) & Visible Face (Close Up)
     Args:
         face_annotation_results: face annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        visible_face_1st_5_secs,
-        visible_face_close_up: evaluation
+        visible_face_1st_5_secs_eval_details,
+        visible_face_close_up_eval_details: visible face evaluation
     """
+    # Feature Visible Face (First 5 seconds)
+    visible_face_1st_5_secs_feature = "Visible Face (First 5 seconds)"
     visible_face_1st_5_secs = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    visible_face_1st_5_secs_criteria = """At least one human face is present in the video.
+    Alternate representations of people such as Animations or Cartoons ARE acceptable."""
+    visible_face_1st_5_secs_eval_details = {
+        "feature": visible_face_1st_5_secs_feature,
+        "feature_description": visible_face_1st_5_secs_criteria,
+        "feature_detected": visible_face_1st_5_secs,
+        "llm_details": [],
+    }
+    # Feature Visible Face (Close Up)
+    visible_face_close_up_feature = "Visible Face (Close Up)"
     visible_face_close_up = False
+    visible_face_close_up_criteria = (
+        """There is a close up of a human face at any time in the video."""
+    )
+    visible_face_close_up_eval_details = {
+        "feature": visible_face_close_up_feature,
+        "feature_description": visible_face_close_up_criteria,
+        "feature_detected": visible_face_close_up,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate visible_face_1st_5_secs_feature and visible_face_close_up_feature
     if use_annotations:
         if "face_detection_annotations" in face_annotation_results:
             # Video API: Evaluate visible_face_1st_5_secs_feature and visible_face_close_up_feature
@@ -103,6 +123,7 @@ def detect_visible_face(
                 f"No Face annotations found. Skipping {visible_face_1st_5_secs_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate visible_face_1st_5_secs_feature and visible_face_close_up_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -110,9 +131,6 @@ def detect_visible_face(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate visible_face_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        visible_face_1st_5_secs_criteria = """At least one human face is present in the video.
-        Alternate representations of people such as Animations or Cartoons ARE acceptable."""
         prompt = (
             """Is there a human face present in the video?
             Consider the following criteria for your answer: {criteria}
@@ -128,16 +146,22 @@ def detect_visible_face(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             visible_face_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             visible_face_1st_5_secs = True
 
-        # 2. Evaluate visible_face_close_up_feature
-        visible_face_close_up_criteria = (
-            """There is a close up of a human face at any time in the video."""
+        # Include llm details
+        visible_face_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
         )
+
+        # 2. Evaluate visible_face_close_up_feature
         prompt = (
             """Is there a close up of a human face present at any time the video?
             Consider the following criteria for your answer: {criteria}
@@ -152,13 +176,24 @@ def detect_visible_face(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             visible_face_close_up_feature, prompt, llm_params
         )
         if feature_detected:
             visible_face_close_up = True
 
-    print(f"{visible_face_1st_5_secs_feature}: {visible_face_1st_5_secs}")
-    print(f"{visible_face_close_up_feature}: {visible_face_close_up}")
+        # Include llm details
+        visible_face_close_up_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return visible_face_1st_5_secs, visible_face_close_up
+    print(f"{visible_face_1st_5_secs_feature}: {visible_face_1st_5_secs}")
+    visible_face_1st_5_secs_eval_details["feature_detected"] = visible_face_1st_5_secs
+    print(f"{visible_face_close_up_feature}: {visible_face_close_up}")
+    visible_face_close_up_eval_details["feature_detected"] = visible_face_close_up
+
+    return visible_face_1st_5_secs_eval_details, visible_face_close_up_eval_details

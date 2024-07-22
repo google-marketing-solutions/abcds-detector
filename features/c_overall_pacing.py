@@ -34,11 +34,9 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    calculate_time_seconds,
-    detect_feature_with_llm,
-)
+from helpers.annotations_helpers import calculate_time_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 ### REMOVE FOR COLAB - END
 
@@ -48,22 +46,31 @@ from helpers.helpers import (
 
 # @markdown **Overall Pacing:** The pace of the video is greater than 2 seconds per shot/frame
 
-# Features
-overall_pacing_feature = "Overall Pacing"
 
-
-def detect_overall_pacing(shot_annotation_results: any, video_uri: str) -> bool:
+def detect_overall_pacing(shot_annotation_results: any, video_uri: str) -> dict:
     """Detect Overall Pacing
     Args:
         shot_annotation_results: shot annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        overall_pacing: evaluation
+        overall_pacing_eval_details: overall pacing evaluation
     """
+    # Feature Overall Pacing
+    overall_pacing_feature = "Overall Pacing"
     overall_pacing = False
+    overall_pacing_criteria = (
+        """The pace of the video is greater than 2 seconds per shot/frame"""
+    )
+    overall_pacing_eval_details = {
+        "feature": overall_pacing_feature,
+        "feature_description": overall_pacing_criteria,
+        "feature_detected": overall_pacing,
+        "llm_details": [],
+    }
     total_time_all_shots = 0
     total_shots = 0
 
+    # Video API: Evaluate overall_pacing_feature
     if use_annotations:
         if "shot_annotations" in shot_annotation_results:
             # Video API: Evaluate overall_pacing_feature
@@ -81,11 +88,9 @@ def detect_overall_pacing(shot_annotation_results: any, video_uri: str) -> bool:
                 f"No Shot annotations found. Skipping {overall_pacing_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate overall_pacing_feature
     if use_llms:
         # 1. Evaluate overall_pacing_feature
-        overall_pacing_criteria = (
-            """The pace of the video is greater than 2 seconds per shot/frame"""
-        )
         prompt = (
             """Is the pace of video greater than 2 seconds per shot/frame?
             Consider the following criteria for your answer: {criteria}
@@ -105,12 +110,22 @@ def detect_overall_pacing(shot_annotation_results: any, video_uri: str) -> bool:
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             overall_pacing_feature, prompt, llm_params
         )
         if feature_detected:
             overall_pacing = True
 
-    print(f"{overall_pacing_feature}: {overall_pacing}")
+        # Include llm details
+        overall_pacing_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return overall_pacing
+    print(f"{overall_pacing_feature}: {overall_pacing}")
+    overall_pacing_eval_details["feature_detected"] = overall_pacing
+
+    return overall_pacing_eval_details

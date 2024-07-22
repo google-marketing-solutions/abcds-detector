@@ -21,14 +21,11 @@
 """Module to execute the ABCD Detector Assessment"""
 
 ### REMOVE FOR COLAB - START
-from generate_video_annotations.generate_video_annotations import (
-    generate_video_annotations,
-)
 
 from input_parameters import (
     BUCKET_NAME,
     VIDEO_SIZE_LIMIT_MB,
-    STORE_TEST_RESULTS,
+    STORE_ASSESSMENT_RESULTS_LOCALLY,
     brand_name,
     brand_variations,
     branded_products,
@@ -38,13 +35,20 @@ from input_parameters import (
     use_annotations,
 )
 
-from helpers.helpers import (
-    bucket,
-    get_file_name_from_gcs_url,
-    download_video_annotations,
-    store_test_results_local_file,
-    trim_videos
+from generate_video_annotations.generate_video_annotations import (
+    generate_video_annotations,
 )
+
+from helpers.bq_service import BigQueryService
+
+from helpers.generic_helpers import (
+    get_bucket,
+    get_file_name_from_gcs_url,
+    store_assessment_results_locally,
+    trim_videos,
+)
+
+from helpers.annotations_helpers import download_video_annotations
 
 from features.a_quick_pacing import detect_quick_pacing
 from features.a_dynamic_start import detect_dynamic_start
@@ -99,10 +103,10 @@ def print_abcd_assetssments(abcd_assessment: dict) -> None:
 
         print("Evaluated Features:")
         for feature in video_assessment.get("features"):
-            if feature.get("feature_evaluation"):
-                print(f' * ✅ {feature.get("feature_description")}')
+            if feature.get("feature_detected"):
+                print(f' * ✅ {feature.get("feature")}')
             else:
-                print(f' * ❌ {feature.get("feature_description")}')
+                print(f' * ❌ {feature.get("feature")}')
 
 
 def execute_abcd_assessment_for_videos():
@@ -112,6 +116,7 @@ def execute_abcd_assessment_for_videos():
 
     # Get videos for ABCD Assessment
     brand_videos_folder = f"{brand_name}/videos"
+    bucket = get_bucket()
     blobs = bucket.list_blobs(prefix=brand_videos_folder)
     # Video processing
     for video in blobs:
@@ -155,18 +160,27 @@ def execute_abcd_assessment_for_videos():
 
         # 3) Execute ABCD Assessment
         video_uri = f"gs://{BUCKET_NAME}/{video.name}"
+        features = []
 
         # Quick pacing
         quick_pacing, quick_pacing_1st_5_secs = detect_quick_pacing(
             shot_annotation_results, video_uri
         )
+        features.append(quick_pacing)
+        features.append(quick_pacing_1st_5_secs)
+
         # Dynamic Start
         dynamic_start = detect_dynamic_start(shot_annotation_results, video_uri)
+        features.append(dynamic_start)
+
         # Supers and Supers with Audio
         supers = detect_supers(text_annotation_results, video_uri)
         supers_with_audio = detect_supers_with_audio(
             text_annotation_results, speech_annotation_results, video_uri
         )
+        features.append(supers)
+        features.append(supers_with_audio)
+
         # Brand Visuals & Brand Visuals (First 5 seconds)
         (
             brand_visuals,
@@ -179,6 +193,9 @@ def execute_abcd_assessment_for_videos():
             brand_name,
             brand_variations,
         )
+        features.append(brand_visuals)
+        features.append(brand_visuals_1st_5_secs)
+
         # Brand Mention (Speech) & Brand Mention (Speech) (First 5 seconds)
         (
             brand_mention_speech,
@@ -186,6 +203,9 @@ def execute_abcd_assessment_for_videos():
         ) = detect_brand_mention_speech(
             speech_annotation_results, video_uri, brand_name, brand_variations
         )
+        features.append(brand_mention_speech)
+        features.append(brand_mention_speech_1st_5_secs)
+
         # Product Visuals & Product Visuals (First 5 seconds)
         product_visuals, product_visuals_1st_5_secs = detect_product_visuals(
             label_annotation_results,
@@ -193,7 +213,10 @@ def execute_abcd_assessment_for_videos():
             branded_products,
             branded_products_categories,
         )
-        # Product Mention (Text): & Product Mention (Text):
+        features.append(product_visuals)
+        features.append(product_visuals_1st_5_secs)
+
+        # Product Mention (Text) & Product Mention (Text) (First 5 seconds)
         (
             product_mention_text,
             product_mention_text_1st_5_secs,
@@ -203,6 +226,9 @@ def execute_abcd_assessment_for_videos():
             branded_products,
             branded_products_categories,
         )
+        features.append(product_mention_text)
+        features.append(product_mention_text_1st_5_secs)
+
         # Product Mention (Speech) & Product Mention (Speech) (First 5 seconds)
         (
             product_mention_speech,
@@ -213,151 +239,86 @@ def execute_abcd_assessment_for_videos():
             branded_products,
             branded_products_categories,
         )
+        features.append(product_mention_speech)
+        features.append(product_mention_speech_1st_5_secs)
+
         # Visible Face (First 5s) & Visible Face (Close Up)
         visible_face_1st_5_secs, visible_face_close_up = detect_visible_face(
             face_annotation_results, video_uri
         )
+        features.append(visible_face_1st_5_secs)
+        features.append(visible_face_close_up)
+
         # Presence of People & Presence of People (First 5 seconds)
         presence_of_people, presence_of_people_1st_5_secs = detect_presence_of_people(
             people_annotation_results, video_uri
         )
+        features.append(presence_of_people)
+        features.append(presence_of_people_1st_5_secs)
+
         #  Audio Early (First 5 seconds)
         audio_speech_early = detect_audio_speech_early(
             speech_annotation_results, video_uri
         )
+        features.append(audio_speech_early)
+
         # Overall Pacing
         overall_pacing = detect_overall_pacing(shot_annotation_results, video_uri)
-        # Call To Action (Speech) & Call To Action (Text)
+        features.append(overall_pacing)
+
+        # Call To Action (Speech)
         call_to_action_speech = detect_call_to_action_speech(
             speech_annotation_results, video_uri, branded_call_to_actions
         )
+        features.append(call_to_action_speech)
+
+        # Call To Action (Text)
         call_to_action_text = detect_call_to_action_text(
             text_annotation_results, video_uri, branded_call_to_actions
         )
-
-        if STORE_TEST_RESULTS:
-            # Store test results locally
-            store_test_results_local_file()
+        features.append(call_to_action_text)
 
         # Calculate ABCD final score
-        features = [
-            {"feature_description": "Quick Pacing", "feature_evaluation": quick_pacing},
-            {
-                "feature_description": "Quick Pacing (First 5 seconds)",
-                "feature_evaluation": quick_pacing_1st_5_secs,
-            },
-            {
-                "feature_description": "Dynamic Start",
-                "feature_evaluation": dynamic_start,
-            },
-            {"feature_description": "Supers", "feature_evaluation": supers},
-            {
-                "feature_description": "Supers with Audio",
-                "feature_evaluation": supers_with_audio,
-            },
-            {
-                "feature_description": "Brand Visuals",
-                "feature_evaluation": brand_visuals,
-            },
-            {
-                "feature_description": "Brand Visuals (First 5 seconds)",
-                "feature_evaluation": brand_visuals_1st_5_secs,
-            },
-            {
-                "feature_description": "Brand Mention (Speech)",
-                "feature_evaluation": brand_mention_speech,
-            },
-            {
-                "feature_description": "Brand Mention (Speech) (First 5 seconds)",
-                "feature_evaluation": brand_mention_speech_1st_5_secs,
-            },
-            {
-                "feature_description": "Product Visuals",
-                "feature_evaluation": product_visuals,
-            },
-            {
-                "feature_description": "Product Visuals (First 5 seconds)",
-                "feature_evaluation": product_visuals_1st_5_secs,
-            },
-            {
-                "feature_description": "Product Mention (Text)",
-                "feature_evaluation": product_mention_text,
-            },
-            {
-                "feature_description": "Product Mention (Text) (First 5 seconds)",
-                "feature_evaluation": product_mention_text_1st_5_secs,
-            },
-            {
-                "feature_description": "Product Mention (Speech)",
-                "feature_evaluation": product_mention_speech,
-            },
-            {
-                "feature_description": "Product Mention (Speech) (First 5 seconds)",
-                "feature_evaluation": product_mention_speech_1st_5_secs,
-            },
-            {
-                "feature_description": "Visible Face (First 5 seconds)",
-                "feature_evaluation": visible_face_1st_5_secs,
-            },
-            {
-                "feature_description": "Visible Face (Close Up)",
-                "feature_evaluation": visible_face_close_up,
-            },
-            {
-                "feature_description": "Presence of People",
-                "feature_evaluation": presence_of_people,
-            },
-            {
-                "feature_description": "Presence of People (First 5 seconds)",
-                "feature_evaluation": presence_of_people_1st_5_secs,
-            },
-            {
-                "feature_description": "Overall Pacing",
-                "feature_evaluation": overall_pacing,
-            },
-            {
-                "feature_description": "Audio Speech Early",
-                "feature_evaluation": audio_speech_early,
-            },
-            {
-                "feature_description": "Call To Action (Text)",
-                "feature_evaluation": call_to_action_text,
-            },
-            {
-                "feature_description": "Call To Action (Speech)",
-                "feature_evaluation": call_to_action_speech,
-            },
-        ]
         total_features = len(features)
         passed_features_count = 0
         for feature in features:
-            if feature.get("feature_evaluation"):
+            if feature.get("feature_detected"):
                 passed_features_count += 1
         # Get score
         score = (passed_features_count * 100) / total_features
-        assessments.get("video_assessments").append(
-            {
-                "video_name": video_name_with_format,
-                "video_location": video_uri,
-                "features": features,
-                "passed_features_count": passed_features_count,
-                "score": score,
-            }
-        )
+        video_assessment = {
+            "video_name": video_name_with_format,
+            "video_uri": video_uri,
+            "features": features,
+            "passed_features_count": passed_features_count,
+            "score": score,
+        }
+        assessments.get("video_assessments").append(video_assessment)
+
+        if STORE_ASSESSMENT_RESULTS_LOCALLY:
+            # Store assessment results locally
+            store_assessment_results_locally(brand_name, video_assessment)
+
     return assessments
 
 
-# Main ABCD Assessment execution
+def execute_abcd_detector():
+    """Main ABCD Assessment execution"""
 
-if use_annotations:
-    generate_video_annotations(brand_name)
+    if use_annotations:
+        generate_video_annotations(brand_name)
 
-trim_videos(brand_name)
+    trim_videos(brand_name)
 
-abcd_assessments = execute_abcd_assessment_for_videos()
-if len(abcd_assessments.get("video_assessments")) == 0:
-    print("There are no videos to display.")
-    exit()
+    abcd_assessments = execute_abcd_assessment_for_videos()
+    if len(abcd_assessments.get("video_assessments")) == 0:
+        print("There are no videos to display.")
+        exit()
 
-# Print ABCD Assessments
-print_abcd_assetssments(abcd_assessments)
+    # Print ABCD Assessments
+    print_abcd_assetssments(abcd_assessments)
+
+
+### Main ABCD Assessment execution ###
+if __name__ == "__main__":
+    execute_abcd_detector()
