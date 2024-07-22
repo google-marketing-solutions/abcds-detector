@@ -23,11 +23,13 @@
 from google.cloud import videointelligence
 
 ### REMOVE FOR COLAB - START
-from helpers.helpers import (
-    bucket,
+from helpers.generic_helpers import (
+    get_bucket,
     get_file_name_from_gcs_url,
-    get_existing_annotations_from_gcs,
 )
+
+from helpers.annotations_helpers import get_existing_annotations_from_gcs
+
 from input_parameters import BUCKET_NAME
 from .label_detection import detect_labels
 from .face_detection import detect_faces
@@ -46,6 +48,7 @@ def generate_video_annotations(brand_name: str):
         brand_name: the brand to generate the video annotations for
     """
     # Get videos from GCS
+    bucket = get_bucket()
     brand_videos_folder = f"{brand_name}/videos"
     blobs = bucket.list_blobs(prefix=brand_videos_folder)
     # Video processing
@@ -77,6 +80,7 @@ def generate_annotations_for_video(
     Args:
         brand_name: the brand to generate the video annotations for
         video_name: the name of the video to generate the annotations for
+        video_name_with_format: video name and format
         existing_video_annotations: a list of existing annotations to avoid generating
         them for the same video
     """

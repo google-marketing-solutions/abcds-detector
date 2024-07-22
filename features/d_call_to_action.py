@@ -34,11 +34,14 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    detect_feature_with_llm,
+from helpers.annotations_helpers import (
     find_elements_in_transcript,
     get_speech_transcript,
+)
+
+from helpers.vertex_ai_service import (
+    LLMParameters,
+    detect_feature_with_llm,
 )
 
 ### REMOVE FOR COLAB - END
@@ -51,9 +54,6 @@ from helpers.helpers import (
 
 # @markdown **Call To Action (Speech):** A 'Call To Action' phrase is heard or mentioned in the audio or speech at any time in the video.
 
-# Features
-call_to_action_text_feature = "Call To Action (Text)"
-call_to_action_speech_feature = "Call To Action (Speech)"
 
 call_to_action_api_list = [
     "LEARN MORE",
@@ -103,14 +103,25 @@ def detect_call_to_action_speech(
     """Detect Call To Action (Speech)
     Args:
         speech_annotation_results: speech annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
         branded_call_to_actions: list of branded call to actions
     Returns:
-        call_to_action_speech: evaluation
+        call_to_action_speech_eval_details: call to action speech evaluation
     """
+    # Feature Call To Action (Speech)
+    call_to_action_speech_feature = "Call To Action (Speech)"
     call_to_action_speech = False
+    call_to_action_speech_criteria = """A 'Call To Action' phrase is heard or mentioned in the audio or speech
+        at any time in the video."""
+    call_to_action_speech_eval_details = {
+        "feature": call_to_action_speech_feature,
+        "feature_description": call_to_action_speech_criteria,
+        "feature_detected": call_to_action_speech,
+        "llm_details": [],
+    }
     call_to_action_api_list.extend(branded_call_to_actions)
 
+    # Video API: Evaluate call_to_action_speech_feature
     if use_annotations:
         if "speech_transcriptions" in speech_annotation_results:
             # Video API: Evaluate call_to_action_speech_feature
@@ -118,24 +129,25 @@ def detect_call_to_action_speech(
                 call_to_action_speech,
                 na,
             ) = find_elements_in_transcript(
-                speech_transcriptions=speech_annotation_results.get("speech_transcriptions"),
+                speech_transcriptions=speech_annotation_results.get(
+                    "speech_transcriptions"
+                ),
                 elements=call_to_action_api_list,
                 elements_categories=[],
-                apply_condition=False
+                apply_condition=False,
             )
         else:
             print(
                 f"No Speech annotations found. Skipping {call_to_action_speech} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate call_to_action_speech_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
             location=llm_location,
             generation_config=llm_generation_config,
         )
-        call_to_action_speech_criteria = """A 'Call To Action' phrase is heard or mentioned in the audio or speech
-        at any time in the video."""
 
         # LLM Only
         prompt = (
@@ -154,11 +166,20 @@ def detect_call_to_action_speech(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             call_to_action_speech_feature, prompt, llm_params
         )
         if feature_detected:
             call_to_action_speech = True
+
+        # Include llm details
+        call_to_action_speech_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
         # Combination of Annotations + LLM
         if use_annotations:
@@ -167,39 +188,57 @@ def detect_call_to_action_speech(
                 transcript = get_speech_transcript(
                     speech_annotation_results.get("speech_transcriptions")
                 )
-                # If transcript is empty, this feature should be False
-                if transcript:
-                    prompt = (
-                        """Does the provided speech transcript mention any call to actions in the video?
+                prompt = (
+                    """Does the provided speech transcript mention any call to actions in the video?
                         This is the speech transcript: "{transcript}"
                         Consider the following criteria for your answer: {criteria}
                         Some examples of call to actions are: {call_to_actions}
                         {context_and_examples}
                     """.replace(
-                            "{call_to_actions}", ", ".join(call_to_action_api_list)
-                        )
-                        .replace("{transcript}", transcript)
-                        .replace("{feature}", call_to_action_speech_feature)
-                        .replace("{criteria}", call_to_action_speech_criteria)
-                        .replace("{context_and_examples}", context_and_examples)
+                        "{call_to_actions}", ", ".join(call_to_action_api_list)
                     )
-                    # Set modality to text since we are not using video for Annotations + LLM
-                    llm_params.set_modality({"type": "text"})
-                    feature_detected = detect_feature_with_llm(
+                    .replace("{transcript}", transcript)
+                    .replace("{feature}", call_to_action_speech_feature)
+                    .replace("{criteria}", call_to_action_speech_criteria)
+                    .replace("{context_and_examples}", context_and_examples)
+                )
+                # Set modality to text since we are not using video for Annotations + LLM
+                llm_params.set_modality({"type": "text"})
+                # If transcript is empty, this feature should be False
+                if transcript:
+                    feature_detected, llm_explanation = detect_feature_with_llm(
                         call_to_action_speech_feature, prompt, llm_params
                     )
                     if feature_detected:
                         call_to_action_speech = True
+
+                    # Include llm details
+                    call_to_action_speech_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": llm_explanation,
+                        }
+                    )
                 else:
                     call_to_action_speech = False
+                    # Include default details
+                    call_to_action_speech_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": "Annotations + LLM: Speech was not found in annotations.",
+                        }
+                    )
             else:
                 print(
                     f"No Speech annotations found. Skipping {call_to_action_speech_feature} evaluation with Video Intelligence API."
                 )
 
     print(f"{call_to_action_speech_feature}: {call_to_action_speech}")
+    call_to_action_speech_eval_details["feature_detected"] = call_to_action_speech
 
-    return call_to_action_speech
+    return call_to_action_speech_eval_details
 
 
 def detect_call_to_action_text(
@@ -210,14 +249,25 @@ def detect_call_to_action_text(
     """Detect Call To Action (Text)
     Args:
         text_annotation_results: text annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
         branded_call_to_actions: list of branded call to actions
     Returns:
-        call_to_action_text: evaluation
+        call_to_action_text_eval_details: call to action text evaluation
     """
+    # Feature Call To Action (Text)
+    call_to_action_text_feature = "Call To Action (Text)"
     call_to_action_text = False
+    call_to_action_text_criteria = """A 'Call To Action' phrase is detected in the video supers (overlaid text)
+        at any time in the video."""
+    call_to_action_text_eval_details = {
+        "feature": call_to_action_text_feature,
+        "feature_description": call_to_action_text_criteria,
+        "feature_detected": call_to_action_text,
+        "llm_details": [],
+    }
     call_to_action_api_list.extend(branded_call_to_actions)
 
+    # Video API: Evaluate call_to_action_text_feature
     if use_annotations:
         if "text_annotations" in text_annotation_results:
             # Video API: Evaluate call_to_action_text_feature
@@ -235,6 +285,7 @@ def detect_call_to_action_text(
                 f"No Text annotations found. Skipping {call_to_action_text_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate call_to_action_text_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -242,8 +293,6 @@ def detect_call_to_action_text(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate call_to_action_text_feature
-        call_to_action_text_criteria = """A 'Call To Action' phrase is detected in the video supers (overlaid text)
-        at any time in the video."""
         prompt = (
             """Is any call to action detected in any text overlay at any time in the video?
             Consider the following criteria for your answer: {criteria}
@@ -260,12 +309,22 @@ def detect_call_to_action_text(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             call_to_action_text_feature, prompt, llm_params
         )
         if feature_detected:
             call_to_action_text = True
 
-    print(f"{call_to_action_text_feature}: {call_to_action_text}")
+        # Include llm details
+        call_to_action_text_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
-    return call_to_action_text
+    print(f"{call_to_action_text_feature}: {call_to_action_text}")
+    call_to_action_text_eval_details["feature_detected"] = call_to_action_text
+
+    return call_to_action_text_eval_details

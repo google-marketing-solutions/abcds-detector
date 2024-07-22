@@ -33,10 +33,11 @@ from input_parameters import (
     use_annotations,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    detect_feature_with_llm,
-    detected_text_in_first_5_seconds,
+from helpers.annotations_helpers import detected_text_in_first_5_seconds
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
 
@@ -50,30 +51,48 @@ from helpers.helpers import (
 
 # @markdown **Product Mention (Text) (First 5 seconds):** The branded product names or generic product categories are present in any text or overlay in the first 5 seconds (up to 4.99s) of the video.
 
-# Features
-product_mention_text_feature = "Product Mention (Text)"
-product_mention_text_1st_5_secs_feature = "Product Mention (Text) (First 5 seconds)"
-
 
 def detect_product_mention_text(
     text_annotation_results: any,
     video_uri: str,
     branded_products: list[str],
     branded_products_categories: list[str],
-) -> tuple[bool, bool]:
+) -> tuple[dict, dict]:
     """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
     Args:
         text_annotation_results: text annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
         branded_products: list of products
         branded_products_categories: list of products categories
     Returns:
-        product_mention_text,
-        product_mention_text_1st_5_secs: evaluation
+        product_mention_text_eval_details,
+        product_mention_text_1st_5_secs_eval_details: product mention text evaluation
     """
+    # Feature Product Mention (Text)
+    product_mention_text_feature = "Product Mention (Text)"
     product_mention_text = False
+    product_mention_text_criteria = """The branded product names or generic product categories
+        are present in any text or overlay at any time in the video."""
+    product_mention_text_eval_details = {
+        "feature": product_mention_text_feature,
+        "feature_description": product_mention_text_criteria,
+        "feature_detected": product_mention_text,
+        "llm_details": [],
+    }
+    # Feature Product Mention (Text) (First 5 seconds)
+    product_mention_text_1st_5_secs_feature = "Product Mention (Text) (First 5 seconds)"
     product_mention_text_1st_5_secs = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    product_mention_text_1st_5_secs_criteria = """The branded product names or generic product categories
+    are present in any text or overlay in the video."""
+    product_mention_text_1st_5_secs_eval_details = {
+        "feature": product_mention_text_1st_5_secs_feature,
+        "feature_description": product_mention_text_1st_5_secs_criteria,
+        "feature_detected": product_mention_text_1st_5_secs,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
     if use_annotations:
         if "text_annotations" in text_annotation_results:
             # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
@@ -102,6 +121,7 @@ def detect_product_mention_text(
                 f"No Text annotations found. Skipping {product_mention_text_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
@@ -109,8 +129,6 @@ def detect_product_mention_text(
             generation_config=llm_generation_config,
         )
         # 1. Evaluate product_mention_text_feature
-        product_mention_text_criteria = """The branded product names or generic product categories
-        are present in any text or overlay at any time in the video."""
         prompt = (
             """Is any of the following products: {branded_products}
             or product categories: {branded_products_categories}
@@ -133,16 +151,22 @@ def detect_product_mention_text(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             product_mention_text_feature, prompt, llm_params
         )
         if feature_detected:
             product_mention_text = True
 
+        # Include llm details
+        product_mention_text_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
         # 2. Evaluate product_mention_text_1st_5_secs_feature
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        product_mention_text_1st_5_secs_criteria = """The branded product names or generic product categories
-        are present in any text or overlay in the video."""
         prompt = (
             """Is any of the following products: {branded_products}
             or product categories: {branded_products_categories}
@@ -166,15 +190,30 @@ def detect_product_mention_text(
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             product_mention_text_1st_5_secs_feature, prompt, llm_params
         )
         if feature_detected:
             product_mention_text_1st_5_secs = True
 
+        product_mention_text_1st_5_secs_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
+
     print(f"{product_mention_text_feature}: {product_mention_text}")
+    product_mention_text_eval_details["feature_detected"] = product_mention_text
     print(
         f"{product_mention_text_1st_5_secs_feature}: {product_mention_text_1st_5_secs}"
     )
+    product_mention_text_1st_5_secs_eval_details["feature_detected"] = (
+        product_mention_text_1st_5_secs
+    )
 
-    return product_mention_text, product_mention_text_1st_5_secs
+    return (
+        product_mention_text_eval_details,
+        product_mention_text_1st_5_secs_eval_details,
+    )

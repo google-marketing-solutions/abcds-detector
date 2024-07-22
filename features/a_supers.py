@@ -34,12 +34,12 @@ from input_parameters import (
     use_annotations,
 )
 
-from helpers.helpers import (
-    LLMParameters,
-    detect_feature_with_llm,
+from helpers.annotations_helpers import (
     find_elements_in_transcript,
     get_speech_transcript,
 )
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 ### REMOVE FOR COLAB - END
 
@@ -52,22 +52,27 @@ from helpers.helpers import (
 
 # @markdown 2. **Supers with Audio**: The speech heard in the audio of the video matches OR is contextually supportive of the overlaid text shown on screen.
 
-# Features
-supers_feature = "Supers"
-supers_with_audio_feature = "Supers with Audio"
 
-
-def detect_supers(text_annotation_results: any, video_uri: str) -> bool:
+def detect_supers(text_annotation_results: any, video_uri: str) -> dict:
     """Detect Supers
     Args:
         text_annotation_results: text annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        supers: evaluation
+        supers_eval_details: supers evaluation
     """
-    # Video API: Evaluate supers_feature
+    # Feature Supers
     supers = False
+    supers_feature = "Supers"
+    supers_criteria = """Any supers (text overlays) have been incorporated at any time in the video."""
+    supers_eval_details = {
+        "feature": supers_feature,
+        "feature_description": supers_criteria,
+        "feature_detected": supers,
+        "llm_details": None,
+    }
 
+    # Video API: Evaluate supers_feature
     if use_annotations:
         if "text_annotations" in text_annotation_results:
             if len(text_annotation_results.get("text_annotations")) > 0:
@@ -77,9 +82,9 @@ def detect_supers(text_annotation_results: any, video_uri: str) -> bool:
                 f"No Text annotations found. Skipping {supers_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate supers_feature
     if use_llms:
         # 1. Evaluate supers_feature
-        supers_criteria = """Any supers (text overlays) have been incorporated at any time in the video."""
         prompt = (
             """Are there any supers (text overlays) at any time in the video?
             Consider the following criteria for your answer: {criteria}
@@ -99,31 +104,52 @@ def detect_supers(text_annotation_results: any, video_uri: str) -> bool:
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(supers_feature, prompt, llm_params)
+        feature_detected, llm_explanation = detect_feature_with_llm(
+            supers_feature, prompt, llm_params
+        )
         if feature_detected:
             supers = True
 
-    print(f"{supers_feature}: {supers}")
+        # Include llm details
+        supers_eval_details["llm_details"] = {
+            "llm_params": llm_params.__dict__,
+            "prompt": prompt,
+            "llm_explanation": llm_explanation,
+        }
 
-    return supers
+    print(f"{supers_feature}: {supers}")
+    supers_eval_details["feature_detected"] = supers
+
+    return supers_eval_details
 
 
 def detect_supers_with_audio(
     text_annotation_results: any,
     speech_annotation_results: any,
     video_uri: str,
-) -> bool:
+) -> dict:
     """Detect Supers with Audio
     Args:
         text_annotation_results: text annotations
         speech_annotation_results: speech annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        supers_with_audio: evaluation
+        supers_with_audio_eval_details: supers with audio evaluation
     """
+    # Feature Supers with Audio
+    supers_with_audio_feature = "Supers with Audio"
     supers_with_audio = False
+    supers_with_audio_criteria = """The speech heard in the audio of the video matches OR is contextually
+        supportive of the overlaid text shown on screen."""
+    supers_with_audio_eval_details = {
+        "feature": supers_with_audio_feature,
+        "feature_description": supers_with_audio_criteria,
+        "feature_detected": supers_with_audio,
+        "llm_details": [],
+    }
     detected_text_list = []
 
+    # Video API: Evaluate supers_with_audio_feature
     if use_annotations:
         if (
             "text_annotations" in text_annotation_results
@@ -152,14 +178,13 @@ def detect_supers_with_audio(
                 f"No Text or Speech annotations found. Skipping {supers_with_audio_feature} evaluation."
             )
 
+    # LLM: Evaluate supers_with_audio_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
             location=llm_location,
             generation_config=llm_generation_config,
         )
-        supers_with_audio_criteria = """The speech heard in the audio of the video matches OR is contextually
-        supportive of the overlaid text shown on screen."""
 
         # LLM Only
         # 1. Evaluate supers_with_audio_feature
@@ -179,11 +204,20 @@ def detect_supers_with_audio(
         )
         # Use full video for this feature
         llm_params.set_modality({"type": "video", "video_uri": video_uri})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             supers_with_audio_feature, prompt, llm_params
         )
         if feature_detected:
             supers_with_audio = True
+
+        # Include llm details
+        supers_with_audio_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
         # Combination of Annotations + LLM
         if use_annotations:
@@ -192,35 +226,53 @@ def detect_supers_with_audio(
                 transcript = get_speech_transcript(
                     speech_annotation_results.get("speech_transcriptions")
                 )
-                # If transcript is empty, this feature should be False
-                if transcript:
-                    prompt = (
-                        """Does the provided speech transcript matches any supers (text overlays) in the video or is the speech transcript
+                prompt = (
+                    """Does the provided speech transcript matches any supers (text overlays) in the video or is the speech transcript
                         contextually supportive of the overlaid text shown on the video?
                         This is the speech transcript: "{transcript}"
                         Consider the following criteria for your answer: {criteria}
                         {context_and_examples}
                     """.replace(
-                            "{feature}", supers_with_audio_feature
-                        )
-                        .replace("{transcript}", transcript)
-                        .replace("{criteria}", supers_with_audio_criteria)
-                        .replace("{context_and_examples}", context_and_examples)
+                        "{feature}", supers_with_audio_feature
                     )
-                    # Use full video for this feature
-                    llm_params.set_modality({"type": "video", "video_uri": video_uri})
-                    feature_detected = detect_feature_with_llm(
+                    .replace("{transcript}", transcript)
+                    .replace("{criteria}", supers_with_audio_criteria)
+                    .replace("{context_and_examples}", context_and_examples)
+                )
+                # Use full video for this feature
+                llm_params.set_modality({"type": "video", "video_uri": video_uri})
+                # If transcript is empty, this feature should be False
+                if transcript:
+                    feature_detected, llm_explanation = detect_feature_with_llm(
                         supers_with_audio_feature, prompt, llm_params
                     )
                     if feature_detected:
                         supers_with_audio = True
+
+                    # Include llm details
+                    supers_with_audio_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": llm_explanation,
+                        }
+                    )
                 else:
                     supers_with_audio = False
+                    # Include default details
+                    supers_with_audio_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": "Annotations + LLM: Speech was not found in annotations.",
+                        }
+                    )
             else:
                 print(
-                    f"No Speech annotations found. Skipping {supers_with_audio_feature} evaluation with LLM."
+                    f"No Speech annotations found. Skipping {supers_with_audio_feature} evaluation with Annotations + LLM."
                 )
 
     print(f"{supers_with_audio_feature}: {supers_with_audio}")
+    supers_with_audio_eval_details["feature_detected"] = supers_with_audio
 
-    return supers_with_audio
+    return supers_with_audio_eval_details

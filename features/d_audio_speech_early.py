@@ -35,11 +35,14 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.helpers import (
-    LLMParameters,
+from helpers.annotations_helpers import (
     calculate_time_seconds,
-    detect_feature_with_llm,
     get_speech_transcript_1st_5_secs,
+)
+
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
+
+from helpers.generic_helpers import (
     get_n_secs_video_uri_from_uri,
 )
 
@@ -51,21 +54,28 @@ from helpers.helpers import (
 
 # @markdown **Audio Early (First 5 seconds):** Speech is detected in the audio in the first 5 seconds (up to 4.99s) of the video
 
-# Features
-audio_speech_early_feature = "Audio Early (First 5 seconds)"
-
 
 def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) -> bool:
     """Detect Audio Early (First 5 seconds)
     Args:
         speech_annotation_results: speech annotations
-        video_location: video location in gcs
+        video_uri: video location in gcs
     Returns:
-        presence_of_people,
-        presence_of_people_1st_5_secs: evaluation
+        audio_speech_early_eval_details: audio early evaluation
     """
+    # Feature Audio Early (First 5 seconds)
+    audio_speech_early_feature = "Audio Early (First 5 seconds)"
     audio_speech_early = False
+    # Remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
+    audio_speech_early_criteria = """Speech is detected in the audio of the video."""
+    audio_speech_early_eval_details = {
+        "feature": audio_speech_early_feature,
+        "feature_description": audio_speech_early_criteria,
+        "feature_detected": audio_speech_early,
+        "llm_details": [],
+    }
 
+    # Video API: Evaluate audio_speech_early_feature
     if use_annotations:
         if "speech_transcriptions" in speech_annotation_results:
             # Video API: Evaluate audio_speech_early_feature
@@ -94,15 +104,12 @@ def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) ->
                 f"No Speech annotations found. Skipping {audio_speech_early_feature} evaluation with Video Intelligence API."
             )
 
+    # LLM: Evaluate audio_speech_early_feature
     if use_llms:
         llm_params = LLMParameters(
             model_name=GEMINI_PRO,
             location=llm_location,
             generation_config=llm_generation_config,
-        )
-        # remove 1st 5 secs references from prompt to avoid hallucinations since the video is already 5 secs
-        audio_speech_early_criteria = (
-            """Speech is detected in the audio of the video."""
         )
 
         # LLM Only
@@ -121,11 +128,20 @@ def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) ->
         # Use first 5 secs video for this feature
         video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
         llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
-        feature_detected = detect_feature_with_llm(
+        feature_detected, llm_explanation = detect_feature_with_llm(
             audio_speech_early_feature, prompt, llm_params
         )
         if feature_detected:
             audio_speech_early = True
+
+        # Include llm details
+        audio_speech_early_eval_details["llm_details"].append(
+            {
+                "llm_params": llm_params.__dict__,
+                "prompt": prompt,
+                "llm_explanation": llm_explanation,
+            }
+        )
 
         # Combination of Annotations + LLM
         if use_annotations:
@@ -134,9 +150,7 @@ def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) ->
                 transcript_1st_5_secs = get_speech_transcript_1st_5_secs(
                     speech_annotation_results.get("speech_transcriptions")
                 )
-                # If transcript is empty, this feature should be False
-                if transcript_1st_5_secs:
-                    prompt = (
+                prompt = (
                         """Does the provided speech transcript mention any words?
                         This is the speech transcript: "{transcript}"
                         Consider the following criteria for your answer: {criteria}
@@ -148,20 +162,40 @@ def detect_audio_speech_early(speech_annotation_results: any, video_uri: str) ->
                         .replace("{criteria}", audio_speech_early_criteria)
                         .replace("{context_and_examples}", context_and_examples)
                     )
-                    # Set modality to text since we are not using video for Annotations + LLM
-                    llm_params.set_modality({"type": "text"})
-                    feature_detected = detect_feature_with_llm(
+                # Set modality to text since we are not using video for Annotations + LLM
+                llm_params.set_modality({"type": "text"})
+                # If transcript is empty, this feature should be False
+                if transcript_1st_5_secs:
+                    feature_detected, llm_explanation = detect_feature_with_llm(
                         audio_speech_early_feature, prompt, llm_params
                     )
                     if feature_detected:
                         audio_speech_early = True
+
+                    # Include llm details
+                    audio_speech_early_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": llm_explanation,
+                        }
+                    )
                 else:
                     audio_speech_early = False
+                    # Include default details
+                    audio_speech_early_eval_details["llm_details"].append(
+                        {
+                            "llm_params": llm_params.__dict__,
+                            "prompt": prompt,
+                            "llm_explanation": "Annotations + LLM: Speech was not found in annotations.",
+                        }
+                    )
             else:
                 print(
                     f"No Speech annotations found. Skipping {audio_speech_early_feature} evaluation with LLM."
                 )
 
     print(f"{audio_speech_early_feature}: {audio_speech_early}")
+    audio_speech_early_eval_details["feature_detected"] = audio_speech_early
 
-    return audio_speech_early
+    return audio_speech_early_eval_details
