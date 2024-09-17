@@ -45,7 +45,7 @@ By combining these techniques, ABCDs Detector automates the evaluation process a
   - Logo annotations
 
 
-2. Gemini Pro Vision & Gemini Pro: To perform video Q&A about the features to evaluate if the video adheres to the ABCD rubrics. The colab will send a request to Gemini with tailored prompts to evaluate each rubric.
+2. Gemini 1.5 Pro: To perform video Q&A about the features to evaluate if the video adheres to the ABCD rubrics. The colab will send a request to Gemini with tailored prompts to evaluate each rubric.
 
 ABCDs Detector will perform 2 verifications, first with annotations and then with LLMs. Since the LLM approach is prone to hallucinations, False Positives or False Negatives will be expected. The solution will still require human QA if 100% accuracy is required for the evaluation.
 
@@ -78,18 +78,19 @@ ABCDs Detector MVP supports a single video evaluation for the following features
 
 1. Video Intelligence API: Prices are per minute. Partial minutes are rounded up to the next full minute. Volume is per month. For more details please check the official [documentation](https://cloud.google.com/video-intelligence/pricing).
 
-2. Gemini Pro Vision & Gemini Pro: With the Multimodal models in Vertex AI, you can input either text or media (images, video). Text input is charged by every 1,000 characters of input (prompt) and every 1,000 characters of output (response). Characters are counted by UTF-8 code points and white space is excluded from the count. Prediction requests that lead to filtered responses are charged for the input only. At the end of each billing cycle, fractions of one cent ($0.01) are rounded to one cent. Media input is charged per image or per second (video). For more details please check the official documentation: https://cloud.google.com/vertex-ai/generative-ai/pricing
+2. Gemini 1.5 Pro: With the Multimodal models in Vertex AI, you can input either text or media (images, video). Text input is charged by every 1,000 characters of input (prompt) and every 1,000 characters of output (response). Characters are counted by UTF-8 code points and white space is excluded from the count. Prediction requests that lead to filtered responses are charged for the input only. At the end of each billing cycle, fractions of one cent ($0.01) are rounded to one cent. Media input is charged per image or per second (video). For more details please check the official documentation: https://cloud.google.com/vertex-ai/generative-ai/pricing
 
 For questions, please reach out to: abcds-detector@google.com
 
-## Requirements:
-
-* Google Cloud Project with enabled APIs:
+## Requirements
+Please esure you have access to all of the following before starting:
+* [Google Cloud Project](https://cloud.google.com) with enabled APIs:
     * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com)
     * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
     * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
     * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
-* Project Billing enabled
+* [API Key](https://cloud.google.com/docs/authentication/api-keys) provisioned.
+* [Project Billing](https://cloud.google.google.com/billing/) enabled.
 * Python libraries:
     * `google-cloud-videointelligence`
     * `google-cloud-aiplatform`
@@ -106,27 +107,51 @@ You can see more on the ABCD methodology [here.](https://www.thinkwithgoogle.com
 If you make any changes to the modules and plan to update your colab, please make sure to remove the sections that are marked
 as ### REMOVE FOR COLAB - START and ### REMOVE FOR COLAB - END, since those are ONLY required when running the code locally.
 
+## Instructions
+Please follow the steps below before executing the ABCDs Detector solution. Every **[VARIABLE]** is a parameter you can configure in the **Define ABCDs Detector Parameters** section.
 
-## Solution Setup
+1. Store your videos on [Google Cloud Storage](https://console.cloud.google.com/storage/browser) with the following folder structure:
+  * **[BUCKET_NAME]** - name of bucket, ensure you have write permission. Same as paramter below.
+    * **[brand_name]** - a folder, must be same as parameter below.
+      * **videos** - a folder called videos, hard coded. Consider only **10-15 videos max** due to processing time limitations.
+        * **some_video.mp4** - upload video to analyze, must be **mp4** and must be **[<= 50 MB](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models)**.
+      * **annotations** - a folder created by this tool to store AI data. No need to create this.
 
-Please follow the steps below before executing the ABCDs Detector solution.
+1. Make sure the requirements are met:
+  * Enable APIs:
+    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com)
+    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
+    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
+    * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
+  * Provision [An API Key](https://cloud.google.com/docs/authentication/api-keys):
+    1. Visit [Credentials Page](https://cloud.console.google.com/apis/credentials).
+    1. Create a **New API Key** and copy it into **[KNOWLEDGE_GRAPH_API_KEY]** below.
+    1. We recommend editing and restricting the key to the above APIs.
 
-1. Store your videos on Google Cloud Storage with the following folder structure: bucket_name/brand_name/videos/my_video.mp4. For example: abcd-detector/Nike/videos/my_video.mp4. The brand_name should be the same as defined in the **"Define Brand & Videos Details"** section below.
-  - **Video considerations:**
-    - Due to LLM limits, the videos should be <= 7 MB. Please see more information [here](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models).
-    - Videos should be mp4 format.
-    - Video annotations are stored in GCS under bucket_name/brand_name/annotations/video_name/annotation.json
-    - Due to Google Colab limitations (free version) and since this is a reference implementation, consider using it for 10-15 videos max per brand.
+1. Define all the parameters.
+  * Required:
+    * Google Cloud Project Details
+    * Brand And Product Details
+  * Optional
+    * Solution Setup
+    * ABCD Framework Details
+    * LLM Configuration
 
-2. Follow steps in the colab:
+1. Run all of the steps in sequence.
+  * Some steps do not produce output, they only define functions.
+  * If a step asks you to **Restart Runtime**, do so.
+  * If a step displays an error, stop and debug it. Debug the following:
+    * APIs are enabled.
+    * Storage bucket is correctly configured.
+    * The video is the correct size.
+    * API Key has correct restrictions.
+    * Previous colab sections completed.
+    * Select _Runtime > Reset Session and Run All_ as a last resort.
+  * The **Execute Bulk ABCD Assessment** produces the video analysis.
 
-    2.1. Enable the Video Intelligence API, Vertex AI API, Knowledge Graph API and make sure that your user has access to Google Cloud Storage buckets.
+1. For questions, please reach out to: abcds-detector@google.com
 
-    2.2. Generate an API Key to connect to the Knowledge Graph API to find entities such as brands, products, etc., to match with video annotation results. To generate an API key, please follow the steps [here.](https://support.google.com/googleapi/answer/6158862?hl=en)
-
-    2.5. Fill out the project details, brand/video details and ABCD Assessment thresholds in the **"Define ABCDs Detector parameters"** section below. For brand and product details, you can be as generic or specific as possible depending on your video asset.
-
-    **Note:** Please check the official [Gemini API documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini) to learn more about the LLM parameters (temperature, top_k, top_p, etc) that are used in this colab.
+**Note:** Please check the official [Gemini API documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini) to learn more about the LLM parameters (temperature, top_k, top_p, etc) that are used in this colab.
 
 ## Customization:
 
