@@ -304,7 +304,7 @@ def download_video_annotations(
     # Shot Annotations
     blob_shot = bucket.blob(f"{annotation_location}/shot-detection.json")
     data_shot = json.loads(blob_shot.download_as_string(client=None))
-    # Get logo annotations. The first result is retrieved because a single video was processed.
+    # Get shot annotations. The first result is retrieved because a single video was processed.
     shot_annotation_results = data_shot.get("annotation_results")[0]
 
     # Text Annotations
@@ -334,3 +334,122 @@ def download_video_annotations(
         logo_annotation_results,
         speech_annotation_results,
     )
+
+
+def get_label_annotations(bucket: any, annotation_location: str) -> dict:
+    """Download video label annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        label_annotation_results: Label annotations obj
+    """
+    # Label Annotations
+    blob_label = bucket.blob(f"{annotation_location}/label-detection.json")
+    data_label = json.loads(blob_label.download_as_string(client=None))
+    # Get label annotations. The first result is retrieved because a single video was processed.
+    label_annotation_results = data_label.get("annotation_results")[0]
+
+    return label_annotation_results
+
+
+def get_face_annotations(bucket: str, annotation_location: str) -> dict:
+    """Download video face annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        face_annotation_results: Face annotations obj
+    """
+    # Face Annotations
+    blob_face = bucket.blob(f"{annotation_location}/face-detection.json")
+    data_face = json.loads(blob_face.download_as_string(client=None))
+    # Get face annotations. The first result is retrieved because a single video was processed.
+    face_annotation_results = data_face.get("annotation_results")[0]
+
+    return face_annotation_results
+
+
+def get_people_annotations(bucket: str, annotation_location: str) -> dict:
+    """Download video people annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        people_annotation_results: People annotations obj
+    """
+    # People Annotations
+    blob_people = bucket.blob(f"{annotation_location}/people-detection.json")
+    data_people = json.loads(blob_people.download_as_string(client=None))
+    # Get people annotations. The first result is retrieved because a single video was processed.
+    people_annotation_results = data_people.get("annotation_results")[0]
+
+    return people_annotation_results
+
+
+def get_shot_annotations(bucket: any, annotation_location: str) -> dict:
+    """Download video shot annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        shot_annotation_results: Shot annotations obj
+    """
+    # Shot Annotations
+    blob_shot = bucket.blob(f"{annotation_location}/shot-detection.json")
+    data_shot = json.loads(blob_shot.download_as_string(client=None))
+    # Get shot annotations. The first result is retrieved because a single video was processed.
+    shot_annotation_results = data_shot.get("annotation_results")[0]
+
+    return shot_annotation_results
+
+
+def get_text_annotations(bucket: any, annotation_location: str) -> dict:
+    """Download video text annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        text_annotation_results: Text annotations obj
+    """
+    # Text Annotations
+    blob_text = bucket.blob(f"{annotation_location}/text-detection.json")
+    data_text = json.loads(blob_text.download_as_string(client=None))
+    # Get text annotations. The first result is retrieved because a single video was processed.
+    text_annotation_results = data_text.get("annotation_results")[0]
+
+    return text_annotation_results
+
+
+def get_logo_annotations(bucket: any, annotation_location: str) -> dict:
+    """Download video logo annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        logo_annotation_results: Logo annotations obj
+    """
+    # Logo Annotations
+    blob_logo = bucket.blob(f"{annotation_location}/logo-detection.json")
+    data_logo = json.loads(blob_logo.download_as_string(client=None))
+    # Get logo annotations. The first result is retrieved because a single video was processed.
+    logo_annotation_results = data_logo.get("annotation_results")[0]
+
+    return logo_annotation_results
+
+
+def get_speech_annotations(bucket: any, annotation_location: str) -> dict:
+    """Download video speech annotations from Google Cloud Storage
+    Args:
+        bucket: gcs bucket where the annotations are stored
+        annotation_location: path to the annotation json file
+    Returns:
+        speech_annotation_results: Speech annotations obj
+    """
+    # Speech Annotations
+    blob_speech = bucket.blob(f"{annotation_location}/speech-detection.json")
+    data_speech = json.loads(blob_speech.download_as_string(client=None))
+    # Get speech annotations. The first result is retrieved because a single video was processed.
+    speech_annotation_results = data_speech.get("annotation_results")[0]
+
+    return speech_annotation_results

@@ -142,13 +142,26 @@ def get_n_secs_video_uri_from_uri(video_uri: str, new_name_part: str):
 def store_assessment_results_locally(brand_name: str, assessment: any) -> None:
     """Store test results in a file"""
     file_name = f"results/{brand_name}_{assessment.get('video_uri')}.json"
-    assessment = {
-        "brand_name": brand_name,
-        "assessment": assessment
-    }
+    assessment = {"brand_name": brand_name, "assessment": assessment}
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
     with open(file_name, "w", encoding="utf-8") as f:
         json.dump(assessment, f, ensure_ascii=False, indent=4)
+
+
+def store_bulk_assessment_results_locally(brand_name: str, assessment: any) -> None:
+    """Store test results in a file"""
+    file_name = f"results/{brand_name}.json"
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
+    with open(file_name, "w", encoding="utf-8") as f:
+        json.dump(assessment, f, ensure_ascii=False, indent=4)
+
+
+def store_prompt_in_file(file_name: str, prompt: str) -> None:
+    """Store prompt in a file"""
+    path = f"prompt_templates/{file_name}.txt"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(prompt, f, ensure_ascii=False, indent=4)
 
 
 def trim_videos(brand_name: str):
@@ -253,3 +266,41 @@ def trim_and_push_video_to_gcs(
     )
     if VERBOSE:
         print(f"File {new_video_name} uploaded to {gcs_output_path}.\n")
+
+
+def player(video_url: str):
+    """Placeholder function to test locally"""
+    print(video_url)
+
+
+def print_abcd_assetssments(brand_name: str, abcd_assessment: dict) -> None:
+    """Print ABCD Assessments
+    Args:
+        abcd_assessments: list of video abcd assessments
+    """
+    print(
+        f"\n\n*****  ABCD Assessment for brand {abcd_assessment.get('brand_name')}  *****"
+    )
+    for video_assessment in abcd_assessment.get("video_assessments"):
+        video_url = f"/content/{BUCKET_NAME}/{brand_name}/videos/{video_assessment.get('video_name')}"
+        # Play Video
+        player(video_url)
+        print(f"\nAsset name: {video_assessment.get('video_name')}\n")
+        passed_features_count = video_assessment.get("passed_features_count")
+        total_features = len(video_assessment.get("features"))
+        print(
+            f"Video score: {round(video_assessment.get('score'), 2)}%, adherence ({passed_features_count}/{total_features})\n"
+        )
+        if video_assessment.get("score") >= 80:
+            print("Asset result: ✅ Excellent \n")
+        elif video_assessment.get("score") >= 65 and video_assessment.get("score") < 80:
+            print("Asset result: ⚠ Might Improve \n")
+        else:
+            print("Asset result: ❌ Needs Review \n")
+
+        print("Evaluated Features:")
+        for feature in video_assessment.get("features"):
+            if (feature.get("feature_detected")):
+                print(f' * ✅ {feature.get("feature_name")}')
+            else:
+                print(f' * ❌ {feature.get("feature_name")}')

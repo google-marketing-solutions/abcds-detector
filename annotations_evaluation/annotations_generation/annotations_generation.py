@@ -31,13 +31,14 @@ from helpers.generic_helpers import (
 from helpers.annotations_helpers import get_existing_annotations_from_gcs
 
 from input_parameters import BUCKET_NAME
-from .label_detection import detect_labels
-from .face_detection import detect_faces
-from .people_detection import detect_people
-from .shot_detection import detect_shots
-from .text_detection import detect_text
-from .logo_detection import detect_logos
-from .speech_detection import detect_speech
+from annotations_evaluation.annotations_generation.label_detection import detect_labels
+from annotations_evaluation.annotations_generation.face_detection import detect_faces
+from annotations_evaluation.annotations_generation.people_detection import detect_people
+from annotations_evaluation.annotations_generation.shot_detection import detect_shots
+from annotations_evaluation.annotations_generation.text_detection import detect_text
+from annotations_evaluation.annotations_generation.logo_detection import detect_logos
+from annotations_evaluation.annotations_generation.speech_detection import detect_speech
+
 
 ### REMOVE FOR COLAB - END
 

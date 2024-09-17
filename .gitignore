@@ -7,8 +7,9 @@ features/_pycache_
 generate_video_annotations/_pycache_
 trim_videos/_pycache_
 abcd_videos
-test_results/
+results/
 test_params.py
+prompt_templates/
 
 # IDEs and editors
 .idea/

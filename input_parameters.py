@@ -28,12 +28,12 @@ BUCKET_NAME = "" # @param {type:"string"}
 
 # @markdown ### Solution Setup
 
-VIDEO_SIZE_LIMIT_MB = 7  # @param {type:"number"}
+VIDEO_SIZE_LIMIT_MB = 50  # @param {type:"number"}
 VERBOSE = True  # @param {type:"boolean"}
-use_llms = True  # @param {type:"boolean"}
-use_annotations = True # @param {type:"boolean"}
+USE_ANNOTATIONS = True # @param {type:"boolean"}
+USE_LLMS = True  # @param {type:"boolean"}
 # For local testing outside colab ONLY, set to False for colab
-STORE_ASSESSMENT_RESULTS_LOCALLY = False
+STORE_ASSESSMENT_RESULTS_LOCALLY = True
 TEST_RESULTS = []
 
 # @markdown #### Knowledge Graph API Configuration
@@ -97,7 +97,7 @@ if VERBOSE:
     print(f"Brand Variations: {brand_variations}")
     print(f"Brand products: {branded_products}")
     print(f"Brand categories: {branded_products_categories}")
-    print(f"Brand call to actions: {branded_call_to_actions}")
+    print(f"Brand call to actions: {branded_call_to_actions} \n")
 
 llm_generation_config = {
     "max_output_tokens": max_output_tokens,
@@ -115,3 +115,6 @@ Please present the extracted information in a VALID JSON format like this:
     "explanation": "..."
 }
 """
+
+STORE_PROMPT = True
+NOT_PROCESSED_VIDEOS = []
