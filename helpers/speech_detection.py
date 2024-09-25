@@ -18,41 +18,38 @@
 #
 ###########################################################################
 
-"""Face Detection: Function definition to detect faces in a video"""
+"""Speech Detection: Function definition to detect speech in a video"""
 
-### REMOVE FOR COLAB - START
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_faces(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detects faces in a video.
+def detect_speech(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detects speech in a video.
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
 
     video_client = videointelligence.VideoIntelligenceServiceClient()
+    features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
 
-    # Configure the request
-    config = videointelligence.FaceDetectionConfig(
-        include_bounding_boxes=True, include_attributes=True
+    config = videointelligence.SpeechTranscriptionConfig(
+        language_code="en-US", enable_automatic_punctuation=True
     )
-    context = videointelligence.VideoContext(face_detection_config=config)
+    video_context = videointelligence.VideoContext(speech_transcription_config=config)
 
-    # Start the asynchronous request
     operation = video_client.annotate_video(
         request={
-            "features": [videointelligence.Feature.FACE_DETECTION],
+            "features": features,
             "input_uri": input_gs_file_name,
             "output_uri": output_gs_file_name,
-            "video_context": context,
+            "video_context": video_context,
         }
     )
 
-    print(f"\nProcessing video {input_gs_file_name} for face annotations...")
+    print(f"\nProcessing video {input_gs_file_name} for speech annotations...")
 
     result = operation.result(timeout=800)
 
-    print(f"\nFinished processing video {input_gs_file_name} for face annotations...\n")
+    print(
+        f"\nFinished processing video {input_gs_file_name} for speech annotations...\n"
+    )

@@ -24,7 +24,6 @@ Annotations used:
     2. Speech to identify supers in audio
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -34,24 +33,8 @@ from input_parameters import (
     use_annotations,
 )
 
-from helpers.annotations_helpers import (
-    find_elements_in_transcript,
-    get_speech_transcript,
-)
-
+from helpers.annotations_helpers import find_elements_in_transcript, get_speech_transcript
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-### REMOVE FOR COLAB - END
-
-
-# @title 4 & 5) Attract: Supers & Supers with Audio
-
-# @markdown **Features:**
-
-# @markdown 1. **Supers:** Any supers (text overlays) have been incorporated at any time in the video.
-
-# @markdown 2. **Supers with Audio**: The speech heard in the audio of the video matches OR is contextually supportive of the overlaid text shown on screen.
-
 
 def detect_supers(text_annotation_results: any, video_uri: str) -> dict:
     """Detect Supers

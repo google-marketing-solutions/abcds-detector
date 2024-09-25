@@ -3,6 +3,8 @@
 # Python
 venv
 __pycache__
+reduced/
+ffmpeg
 features/_pycache_
 generate_video_annotations/_pycache_
 trim_videos/_pycache_

@@ -23,7 +23,6 @@ Annotations used:
     1. Shot annotations to calculate the pacing of the video
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -34,24 +33,9 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
-)
-
+from helpers.generic_helpers import get_reduced_uri
 from helpers.annotations_helpers import calculate_time_seconds
-
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-### REMOVE FOR COLAB - END
-
-# @title 1, 2) Attract: Quick Pacing & Quick Pacing (First 5 seconds)
-
-# @markdown **Features:**
-
-# @markdown **Quick Pacing:** Within ANY 5 consecutive seconds there are 5 or more shots in the video. These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms, depth of field changes, tracking shots and movement of the camera.
-
-# @markdown **Quick Pacing (First 5 seconds):** There are at least 5 shot changes or visual cuts detected within the first 5 seconds (up to 4.99s) of the video. These include hard cuts, soft transitions and camera changes such as camera pans, swipes, zooms, depth of field changes, tracking shots and movement of the camera.
-
 
 def detect_quick_pacing(
     shot_annotation_results: any, video_uri: str
@@ -186,8 +170,7 @@ def detect_quick_pacing(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             quick_pacing_1st_5_secs_feature, prompt, llm_params
         )

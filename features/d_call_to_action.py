@@ -24,7 +24,6 @@ Annotations used:
     2. Speech annotations to detect call to actions in audio or speech
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -34,26 +33,8 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.annotations_helpers import (
-    find_elements_in_transcript,
-    get_speech_transcript,
-)
-
-from helpers.vertex_ai_service import (
-    LLMParameters,
-    detect_feature_with_llm,
-)
-
-### REMOVE FOR COLAB - END
-
-# @title 22 & 23) Direct: Call To Action (Text) & Call To Action (Speech)
-
-# @markdown: **Features**
-
-# @markdown **Call To Action (Text):** A 'Call To Action' phrase is detected in the video supers (overlaid text) at any time in the video.
-
-# @markdown **Call To Action (Speech):** A 'Call To Action' phrase is heard or mentioned in the audio or speech at any time in the video.
-
+from helpers.annotations_helpers import find_elements_in_transcript, get_speech_transcript
+from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 call_to_action_api_list = [
     "LEARN MORE",

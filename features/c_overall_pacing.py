@@ -23,7 +23,6 @@ Annotations used:
     1. Shot annotations to calculate the overall video pacing
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -35,17 +34,7 @@ from input_parameters import (
 )
 
 from helpers.annotations_helpers import calculate_time_seconds
-
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-### REMOVE FOR COLAB - END
-
-# @title 21) Connect: Overall Pacing
-
-# @markdown **Features:**
-
-# @markdown **Overall Pacing:** The pace of the video is greater than 2 seconds per shot/frame
-
 
 def detect_overall_pacing(shot_annotation_results: any, video_uri: str) -> dict:
     """Detect Overall Pacing

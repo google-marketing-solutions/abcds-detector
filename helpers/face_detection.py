@@ -18,31 +18,37 @@
 #
 ###########################################################################
 
-"""Shot Detection: Function definition to detect shots in a video"""
+"""Face Detection: Function definition to detect faces in a video"""
 
-### REMOVE FOR COLAB - START
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_shots(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detects camera shot changes in a video.
+def detect_faces(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detects faces in a video.
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
+
     video_client = videointelligence.VideoIntelligenceServiceClient()
-    features = [videointelligence.Feature.SHOT_CHANGE_DETECTION]
+
+    # Configure the request
+    config = videointelligence.FaceDetectionConfig(
+        include_bounding_boxes=True, include_attributes=True
+    )
+    context = videointelligence.VideoContext(face_detection_config=config)
+
+    # Start the asynchronous request
     operation = video_client.annotate_video(
         request={
-            "features": features,
+            "features": [videointelligence.Feature.FACE_DETECTION],
             "input_uri": input_gs_file_name,
             "output_uri": output_gs_file_name,
+            "video_context": context,
         }
     )
-    print(f"\nProcessing video {input_gs_file_name} for shot annotations...")
+
+    print(f"\nProcessing video {input_gs_file_name} for face annotations...")
 
     result = operation.result(timeout=800)
 
-    print(f"\nFinished processing video {input_gs_file_name} for shot annotations...\n")
+    print(f"\nFinished processing video {input_gs_file_name} for face annotations...\n")
