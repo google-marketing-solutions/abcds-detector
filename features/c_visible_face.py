@@ -41,7 +41,7 @@ from helpers.annotations_helpers import calculate_time_seconds
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
 
 from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
+    get_reduced_uri,
 )
 
 ### REMOVE FOR COLAB - END
@@ -144,8 +144,7 @@ def detect_visible_face(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             visible_face_1st_5_secs_feature, prompt, llm_params
         )

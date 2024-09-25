@@ -22,10 +22,12 @@
 
 ### REMOVE FOR COLAB - START
 
+import json
+
 from input_parameters import (
-    BUCKET_NAME,
+    VIDEO_URIS,
     VIDEO_SIZE_LIMIT_MB,
-    STORE_ASSESSMENT_RESULTS_LOCALLY,
+    ASSESSMENT_FILE,
     brand_name,
     brand_variations,
     branded_products,
@@ -35,20 +37,8 @@ from input_parameters import (
     use_annotations,
 )
 
-from generate_video_annotations.generate_video_annotations import (
-    generate_video_annotations,
-)
-
-from helpers.bq_service import BigQueryService
-
-from helpers.generic_helpers import (
-    get_bucket,
-    get_file_name_from_gcs_url,
-    store_assessment_results_locally,
-    trim_videos,
-)
-
-from helpers.annotations_helpers import download_video_annotations
+from helpers.generic_helpers import get_blob, trim_video
+from helpers.annotations_helpers import download_video_annotations, get_annotation_uri
 
 from features.a_quick_pacing import detect_quick_pacing
 from features.a_dynamic_start import detect_dynamic_start
@@ -85,9 +75,8 @@ def print_abcd_assetssments(abcd_assessment: dict) -> None:
         f"\n\n*****  ABCD Assessment for brand {abcd_assessment.get('brand_name')}  *****"
     )
     for video_assessment in abcd_assessment.get("video_assessments"):
-        video_url = f"/content/{BUCKET_NAME}/{brand_name}/videos/{video_assessment.get('video_name')}"
         # Play Video
-        player(video_url)
+        player(video_assessment['video_url'])
         print(f"\nAsset name: {video_assessment.get('video_name')}\n")
         passed_features_count = video_assessment.get("passed_features_count")
         total_features = len(video_assessment.get("features"))
@@ -114,52 +103,45 @@ def execute_abcd_assessment_for_videos():
 
     assessments = {"brand_name": brand_name, "video_assessments": []}
 
-    # Get videos for ABCD Assessment
-    brand_videos_folder = f"{brand_name}/videos"
-    bucket = get_bucket()
-    blobs = bucket.list_blobs(prefix=brand_videos_folder)
-    # Video processing
-    for video in blobs:
-        if video.name == f"{brand_videos_folder}/" or "1st_5_secs" in video.name:
-            # Skip parent folder
-            continue
-        video_name, video_name_with_format = get_file_name_from_gcs_url(video.name)
-        if not video_name or not video_name_with_format:
-            print(f"Video name not resolved for {video.name}... Skipping execution")
-            continue
+    for video_uri in VIDEO_URIS:
+        # 1) Prepare video
+
+        trim_video(video_uri)
+
         # Check size of video to avoid processing videos > 7MB
-        video_metadata = bucket.get_blob(video.name)
+        video_metadata = get_blob(video_uri)
         size_mb = video_metadata.size / 1e6
         if use_llms and size_mb > VIDEO_SIZE_LIMIT_MB:
             print(
-                f"The size of video {video.name} is greater than {VIDEO_SIZE_LIMIT_MB} MB. Skipping execution."
+                f"The size of video {video_uri} is greater than {VIDEO_SIZE_LIMIT_MB} MB. Skipping execution."
             )
             continue
 
-        print(f"\n\nProcessing ABCD Assessment for video {video.name}...")
+        print(f"\n\nProcessing ABCD Assessment for video {video_uri}...")
 
-        label_annotation_results = {}
         face_annotation_results = {}
+        label_annotation_results = {}
+        logo_annotation_results = {}
+        object_annotation_results = {}
         people_annotation_results = {}
         shot_annotation_results = {}
-        text_annotation_results = {}
-        logo_annotation_results = {}
         speech_annotation_results = {}
+        text_annotation_results = {}
 
         if use_annotations:
             # 2) Download generated video annotations
             (
-                label_annotation_results,
                 face_annotation_results,
+                label_annotation_results,
+                logo_annotation_results,
+                object_annotation_results,
                 people_annotation_results,
                 shot_annotation_results,
-                text_annotation_results,
-                logo_annotation_results,
                 speech_annotation_results,
-            ) = download_video_annotations(brand_name, video_name)
+                text_annotation_results,
+            ) = download_video_annotations(video_uri)
 
         # 3) Execute ABCD Assessment
-        video_uri = f"gs://{BUCKET_NAME}/{video.name}"
         features = []
 
         # Quick pacing
@@ -287,17 +269,18 @@ def execute_abcd_assessment_for_videos():
         # Get score
         score = (passed_features_count * 100) / total_features
         video_assessment = {
-            "video_name": video_name_with_format,
             "video_uri": video_uri,
+            "video_url": video_metadata.public_url,
+            "video_annotations": get_annotation_uri(video_uri),
             "features": features,
             "passed_features_count": passed_features_count,
             "score": score,
         }
         assessments.get("video_assessments").append(video_assessment)
 
-        if STORE_ASSESSMENT_RESULTS_LOCALLY:
-            # Store assessment results locally
-            store_assessment_results_locally(brand_name, video_assessment)
+    if ASSESSMENT_FILE:
+      with open(ASSESSMENT_FILE, "w", encoding="utf-8") as f:
+        json.dump(assessments, f, ensure_ascii=False, indent=4)
 
     return assessments
 
@@ -305,18 +288,11 @@ def execute_abcd_assessment_for_videos():
 def execute_abcd_detector():
     """Main ABCD Assessment execution"""
 
-    if use_annotations:
-        generate_video_annotations(brand_name)
-
-    trim_videos(brand_name)
-
-    abcd_assessments = execute_abcd_assessment_for_videos()
-    if len(abcd_assessments.get("video_assessments")) == 0:
-        print("There are no videos to display.")
-        exit()
-
-    # Print ABCD Assessments
-    print_abcd_assetssments(abcd_assessments)
+    if VIDEO_URIS:
+      abcd_assessments = execute_abcd_assessment_for_videos()
+      print_abcd_assetssments(abcd_assessments)
+    else:
+      print("There are no videos to display.")
 
 
 ### Main ABCD Assessment execution ###

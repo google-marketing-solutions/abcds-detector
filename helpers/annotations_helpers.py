@@ -26,15 +26,22 @@ import json
 ### REMOVE FOR COLAB - START
 from input_parameters import (
     VERBOSE,
-    BUCKET_NAME,
     early_time_seconds,
     confidence_threshold,
 )
 
-from helpers.generic_helpers import get_bucket
+from helpers.generic_helpers import get_blob, get_annotation_uri
+from helpers.face_detection import detect_faces
+from helpers.label_detection import detect_labels
+from helpers.logo_detection import detect_logos
+from helpers.object_detection import detect_objects
+from helpers.people_detection import detect_people
+from helpers.shot_detection import detect_shots
+from helpers.speech_detection import detect_speech
+from helpers.text_detection import detect_text
+
 
 ### REMOVE FOR COLAB - END
-
 
 def calculate_time_seconds(part_obj: dict, part: str) -> float:
     """Calculate time of the provided part of the video
@@ -255,82 +262,37 @@ def get_speech_transcript_1st_5_secs(speech_transcriptions: list[dict]):
     return transcript_1st_5_secs
 
 
-def get_existing_annotations_from_gcs(brand_name: str) -> list[str]:
-    """Get existing annotations from Cloud Storage
-    Args:
-        brand_name: the parent folder in Cloud Storage
-    Returns:
-        video_annotations: array of annotation url/names
-    """
-    bucket = get_bucket()
-    blobs = bucket.list_blobs(prefix=f"{brand_name}/annotations/")
-    video_annotations = []
-    for blob in blobs:
-        video_annotations.append(f"gs://{BUCKET_NAME}/{blob.name}")
-    return video_annotations
-
-
 def download_video_annotations(
-    brand_name: str, video_name: str
+    video_uri: str
 ) -> tuple[dict, dict, dict, dict, dict, dict, dict]:
     """Download video annotations from Google Cloud Storage
     Args:
-        brand_name: the brand to generate the video annotations for
-        video_name: Full video name
+        video_uri: Full video uri
     Returns:
-        text_annotation_results (tuple): Text annotations tuple
+        text_annotation_results (list): Text annotations tuple
     """
-    annotation_location = f"{brand_name}/annotations/{video_name}"
-    bucket = get_bucket()
 
-    # Label Annotations
-    blob_label = bucket.blob(f"{annotation_location}/label-detection.json")
-    data_label = json.loads(blob_label.download_as_string(client=None))
-    # Get label annotations. The first result is retrieved because a single video was processed.
-    label_annotation_results = data_label.get("annotation_results")[0]
+    results = []
+    annotation_location = get_annotation_uri(video_uri)
 
-    # Face Annotations
-    blob_face = bucket.blob(f"{annotation_location}/face-detection.json")
-    data_face = json.loads(blob_face.download_as_string(client=None))
-    # Get face annotations. The first result is retrieved because a single video was processed.
-    face_annotation_results = data_face.get("annotation_results")[0]
+    for annotation_name, annotation_function in {
+      'face-detection':detect_faces,
+      'label-detection':detect_labels,
+      'logo-detection':detect_logos,
+      'object-detection':detect_objects,
+      'people-detection':detect_people,
+      'shot-detection':detect_shots,
+      'speech-detection':detect_speech,
+      'text-detection':detect_text,
+    }.items():
+      annotation_uri = f"{get_annotation_uri(video_uri)}{annotation_name}.json"
+      annotataion_blob = get_blob(annotation_uri)
+      if annotataion_blob is None:
+        annotation_function(video_uri, annotation_uri)
+        annotataion_blob = get_blob(annotation_uri)
+      else:
+        print(f"Annotation {annotation_uri} exists.")
+      data = json.loads(annotataion_blob.download_as_string(client=None))
+      results.append(data.get("annotation_results")[0]) # The first result is retrieved because a single video was processed.
 
-    # People Annotations
-    blob_people = bucket.blob(f"{annotation_location}/people-detection.json")
-    data_people = json.loads(blob_people.download_as_string(client=None))
-    # Get people annotations. The first result is retrieved because a single video was processed.
-    people_annotation_results = data_people.get("annotation_results")[0]
-
-    # Shot Annotations
-    blob_shot = bucket.blob(f"{annotation_location}/shot-detection.json")
-    data_shot = json.loads(blob_shot.download_as_string(client=None))
-    # Get logo annotations. The first result is retrieved because a single video was processed.
-    shot_annotation_results = data_shot.get("annotation_results")[0]
-
-    # Text Annotations
-    blob_text = bucket.blob(f"{annotation_location}/text-detection.json")
-    data_text = json.loads(blob_text.download_as_string(client=None))
-    # Get text annotations. The first result is retrieved because a single video was processed.
-    text_annotation_results = data_text.get("annotation_results")[0]
-
-    # Logo Annotations
-    blob_logo = bucket.blob(f"{annotation_location}/logo-detection.json")
-    data_logo = json.loads(blob_logo.download_as_string(client=None))
-    # Get logo annotations. The first result is retrieved because a single video was processed.
-    logo_annotation_results = data_logo.get("annotation_results")[0]
-
-    # Speech Annotations
-    blob_speech = bucket.blob(f"{annotation_location}/speech-detection.json")
-    data_speech = json.loads(blob_speech.download_as_string(client=None))
-    # Get speech annotations. The first result is retrieved because a single video was processed.
-    speech_annotation_results = data_speech.get("annotation_results")[0]
-
-    return (
-        label_annotation_results,
-        face_annotation_results,
-        people_annotation_results,
-        shot_annotation_results,
-        text_annotation_results,
-        logo_annotation_results,
-        speech_annotation_results,
-    )
+    return results
