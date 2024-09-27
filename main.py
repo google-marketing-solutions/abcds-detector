@@ -35,7 +35,7 @@ from input_parameters import (
     use_annotations,
 )
 
-from helpers.generic_helpers import get_blob, trim_video
+from helpers.generic_helpers import get_blob, expand_uris, trim_video
 from helpers.annotations_helpers import download_video_annotations, get_annotation_uri
 
 from features.a_quick_pacing import detect_quick_pacing
@@ -96,9 +96,8 @@ def execute_abcd_assessment_for_videos():
 
     assessments = {"brand_name": brand_name, "video_assessments": []}
 
-    for video_uri in VIDEO_URIS:
+    for video_uri in expand_uris(VIDEO_URIS):
         # 1) Prepare video
-
         trim_video(video_uri)
 
         # Check size of video to avoid processing videos > 7MB

@@ -57,7 +57,7 @@ python bqflow/auth.py -c client.json -u user.json
 The FAVA script uses the same requirements as ABCD Detector.
 
 ```
-git clone -branch paul_changes https://github.com/google-marketing-solutions/abcds-detector
+git clone https://github.com/google-marketing-solutions/abcds-detector
 python3 -m pip install -r abcds-detector/requirements.txt
 
 python main.py google_pixel.json -u user.json -p gcp-project-id -v

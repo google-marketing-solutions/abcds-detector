@@ -45,6 +45,18 @@ def upload_blob(uri: str, filename: str) -> any:
     bucket, path = uri.replace("gs://", "").split("/", 1)
     storage.Client().get_bucket(bucket).blob(path).upload_from_filename(FFMPEG_BUFFER)
 
+def expand_uris(uris: list) -> any:
+  """Expands any GCS URI entry that is a folder path into its files."""
+  for uri in uris:
+    if uri.endswith('/'):
+      print("EXPANDING URI:", uri)
+      bucket, prefix = uri.replace("gs://", "").split("/", 1)
+      for blob in storage.Client().get_bucket(bucket).list_blobs(prefix=prefix, delimiter='/'):
+        if not blob.name.endswith('/'):
+          yield f"gs://{bucket}/{blob.name}"
+    else:
+      yield uri
+
 def get_annotation_uri(video_uri: str) -> str:
   """Helper to translate video to annotation uri."""
   return video_uri.replace('gs://', ANNOTATION_PATH).replace('.', '_') + '/'

@@ -94,6 +94,9 @@ Please esure you have access to all of the following before starting:
 * Python libraries:
     * `google-cloud-videointelligence`
     * `google-cloud-aiplatform`
+* FFMPEG (not needed for colab)
+  * Save the platform specific [FFMPEG Binary](https://evermeet.cx/ffmpeg/) locally.
+  * Set the **IMAGEIO_FFMPEG_EXE** variable to the FFMPEG binary path.
 
 You can see more on the ABCD methodology [here.](https://www.thinkwithgoogle.com/intl/en-emea/future-of-marketing/creativity/youtube-video-ad-best-practices/)
 
