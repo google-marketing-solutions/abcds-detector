@@ -25,7 +25,7 @@ import json
 import vertexai
 import vertexai.preview.generative_models as generative_models
 from vertexai.preview.generative_models import GenerativeModel, Part
-from googleapiclient.errors import HttpError
+from google.api_core.exceptions import ResourceExhausted
 
 ### REMOVE FOR COLAB - START
 from input_parameters import (
@@ -118,6 +118,10 @@ class VertexAIService:
                     stream=False,
                 )
                 return response.text if response else ""
+            except ResourceExhausted as ex:
+                print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)}")
+                wait = 10 * 2**this_retry
+                time.sleep(wait)
             except AttributeError as ex:
                 error_message = str(ex)
                 if (
