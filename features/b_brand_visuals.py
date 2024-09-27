@@ -24,7 +24,6 @@ Annotations used:
     2.Logo annotations to identify brand logo
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -43,23 +42,7 @@ from helpers.annotations_helpers import (
 )
 
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-from helpers.generic_helpers import (
-    get_knowledge_graph_entities,
-    get_n_secs_video_uri_from_uri,
-)
-
-### REMOVE FOR COLAB - END
-
-# @title 6 & 7) Brand: Brand Visuals & Brand Visuals (First 5 seconds)
-
-# @markdown **Features:**
-
-# @markdown 1. **Brand Visuals:** Branding, defined as the brand name or brand logo are shown in-situation or overlaid at any time in the video.
-
-# @markdown 2. **Brand Visuals (First 5 seconds):** Branding, defined as the brand name or brand logo are shown in-situation or overlaid in the first 5 seconds (up to 4.99s) of the video.
-# @markdown Including Logo Big & Logo Early. Is Logo larger than x% (3.5% default) of screen in the first 5 seconds?
-
+from helpers.generic_helpers import get_knowledge_graph_entities, get_reduced_uri
 
 def calculate_surface_area(points) -> float:
     """Calculate surface area of an object"""
@@ -279,8 +262,7 @@ def detect_brand_visuals(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             brand_visuals_1st_5_secs_feature, prompt, llm_params
         )
@@ -307,5 +289,5 @@ def detect_brand_visuals(
     return (
         brand_visuals_eval_details,
         brand_visuals_1st_5_secs_eval_details,
-        brand_visuals_logo_big_1st_5_secs,
+        #brand_visuals_logo_big_1st_5_secs,
     )

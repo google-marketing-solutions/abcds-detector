@@ -18,24 +18,18 @@
 #
 ###########################################################################
 
-"""Label Detection: Function definition to detect labels in a video"""
+"""Object Detection: Function definition to detect objects in a video"""
 
-
-### REMOVE FOR COLAB - START
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_labels(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detect labels in a video
+def detect_objects(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detects objects in a video.
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
     video_client = videointelligence.VideoIntelligenceServiceClient()
-
-    features = [videointelligence.Feature.LABEL_DETECTION]
+    features = [videointelligence.Feature.OBJECT_TRACKING]
     operation = video_client.annotate_video(
         request={
             "features": features,
@@ -43,10 +37,10 @@ def detect_labels(input_gs_file_name: str, output_gs_file_name: str) -> None:
             "output_uri": output_gs_file_name,
         }
     )
-    print(f"\nProcessing video {input_gs_file_name} for label annotations...")
+    print(f"\nProcessing video {input_gs_file_name} for object annotations...")
 
     result = operation.result(timeout=800)
 
     print(
-        f"\nFinished processing video {input_gs_file_name} for label annotations...\n"
+        f"\nFinished processing video {input_gs_file_name} for object annotations...\n"
     )

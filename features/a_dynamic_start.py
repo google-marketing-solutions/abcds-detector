@@ -23,7 +23,6 @@ Annotations used:
     1. Shot annotations to calculate how dynamic the video is
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -34,21 +33,8 @@ from input_parameters import (
     context_and_examples,
 )
 
-from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
-)
-
+from helpers.generic_helpers import get_reduced_uri
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-### REMOVE FOR COLAB - START
-
-
-# @title 3) Attract: Dynamic Start
-
-# @markdown **Features:**
-
-# @markdown **Dynamic Start:** The first shot in the video changes in less than 3 seconds.
-
 
 def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> dict:
     """Detects Dynamic Start
@@ -117,8 +103,7 @@ def detect_dynamic_start(shot_annotation_results: any, video_uri: str) -> dict:
             generation_config=llm_generation_config,
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             dynamic_start_feature, prompt, llm_params
         )

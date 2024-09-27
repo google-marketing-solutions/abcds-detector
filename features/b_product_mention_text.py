@@ -23,7 +23,6 @@ Annotations used:
     1. Text annotations to identify products in text overlays (text)
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -34,23 +33,8 @@ from input_parameters import (
 )
 
 from helpers.annotations_helpers import detected_text_in_first_5_seconds
-
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
-)
-
-### REMOVE FOR COLAB - END
-
-# @title 12, 13) Brand: Product Mention (Text) & Product Mention (Text) (First 5 seconds)
-
-# @markdown **Features:**
-
-# @markdown **Product Mention (Text):** The branded product names or generic product categories are present in any text or overlay at any time in the video.
-
-# @markdown **Product Mention (Text) (First 5 seconds):** The branded product names or generic product categories are present in any text or overlay in the first 5 seconds (up to 4.99s) of the video.
-
+from helpers.generic_helpers import get_reduced_uri
 
 def detect_product_mention_text(
     text_annotation_results: any,
@@ -188,8 +172,7 @@ def detect_product_mention_text(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             product_mention_text_1st_5_secs_feature, prompt, llm_params
         )

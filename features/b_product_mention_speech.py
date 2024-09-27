@@ -23,7 +23,6 @@ Annotations used:
     1. Speech annotations to identify products in audio (speech)
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -40,22 +39,7 @@ from helpers.annotations_helpers import (
 )
 
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
-)
-
-### REMOVE FOR COLAB - END
-
-
-# @title 14, 15) Brand: Product Mention (Speech), Product Mention (Speech) (First 5 seconds)
-
-# @markdown **Features:**
-
-# @markdown **Product Mention (Speech):** The branded product names or generic product categories are heard or mentioned in the audio or speech at any time in the video.
-
-# @markdown **Product Mention (Speech) (First 5 seconds):** The branded product names or generic product categories are heard or mentioned in the audio or speech in the first 5 seconds (up to 4.99s) of the video.
-
+from helpers.generic_helpers import get_reduced_uri
 
 def detect_product_mention_speech(
     speech_annotation_results: any,
@@ -189,8 +173,7 @@ def detect_product_mention_speech(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             product_mention_speech_1st_5_secs_feature, prompt, llm_params
         )

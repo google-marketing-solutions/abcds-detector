@@ -18,23 +18,18 @@
 #
 ###########################################################################
 
-"""Text Detection: Function definition to detect text in a video"""
+"""Shot Detection: Function definition to detect shots in a video"""
 
-### REMOVE FOR COLAB - START
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_text(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detects text in a video.
+def detect_shots(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detects camera shot changes in a video.
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
     video_client = videointelligence.VideoIntelligenceServiceClient()
-    features = [videointelligence.Feature.TEXT_DETECTION]
-
+    features = [videointelligence.Feature.SHOT_CHANGE_DETECTION]
     operation = video_client.annotate_video(
         request={
             "features": features,
@@ -42,9 +37,8 @@ def detect_text(input_gs_file_name: str, output_gs_file_name: str) -> None:
             "output_uri": output_gs_file_name,
         }
     )
-
-    print(f"\nProcessing video {input_gs_file_name} for text annotations...")
+    print(f"\nProcessing video {input_gs_file_name} for shot annotations...")
 
     result = operation.result(timeout=800)
 
-    print(f"\nFinished processing video {input_gs_file_name} for text annotations...\n")
+    print(f"\nFinished processing video {input_gs_file_name} for shot annotations...\n")

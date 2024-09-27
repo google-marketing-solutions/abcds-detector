@@ -27,17 +27,11 @@ import vertexai.preview.generative_models as generative_models
 from vertexai.preview.generative_models import GenerativeModel, Part
 from google.api_core.exceptions import ResourceExhausted
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     PROJECT_ID,
     GEMINI_PRO,
     VERBOSE,
 )
-
-from helpers.generic_helpers import get_video_format
-
-### REMOVE FOR COLAB - END
-
 
 class LLMParameters:
     """Class that represents the required params to make a prediction to the LLM"""
@@ -166,7 +160,7 @@ class VertexAIService:
             modality_params: list of modality params based on the model capability to use
         """
         if params.modality["type"] == "video":
-            mime_type = f"video/{get_video_format(params.modality['video_uri'])}"
+            mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
             video = Part.from_uri(uri=params.modality["video_uri"], mime_type=mime_type)
             return [video, prompt]
         elif params.modality["type"] == "text":

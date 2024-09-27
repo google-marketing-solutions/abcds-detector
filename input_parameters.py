@@ -18,28 +18,37 @@
 #
 ###########################################################################
 
+import os
+
 """Module that defines the colab parameters"""
 
 # @markdown ### Google Cloud Project Details
 
-PROJECT_ID = "" # @param {type:"string"}
-BUCKET_NAME = "" # @param {type:"string"}
+PROJECT_ID = "" # @param {type:"string", placeholder:"Google Cloud Project ID"}
+BUCKET_NAME = "shape-shifters" # @param {type:"string", placeholder:"Google Cloud Sotrage Bucket for annotations"}
+ANNOTATION_PATH = f"gs://{BUCKET_NAME}/ABCD/"
 
+VIDEO_URIS = [
+  "gs://cloud-samples-data/generative-ai/video/pixel8.mp4",
+] # use helpers/input_helper.py to load this
+
+FFMPEG_BUFFER = "reduced/buffer.mp4"
+if not os.path.exists('reduced'):
+  os.makedirs('reduced')
 
 # @markdown ### Solution Setup
 
-VIDEO_SIZE_LIMIT_MB = 7  # @param {type:"number"}
+VIDEO_SIZE_LIMIT_MB = 40  # @param {type:"number"}
 VERBOSE = True  # @param {type:"boolean"}
 use_llms = True  # @param {type:"boolean"}
 use_annotations = True # @param {type:"boolean"}
 # For local testing outside colab ONLY, set to False for colab
-STORE_ASSESSMENT_RESULTS_LOCALLY = False
+ASSESSMENT_FILE = "" # @param {type:"string", placeholder:"optional local file to write assesments to"} 
 TEST_RESULTS = []
 
 # @markdown #### Knowledge Graph API Configuration
 
-KNOWLEDGE_GRAPH_API_KEY = ""  # @param {type:"string"}
-
+KNOWLEDGE_GRAPH_API_KEY = ""  # @param {type:"string", placeholder:"Google Cloud Project API Key"}
 
 # @markdown ### Brand and Product Details
 

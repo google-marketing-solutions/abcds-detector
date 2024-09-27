@@ -18,22 +18,19 @@
 #
 ###########################################################################
 
-"""Object Detection: Function definition to detect objects in a video"""
+"""Logo Detection: Function definition to detect logos in a video"""
 
-### REMOVE FOR COLAB - START
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_objects(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detects objects in a video.
+def detect_logos(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detect logos in a video.
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
     video_client = videointelligence.VideoIntelligenceServiceClient()
-    features = [videointelligence.Feature.OBJECT_TRACKING]
+    features = [videointelligence.Feature.LOGO_RECOGNITION]
+
     operation = video_client.annotate_video(
         request={
             "features": features,
@@ -41,10 +38,9 @@ def detect_objects(input_gs_file_name: str, output_gs_file_name: str) -> None:
             "output_uri": output_gs_file_name,
         }
     )
-    print(f"\nProcessing video {input_gs_file_name} for object annotations...")
 
-    result = operation.result(timeout=800)
+    print(f"\nProcessing video {input_gs_file_name} for logo annotations...")
 
-    print(
-        f"\nFinished processing video {input_gs_file_name} for object annotations...\n"
-    )
+    response = operation.result(timeout=800)
+
+    print(f"\nFinished processing video {input_gs_file_name} for logo annotations...\n")

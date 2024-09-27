@@ -18,42 +18,31 @@
 #
 ###########################################################################
 
-"""Speech Detection: Function definition to detect speech in a video"""
+"""Label Detection: Function definition to detect labels in a video"""
 
-### REMOVE FOR COLAB - START
+
 from google.cloud import videointelligence
 
-### REMOVE FOR COLAB - END
-
-
-def detect_speech(input_gs_file_name: str, output_gs_file_name: str) -> None:
-    """Detects speech in a video.
+def detect_labels(input_gs_file_name: str, output_gs_file_name: str) -> None:
+    """Detect labels in a video
     Args:
       input_gs_file_name: gcs bucket where the video is located
       output_gs_file_name: gcs bucket output for the video annotations
     """
-
     video_client = videointelligence.VideoIntelligenceServiceClient()
-    features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
 
-    config = videointelligence.SpeechTranscriptionConfig(
-        language_code="en-US", enable_automatic_punctuation=True
-    )
-    video_context = videointelligence.VideoContext(speech_transcription_config=config)
-
+    features = [videointelligence.Feature.LABEL_DETECTION]
     operation = video_client.annotate_video(
         request={
             "features": features,
             "input_uri": input_gs_file_name,
             "output_uri": output_gs_file_name,
-            "video_context": video_context,
         }
     )
-
-    print(f"\nProcessing video {input_gs_file_name} for speech annotations...")
+    print(f"\nProcessing video {input_gs_file_name} for label annotations...")
 
     result = operation.result(timeout=800)
 
     print(
-        f"\nFinished processing video {input_gs_file_name} for speech annotations...\n"
+        f"\nFinished processing video {input_gs_file_name} for label annotations...\n"
     )

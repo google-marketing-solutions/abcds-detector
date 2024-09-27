@@ -23,7 +23,6 @@ Annotations used:
     1. People annotations to identify people in the video
 """
 
-### REMOVE FOR COLAB - START
 from input_parameters import (
     GEMINI_PRO,
     llm_location,
@@ -36,23 +35,8 @@ from input_parameters import (
 )
 
 from helpers.annotations_helpers import calculate_time_seconds
-
 from helpers.vertex_ai_service import LLMParameters, detect_feature_with_llm
-
-from helpers.generic_helpers import (
-    get_n_secs_video_uri_from_uri,
-)
-
-### REMOVE FOR COLAB - END
-
-# @title 18 & 19) Connect: Presence of People & Presence of People (First 5 seconds)
-
-# @markdown **Features:**
-
-# @markdown  **Presence of People:** People are shown in any capacity at any time in the video. Any human body parts are acceptable to pass this guideline. Alternate representations of people such as Animations or Cartoons ARE acceptable.
-
-# @markdown  **Presence of People (First 5 seconds):** People are shown in any capacity in the first 5 seconds (up to 4.99s) of the video. Any human body parts are acceptable to pass this guideline. Alternate representations of people such as Animations or Cartoons ARE acceptable.
-
+from helpers.generic_helpers import get_reduced_uri
 
 def detect_presence_of_people(
     people_annotation_results: any, video_uri: str
@@ -165,8 +149,7 @@ def detect_presence_of_people(
             .replace("{context_and_examples}", context_and_examples)
         )
         # Use first 5 secs video for this feature
-        video_uri_1st_5_secs = get_n_secs_video_uri_from_uri(video_uri, "1st_5_secs")
-        llm_params.set_modality({"type": "video", "video_uri": video_uri_1st_5_secs})
+        llm_params.set_modality({"type": "video", "video_uri": get_reduced_uri(video_uri)})
         feature_detected, llm_explanation = detect_feature_with_llm(
             presence_of_people_1st_5_secs_feature, prompt, llm_params
         )
