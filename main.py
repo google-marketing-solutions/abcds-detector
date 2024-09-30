@@ -21,230 +21,147 @@
 """Module to execute the ABCD Detector Assessment"""
 
 import json
-
+import time
+from annotations_evaluation.annotations_generation import generate_video_annotations
+from annotations_evaluation.evaluation import evaluate_abcd_features_using_annotations
+from llms_evaluation.evaluation import evaluate_abcd_features_using_llms
+from feature_configs.features import get_feature_configs
+from prompts.prompts_generator import PromptParams
+from helpers.generic_helpers import (
+    expand_uris,
+    get_blob,
+    print_abcd_assessment,
+    trim_video,
+    store_in_bq,
+    remove_local_video_files
+)
+from helpers.vertex_ai_service import LLMParameters
+from helpers.bq_service import BigQueryService
 from input_parameters import (
-    VIDEO_URIS,
-    VIDEO_SIZE_LIMIT_MB,
+    PROJECT_ID,
     ASSESSMENT_FILE,
+    LLM_NAME,
+    USE_ANNOTATIONS,
+    USE_LLMS,
+    VERBOSE,
+    VIDEO_SIZE_LIMIT_MB,
+    VIDEO_URIS,
+    STORE_IN_BQ,
     brand_name,
     brand_variations,
+    branded_call_to_actions,
     branded_products,
     branded_products_categories,
-    branded_call_to_actions,
-    use_llms,
-    use_annotations,
+    llm_generation_config,
+    llm_location,
 )
-
-from helpers.generic_helpers import get_blob, expand_uris, trim_video
-from helpers.annotations_helpers import download_video_annotations, get_annotation_uri
-
-from features.a_quick_pacing import detect_quick_pacing
-from features.a_dynamic_start import detect_dynamic_start
-from features.a_supers import detect_supers, detect_supers_with_audio
-from features.b_brand_visuals import detect_brand_visuals
-from features.b_brand_mention_speech import detect_brand_mention_speech
-from features.b_product_visuals import detect_product_visuals
-from features.b_product_mention_text import detect_product_mention_text
-from features.b_product_mention_speech import detect_product_mention_speech
-from features.c_visible_face import detect_visible_face
-from features.c_presence_of_people import detect_presence_of_people
-from features.d_audio_speech_early import detect_audio_speech_early
-from features.c_overall_pacing import detect_overall_pacing
-from features.d_call_to_action import (
-    detect_call_to_action_speech,
-    detect_call_to_action_text,
-)
-
-def player(video_url: str):
-    """Placeholder function to test locally"""
-    print(video_url)
-
-def print_abcd_assetssments(abcd_assessment: dict) -> None:
-    """Print ABCD Assessments
-    Args:
-        abcd_assessments: list of video abcd assessments
-    """
-    print(
-        f"\n\n*****  ABCD Assessment for brand {abcd_assessment.get('brand_name')}  *****"
-    )
-    for video_assessment in abcd_assessment.get("video_assessments"):
-        # Play Video
-        player(video_assessment['video_url'])
-        print(f"\nAsset name: {video_assessment.get('video_name')}\n")
-        passed_features_count = video_assessment.get("passed_features_count")
-        total_features = len(video_assessment.get("features"))
-        print(
-            f"Video score: {round(video_assessment.get('score'), 2)}%, adherence ({passed_features_count}/{total_features})\n"
-        )
-        if video_assessment.get("score") >= 80:
-            print("Asset result: ✅ Excellent \n")
-        elif video_assessment.get("score") >= 65 and video_assessment.get("score") < 80:
-            print("Asset result: ⚠ Might Improve \n")
-        else:
-            print("Asset result: ❌ Needs Review \n")
-
-        print("Evaluated Features:")
-        for feature in video_assessment.get("features"):
-            if feature.get("feature_detected"):
-                print(f' * ✅ {feature.get("feature")}')
-            else:
-                print(f' * ❌ {feature.get("feature")}')
 
 
 def execute_abcd_assessment_for_videos():
     """Execute ABCD Assessment for all brand videos in GCS"""
 
-    assessments = {"brand_name": brand_name, "video_assessments": []}
+    prompt_params = PromptParams(
+        brand_name,
+        brand_variations,
+        branded_products,
+        branded_products_categories,
+        branded_call_to_actions,
+    )
 
-    for video_uri in expand_uris(VIDEO_URIS):
+    llm_params = LLMParameters(
+        model_name=LLM_NAME,
+        location=llm_location,
+        generation_config=llm_generation_config,
+    )
+
+    if STORE_IN_BQ:
+        bq_service = BigQueryService(PROJECT_ID)
+
+    brand_assessment = {
+        "brand_name": brand_name,
+        "video_assessments": [],
+        "prompt_params": prompt_params.__dict__,
+        "llm_params": llm_params.__dict__,
+    }
+
+    video_uris = expand_uris(VIDEO_URIS)
+
+    for video_uri in video_uris:
+        print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
+
         # 1) Prepare video
         trim_video(video_uri)
 
         # Check size of video to avoid processing videos > 7MB
         video_metadata = get_blob(video_uri)
         size_mb = video_metadata.size / 1e6
-        if use_llms and size_mb > VIDEO_SIZE_LIMIT_MB:
+        if USE_LLMS and size_mb > VIDEO_SIZE_LIMIT_MB:
             print(
                 f"The size of video {video_uri} is greater than {VIDEO_SIZE_LIMIT_MB} MB. Skipping execution."
             )
             continue
 
-        print(f"\n\nProcessing ABCD Assessment for video {video_uri}...")
-
-        face_annotation_results = {}
-        label_annotation_results = {}
-        logo_annotation_results = {}
-        object_annotation_results = {}
-        people_annotation_results = {}
-        shot_annotation_results = {}
-        speech_annotation_results = {}
-        text_annotation_results = {}
-
-        if use_annotations:
-            # 2) Download generated video annotations
-            (
-                face_annotation_results,
-                label_annotation_results,
-                logo_annotation_results,
-                object_annotation_results,
-                people_annotation_results,
-                shot_annotation_results,
-                speech_annotation_results,
-                text_annotation_results,
-            ) = download_video_annotations(video_uri)
-
         # 3) Execute ABCD Assessment
-        features = []
-
-        # Dynamic Pacing And Start
-        features.extend(detect_quick_pacing(shot_annotation_results, video_uri))
-        features.append(detect_dynamic_start(shot_annotation_results, video_uri))
-
-        # Supers and Supers with Audio
-        features.append(detect_supers(text_annotation_results, video_uri))
-        features.append(detect_supers_with_audio(
-            text_annotation_results, speech_annotation_results, video_uri
-        ))
-
-        # Brand Visuals & Brand Visuals (First 5 seconds)
-        features.extend(detect_brand_visuals(
-            text_annotation_results,
-            logo_annotation_results,
-            video_uri,
-            brand_name,
-            brand_variations
-        ))
-
-        # Brand Mention (Speech) & Brand Mention (Speech) (First 5 seconds)
-        features.extend(detect_brand_mention_speech(
-            speech_annotation_results, video_uri, brand_name, brand_variations
-        ))
-
-        # Product Visuals & Product Visuals (First 5 seconds)
-        features.extend(detect_product_visuals(
-            label_annotation_results,
-            video_uri,
-            branded_products,
-            branded_products_categories,
-        ))
-
-        # Product Mention (Text) & Product Mention (Text) (First 5 seconds)
-        features.extend(detect_product_mention_text(
-            text_annotation_results,
-            video_uri,
-            branded_products,
-            branded_products_categories,
-        ))
-
-        # Product Mention (Speech) & Product Mention (Speech) (First 5 seconds)
-        features.extend(detect_product_mention_speech(
-            speech_annotation_results,
-            video_uri,
-            branded_products,
-            branded_products_categories,
-        ))
-
-        # Visible Face (First 5s) & Visible Face (Close Up)
-        features.extend(detect_visible_face(
-            face_annotation_results, video_uri
-        ))
-
-        # Presence of People & Presence of People (First 5 seconds)
-        features.extend(detect_presence_of_people(
-            people_annotation_results, video_uri
-        ))
-
-        #  Audio Early (First 5 seconds)
-        features.append(detect_audio_speech_early(
-            speech_annotation_results, video_uri
-        ))
-
-        # Overall Pacing
-        features.append(detect_overall_pacing(shot_annotation_results, video_uri))
-
-        # Call To Action (Speech)
-        features.append(detect_call_to_action_speech(
-            speech_annotation_results, video_uri, branded_call_to_actions
-        ))
-
-        # Call To Action (Text)
-        features.append(detect_call_to_action_text(
-            text_annotation_results, video_uri, branded_call_to_actions
-        ))
-
-        # Calculate ABCD final score
-        total_features = len(features)
-        passed_features_count = 0
-        for feature in features:
-            if feature.get("feature_detected"):
-                passed_features_count += 1
-
-        # Get score
-        score = (passed_features_count * 100) / total_features
         video_assessment = {
             "video_uri": video_uri,
-            "video_url": video_metadata.public_url,
-            "video_annotations": get_annotation_uri(video_uri),
-            "features": features,
-            "passed_features_count": passed_features_count,
-            "score": score,
         }
-        assessments.get("video_assessments").append(video_assessment)
+
+        if USE_ANNOTATIONS:
+            generate_video_annotations(video_uri)
+            annotations_evaluated_features = evaluate_abcd_features_using_annotations(
+                video_uri
+            )
+            video_assessment["annotations_evaluation"] = {
+                "evaluated_features": annotations_evaluated_features,
+            }
+
+        if USE_LLMS:
+            llm_evaluated_features = evaluate_abcd_features_using_llms(
+                video_uri, prompt_params, llm_params
+            )
+            video_assessment["llms_evaluation"] = {
+                "evaluated_features": llm_evaluated_features,
+            }
+
+            if VERBOSE:
+                if len(llm_evaluated_features) < len(get_feature_configs()):
+                    print(
+                        f"WARNING: ABCD Detector was not able to process all the features for video {video_uri}. Please check and execute again. \n"
+                    )
+                if len(llm_evaluated_features) > len(get_feature_configs()):
+                    print(
+                        f"WARNING: ABCD Detector processed more features than the original number features. \
+                    Processed features: {len(llm_evaluated_features)} - Original features: {len(get_feature_configs())}"
+                    )
+
+        print_abcd_assessment(brand_name, video_assessment)
+        brand_assessment.get("video_assessments").append(video_assessment)
+        if STORE_IN_BQ:
+            store_in_bq(bq_service, video_assessment, prompt_params, llm_params)
+        # Remove local version of video files
+        remove_local_video_files()
 
     if ASSESSMENT_FILE:
-      with open(ASSESSMENT_FILE, "w", encoding="utf-8") as f:
-        json.dump(assessments, f, ensure_ascii=False, indent=4)
+        with open(ASSESSMENT_FILE, "w", encoding="utf-8") as f:
+            json.dump(brand_assessment, f, ensure_ascii=False, indent=4)
 
-    return assessments
+    return brand_assessment
+
 
 def execute_abcd_detector():
     """Main ABCD Assessment execution"""
 
+    start_time = time.time()
+    print("Starting ABCD assessment... \n")
+
     if VIDEO_URIS:
-      abcd_assessments = execute_abcd_assessment_for_videos()
-      print_abcd_assetssments(abcd_assessments)
+        execute_abcd_assessment_for_videos()
+        print("Finished ABCD assessment. \n")
     else:
-      print("There are no videos to display.")
+        print("There are no videos to process. \n")
+
+    print(f"ABCD assessment took --- {(time.time() - start_time) / 60} mins. --- \n")
+
 
 if __name__ == "__main__":
     execute_abcd_detector()

@@ -20,23 +20,12 @@
 
 """Module to load helper functions to process annotations"""
 
-import json
-
 from input_parameters import (
     VERBOSE,
     early_time_seconds,
     confidence_threshold,
 )
 
-from helpers.generic_helpers import get_blob, get_annotation_uri
-from helpers.face_detection import detect_faces
-from helpers.label_detection import detect_labels
-from helpers.logo_detection import detect_logos
-from helpers.object_detection import detect_objects
-from helpers.people_detection import detect_people
-from helpers.shot_detection import detect_shots
-from helpers.speech_detection import detect_speech
-from helpers.text_detection import detect_text
 
 def calculate_time_seconds(part_obj: dict, part: str) -> float:
     """Calculate time of the provided part of the video
@@ -255,39 +244,3 @@ def get_speech_transcript_1st_5_secs(speech_transcriptions: list[dict]):
     # Construct transcript from words
     transcript_1st_5_secs = " ".join(words_1st_5_secs)
     return transcript_1st_5_secs
-
-
-def download_video_annotations(
-    video_uri: str
-) -> tuple[dict, dict, dict, dict, dict, dict, dict]:
-    """Download video annotations from Google Cloud Storage
-    Args:
-        video_uri: Full video uri
-    Returns:
-        text_annotation_results (list): Text annotations tuple
-    """
-
-    results = []
-    annotation_location = get_annotation_uri(video_uri)
-
-    for annotation_name, annotation_function in {
-      'face-detection':detect_faces,
-      'label-detection':detect_labels,
-      'logo-detection':detect_logos,
-      'object-detection':detect_objects,
-      'people-detection':detect_people,
-      'shot-detection':detect_shots,
-      'speech-detection':detect_speech,
-      'text-detection':detect_text,
-    }.items():
-      annotation_uri = f"{get_annotation_uri(video_uri)}{annotation_name}.json"
-      annotataion_blob = get_blob(annotation_uri)
-      if annotataion_blob is None:
-        annotation_function(video_uri, annotation_uri)
-        annotataion_blob = get_blob(annotation_uri)
-      else:
-        print(f"Annotation {annotation_uri} exists.")
-      data = json.loads(annotataion_blob.download_as_string(client=None))
-      results.append(data.get("annotation_results")[0]) # The first result is retrieved because a single video was processed.
-
-    return results

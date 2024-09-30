@@ -5,12 +5,11 @@ venv
 __pycache__
 reduced/
 ffmpeg
-features/_pycache_
-generate_video_annotations/_pycache_
-trim_videos/_pycache_
-abcd_videos
-test_results/
-test_params.py
+annotations_evaluation/_pycache_
+feature_configs/_pycache_
+helpers/_pycache_
+llms_evaluation/_pycache_
+prompts/_pycache_
 
 # IDEs and editors
 .idea/

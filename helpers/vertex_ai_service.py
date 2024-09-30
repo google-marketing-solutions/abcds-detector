@@ -24,14 +24,15 @@ import time
 import json
 import vertexai
 import vertexai.preview.generative_models as generative_models
-from vertexai.preview.generative_models import GenerativeModel, Part
+from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig
 from google.api_core.exceptions import ResourceExhausted
-
+from feature_configs.features import RESPONSE_SCHEMA
 from input_parameters import (
     PROJECT_ID,
-    GEMINI_PRO,
+    LLM_NAME,
     VERBOSE,
 )
+
 
 class LLMParameters:
     """Class that represents the required params to make a prediction to the LLM"""
@@ -77,11 +78,6 @@ class LLMParameters:
 class VertexAIService:
     """Vertex AI Service to leverage the Vertex APIs for inference"""
 
-    RETRIABLE_ERRORS = ["429 Quota exceeded",
-                        "503 The service is currently unavailable",
-                        "500 Internal error encountered",
-                        "403"]
-
     def __init__(self, project_id: str):
         self.project_id = project_id
 
@@ -102,7 +98,15 @@ class VertexAIService:
                 modality_params = self._get_modality_params(prompt, params)
                 response = model.generate_content(
                     modality_params,
-                    generation_config=params.generation_config,
+                    generation_config=GenerationConfig(
+                        temperature=params.generation_config.get("temperature"),
+                        max_output_tokens=params.generation_config.get(
+                            "max_output_tokens"
+                        ),
+                        top_p=params.generation_config.get("top_p"),
+                        response_mime_type="application/json",
+                        response_schema=RESPONSE_SCHEMA,
+                    ),
                     safety_settings={
                         generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
                         generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
@@ -113,14 +117,12 @@ class VertexAIService:
                 )
                 return response.text if response else ""
             except ResourceExhausted as ex:
-                print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)}")
+                print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)} ...")
                 wait = 10 * 2**this_retry
                 time.sleep(wait)
             except AttributeError as ex:
                 error_message = str(ex)
-                if (
-                    "Content has no parts" in error_message
-                ):
+                if "Content has no parts" in error_message:
                     # Retry request
                     print(
                         f"Error: {ex} Gemini might be blocking the response due to safety issues. Retrying {retries} times using exponential backoff. Retry number {this_retry + 1}...\n"
@@ -146,7 +148,9 @@ class VertexAIService:
                     time.sleep(wait)
                 else:
                     if VERBOSE:
-                        print(f"ERROR: the following issue can't be retried: {error_message}\n")
+                        print(
+                            f"ERROR: the following issue can't be retried: {error_message}\n"
+                        )
                     # Raise exception for non-retriable errors
                     raise
         return ""
@@ -174,85 +178,21 @@ def get_vertex_ai_service():
     return vertex_ai_service
 
 
-def detect_feature_with_llm(
-    feature: str, prompt: str, llm_params: LLMParameters
-) -> tuple[bool, str]:
-    """Detect feature using LLM
-    Args:
-        feature: the feature to evaluate
-        prompt: prompt for the llm
-        llm_params: object with llm params
-    Returns:
-        feature_detected: True if the feature is detected, False otherwise
-    """
-    try:
-        vertex_ai_service = get_vertex_ai_service()
-        if llm_params.model_name == GEMINI_PRO:
-            # Gemini 1.5 does not support top_k param
-            if "top_k" in llm_params.generation_config:
-                del llm_params.generation_config["top_k"]
-            llm_response = vertex_ai_service.execute_gemini_pro(
-                prompt=prompt, params=llm_params
-            )
-        else:
-            print(f"LLM {llm_params.model_name} not supported.")
-            return False
-        # Parse response
-        llm_response_json = json.loads(clean_llm_response(llm_response))
-        if (
-            "feature_detected" in llm_response_json
-            and "explanation" in llm_response_json
-        ):
-            if VERBOSE:
-                print("***Powered by LLMs***")
-                print(
-                    f"Feature detected: {feature}: {llm_response_json.get('feature_detected')}"
-                )
-                print(f"Explanation: {llm_response_json.get('explanation')}\n")
-            feature_detected = (
-                llm_response_json.get("feature_detected") == "True"
-                or llm_response_json.get("feature_detected") == "true"
-            )
-            return feature_detected, llm_response_json.get("explanation")
-        else:
-            if VERBOSE:
-                print("***Powered by LLMs***")
-                print(
-                    "JSON parse was successful but the JSON keys: feature_detected and explanation were not found."
-                )
-                print("Using string version...\n")
-                print(llm_response)
-            feature_detected = is_feature_detected(llm_response)
-            return feature_detected, llm_response
-    except json.JSONDecodeError as ex:
-        if VERBOSE:
-            print(f"LLM response could not be parsed. Error: {ex}.\n")
-            print("Using string version...\n")
-            if llm_response:
-                print("***Powered by LLMs***")
-                print(f"{feature}: {llm_response}")
-    except Exception as ex:
-        print(ex)
-        raise
-    feature_detected = is_feature_detected(llm_response)
-    return feature_detected, llm_response
-
-
 def detect_features_with_llm_in_bulk(
-    prompt: str, llm_params: LLMParameters
-) -> list[any]:
+    prompt: str, llm_params: LLMParameters, features_group_by: str
+) -> list[dict]:
     """Detect features in bulk using LLM
     Args:
         prompt: prompt for the llm
         llm_params: object with llm params
     Returns:
-        feature_detected: True if the feature is detected, False otherwise
+        features: list of evaluated features
     """
     retries = 3
     for this_retry in range(retries):
         try:
             vertex_ai_service = get_vertex_ai_service()
-            if llm_params.model_name == GEMINI_PRO:
+            if llm_params.model_name == LLM_NAME:
                 # Gemini 1.5 does not support top_k param
                 if "top_k" in llm_params.generation_config:
                     del llm_params.generation_config["top_k"]
@@ -266,7 +206,9 @@ def detect_features_with_llm_in_bulk(
             features = json.loads(clean_llm_response(llm_response))
             if isinstance(features, list) and len(features) > 0:
                 if VERBOSE:
-                    print(f"***Powered by LLMs*** \n FEATURES: {features} \n")
+                    print(
+                        f"***Powered by LLMs*** \n\n FEATURES in group {features_group_by}: \n\n {str(features)} \n"
+                    )
                 return features
             else:
                 print(
@@ -296,24 +238,6 @@ def detect_features_with_llm_in_bulk(
             print(ex)  # raise?
     # return empty list if not possible to get response after retries
     return []
-
-
-def is_feature_detected(llm_response: str):
-    """Checks if feature is detected
-
-    Args:
-        llm_response: string llm respose
-    Returns:
-        detected: whether the feature was detected or not
-
-    """
-    detected = llm_response and (
-        '"feature_detected" : "True"' in llm_response
-        or '"feature_detected" : "true"' in llm_response
-        or '"feature_detected": "True"' in llm_response
-        or '"feature_detected": "true"' in llm_response
-    )
-    return detected
 
 
 def clean_llm_response(response: str) -> str:

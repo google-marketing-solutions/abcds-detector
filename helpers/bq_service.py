@@ -65,35 +65,30 @@ class BigQueryService:
             dataset = client.create_dataset(dataset, timeout=30)
             dataset_created = True if dataset and dataset.dataset_id else False
             if dataset_created:
-                print(f"The dataset {full_dataset_name} was successfully created.")
+                print(f"The dataset {full_dataset_name} was successfully created. \n")
         except cloud_exceptions.Conflict:
-            print(f"The dataset {full_dataset_name} already exists.")
+            print(f"The dataset {full_dataset_name} already exists. \n")
 
     def create_table(
-        self, dataset_name: str, table_name: str, columns: list[str]
+        self, dataset_name: str, table_name: str, schema: list[bigquery.SchemaField]
     ) -> bigquery.Table:
         """Creates a new table with the columns provided.
         Args:
           dataset_name: the dataset containing the table
           table_name: The name of the table to create.
-          columns: A list of strings with column names.
+          schema: The schema for the table.
         """
         client = bigquery.Client(project=self.gcs_project_id)
-        new_table_schema = []
-        for column in columns:
-            new_table_schema.append(
-                bigquery.SchemaField(column, "STRING", mode="REQUIRED")
-            )
         full_table_name = self.__get_full_table_name(dataset_name, table_name)
-        table = bigquery.Table(full_table_name, schema=new_table_schema)
+        table = bigquery.Table(full_table_name, schema=schema)
         try:
             table = client.create_table(table)
             table_created = True if table and table.full_table_id else False
             if table_created:
-                print(f"The table {full_table_name} was successfully created.")
+                print(f"The table {full_table_name} was successfully created. \n")
             return table_created
         except cloud_exceptions.Conflict:
-            print(f"The table {full_table_name} already exists.")
+            print(f"The table {full_table_name} already exists. \n")
             return True
 
     def get_table_by_name(self, dataset_name: str, table_name: str) -> any:
@@ -132,6 +127,7 @@ class BigQueryService:
         dataset_name: str,
         table_name: str,
         dataframe: any,
+        schema: list[bigquery.SchemaField],
         write_disposition: str = "WRITE_TRUNCATE",
     ):
         """Loads the provided dataframe into a BQ table
@@ -142,7 +138,9 @@ class BigQueryService:
         """
         client = bigquery.Client(project=self.gcs_project_id)
         full_table_name = self.__get_full_table_name(dataset_name, table_name)
-        job_config = bigquery.LoadJobConfig(write_disposition=write_disposition)
+        job_config = bigquery.LoadJobConfig(
+            schema=schema, write_disposition=write_disposition
+        )
         # Make API request to load data
         job = client.load_table_from_dataframe(
             dataframe, full_table_name, job_config=job_config
@@ -152,9 +150,7 @@ class BigQueryService:
         # Check if table was created
         table = client.get_table(full_table_name)
         if table:
-            print(
-                f"Loaded {table.num_rows} rows and {len(table.schema)} columns to table {full_table_name} successfully!"
-            )
+            print(f"Rows inserted in {full_table_name} successfully! Total rows in table {table.num_rows}. \n")
         else:
             print(
                 f"There was an error loading the users to the table {full_table_name}. The table could not be created."

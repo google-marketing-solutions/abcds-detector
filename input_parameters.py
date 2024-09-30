@@ -18,33 +18,34 @@
 #
 ###########################################################################
 
-import os
-
 """Module that defines the colab parameters"""
+
+import os
 
 # @markdown ### Google Cloud Project Details
 
-PROJECT_ID = "" # @param {type:"string", placeholder:"Google Cloud Project ID"}
-BUCKET_NAME = "shape-shifters" # @param {type:"string", placeholder:"Google Cloud Sotrage Bucket for annotations"}
+PROJECT_ID = ""  # @param {type:"string", placeholder:"Google Cloud Project ID"}
+BUCKET_NAME = ""  # @param {type:"string", placeholder:"Google Cloud Sotrage Bucket for annotations"}
 ANNOTATION_PATH = f"gs://{BUCKET_NAME}/ABCD/"
 
 VIDEO_URIS = [
-  "gs://cloud-samples-data/generative-ai/video/pixel8.mp4",
-] # use helpers/input_helper.py to load this
+    "gs://cloud-samples-data/generative-ai/video/pixel8.mp4",
+]  # use helpers/input_helper.py to load this
 
 FFMPEG_BUFFER = "reduced/buffer.mp4"
-if not os.path.exists('reduced'):
-  os.makedirs('reduced')
+FFMPEG_BUFFER_REDUCED = "reduced/buffer_reduced.mp4"
+if not os.path.exists("reduced"):
+    os.makedirs("reduced")
 
 # @markdown ### Solution Setup
 
-VIDEO_SIZE_LIMIT_MB = 40  # @param {type:"number"}
+VIDEO_SIZE_LIMIT_MB = 50  # @param {type:"number"}
 VERBOSE = True  # @param {type:"boolean"}
-use_llms = True  # @param {type:"boolean"}
-use_annotations = True # @param {type:"boolean"}
+USE_ANNOTATIONS = True  # @param {type:"boolean"}
+USE_LLMS = True  # @param {type:"boolean"}
 # For local testing outside colab ONLY, set to False for colab
-ASSESSMENT_FILE = "" # @param {type:"string", placeholder:"optional local file to write assesments to"} 
-TEST_RESULTS = []
+ASSESSMENT_FILE = ""  # @param {type:"string", placeholder:"optional local file to write assesments to"}
+
 
 # @markdown #### Knowledge Graph API Configuration
 
@@ -74,14 +75,22 @@ dynamic_cutoff_ms = 3000  # @param {type:"number"}
 
 # @markdown #### LLM names and versions
 
-GEMINI_PRO_VISION = "gemini-1.0-pro-vision-001"  # @param {type:"string"}
-GEMINI_PRO = "gemini-1.5-pro-preview-0409"  # @param {type:"string"}
+LLM_NAME = "gemini-1.5-pro-002"  # @param {type:"string"}
 llm_location = "us-central1"  # @param {type:"string"}
 max_output_tokens = 8192  # @param {type:"number"}
 temperature = 1  # @param {type:"number"}
 top_p = 0.95  # @param {type:"number"}
 top_k = 32  # @param {type:"number"}
 
+
+# @markdown ### BigQuery Configuration
+
+# @markdown #### BQ dataset and table
+
+STORE_IN_BQ = True # @param {type:"boolean"}
+BQ_DATASET_NAME = "abcd_detector_ds" # @param {type:"string"}
+BQ_TABLE_NAME = "abcs_assessments" # @param {type:"string"}
+BQ_LOCATION = "us-central1"
 
 ### DO NOT EDIT, vars built from user's input ###
 def convert_string_to_list(list_str: str):
@@ -95,6 +104,7 @@ def convert_string_to_list(list_str: str):
         cleaned_list.append(item.strip())
     return cleaned_list
 
+
 brand_variations = convert_string_to_list(brand_variations_str)
 brand_variations.append(brand_name)
 branded_products = convert_string_to_list(branded_products_str)
@@ -102,11 +112,11 @@ branded_products_categories = convert_string_to_list(branded_products_categories
 branded_call_to_actions = convert_string_to_list(branded_call_to_actions_str)
 
 if VERBOSE:
-    print("ABCD Detector parameters:")
-    print(f"Brand Variations: {brand_variations}")
+    print("ABCD Detector parameters: \n")
+    print(f"Brand variations: {brand_variations}")
     print(f"Brand products: {branded_products}")
     print(f"Brand categories: {branded_products_categories}")
-    print(f"Brand call to actions: {branded_call_to_actions}")
+    print(f"Brand call to actions: {branded_call_to_actions} \n")
 
 llm_generation_config = {
     "max_output_tokens": max_output_tokens,
@@ -114,13 +124,3 @@ llm_generation_config = {
     "top_p": top_p,
     "top_k": top_k,
 }
-
-context_and_examples = """Only base your answers strictly on what information is available in the video attached.
-Do not make up any information that is not part of the video.
-Explain in a very detailed way the reasoning behind your answer.
-Please present the extracted information in a VALID JSON format like this:
-{
-    "feature_detected": "True/False",
-    "explanation": "..."
-}
-"""
