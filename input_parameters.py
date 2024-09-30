@@ -89,7 +89,7 @@ top_k = 32  # @param {type:"number"}
 
 STORE_IN_BQ = True # @param {type:"boolean"}
 BQ_DATASET_NAME = "abcd_detector_ds" # @param {type:"string"}
-BQ_TABLE_NAME = "abcs_assessments" # @param {type:"string"}
+BQ_TABLE_NAME = "abcd_assessments" # @param {type:"string"}
 BQ_LOCATION = "us-central1"
 
 ### DO NOT EDIT, vars built from user's input ###
