@@ -126,8 +126,10 @@ def get_knowledge_graph_entities(queries: list[str]) -> dict[str, dict]:
 
 def remove_local_video_files():
     """Removes local video files"""
-    os.remove(FFMPEG_BUFFER)
-    os.remove(FFMPEG_BUFFER_REDUCED)
+    if os.path.exists(FFMPEG_BUFFER):
+        os.remove(FFMPEG_BUFFER)
+    if os.path.exists(FFMPEG_BUFFER_REDUCED):
+        os.remove(FFMPEG_BUFFER_REDUCED)
 
 
 def trim_video(video_uri: str):
