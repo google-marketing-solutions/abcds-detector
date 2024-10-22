@@ -26,18 +26,11 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from helpers.generic_helpers import (
-    get_knowledge_graph_entities,
-)
-from input_parameters import (
-    early_time_seconds,
-    confidence_threshold,
-    branded_products,
-    branded_products_categories,
-)
+from helpers.generic_helpers import get_knowledge_graph_entities
+from configuration import Configuration
 
 
-def detect_product_visuals(feature_name: str, video_uri: str) -> bool:
+def detect_product_visuals(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Product Visuals
     Args:
         feature_name: the name of the feature
@@ -45,14 +38,14 @@ def detect_product_visuals(feature_name: str, video_uri: str) -> bool:
     Returns:
         product_visuals: product visuals evaluation
     """
-    product_visuals, na = detect(feature_name, video_uri)
+    product_visuals, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_visuals} \n")
 
     return product_visuals
 
 
-def detect_product_visuals_1st_5_secs(feature_name: str, video_uri: str) -> bool:
+def detect_product_visuals_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Product Visuals (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -60,7 +53,7 @@ def detect_product_visuals_1st_5_secs(feature_name: str, video_uri: str) -> bool
     Returns:
         product_visuals_1st_5_secs: product visuals evaluation
     """
-    na, product_visuals_1st_5_secs = detect(feature_name, video_uri)
+    na, product_visuals_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_visuals_1st_5_secs} \n")
 
@@ -105,18 +98,18 @@ def detect_annotation(
         or len(found_branded_product_categories) > 0
     ):
         # Check confidence against user defined threshold
-        if segment.get("confidence") >= confidence_threshold:
+        if segment.get("confidence") >= config.confidence_threshold:
             product_visuals = True
             start_time_secs = calculate_time_seconds(
                 segment.get("segment"), "start_time_offset"
             )
-            if start_time_secs <= early_time_seconds:
+            if start_time_secs <= config.early_time_seconds:
                 product_visuals_1st_5_secs = True
 
     return product_visuals, product_visuals_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Product Visuals & Product Visuals (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -127,7 +120,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     label_annotation_results = load_blob(annotation_uri)
 
@@ -137,7 +130,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     # Feature Product Visuals (First 5 seconds)
     product_visuals_1st_5_secs = False
 
-    branded_products_kg_entities = get_knowledge_graph_entities(branded_products)
+    branded_products_kg_entities = get_knowledge_graph_entities(config, config.branded_products)
 
     # Video API: Evaluate product_visuals_feature and product_visuals_1st_5_secs_feature
     # Check in annotations at segment level
@@ -149,8 +142,8 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                     segment_label.get("entity"),
                     segment,
                     branded_products_kg_entities,
-                    branded_products,
-                    branded_products_categories,
+                    config.branded_products,
+                    config.branded_products_categories,
                 )
                 if pv:
                     product_visuals = True
@@ -170,8 +163,8 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                     shot_label.get("entity"),
                     segment,
                     branded_products_kg_entities,
-                    branded_products,
-                    branded_products_categories,
+                    config.branded_products,
+                    config.branded_products_categories,
                 )
                 if pv:
                     product_visuals = True
@@ -191,8 +184,8 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                     frame_label.get("entity"),
                     frame,
                     branded_products_kg_entities,
-                    branded_products,
-                    branded_products_categories,
+                    config.branded_products,
+                    config.branded_products_categories,
                 )
                 if pv:
                     product_visuals = True

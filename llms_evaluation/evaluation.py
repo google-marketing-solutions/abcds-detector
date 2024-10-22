@@ -21,7 +21,7 @@
 """Module to evaluate features for ABCDs using llms."""
 
 import functools
-from input_parameters import VERBOSE
+from configuration import Configuration
 from helpers.generic_helpers import get_reduced_uri, execute_tasks_in_parallel
 from helpers.vertex_ai_service import LLMParameters, detect_features_with_llm_in_bulk
 from prompts.prompts_generator import PromptParams, get_abcds_prompt
@@ -29,6 +29,7 @@ from feature_configs.features import get_groups_of_features
 
 
 def evaluate_features(
+    config: Configuration,
     evaluation_details: dict,
 ):
     """Evaluates ABCD features using LLMs."""
@@ -43,9 +44,9 @@ def evaluate_features(
         {"type": "video", "video_uri": evaluation_details.get("video_uri")}
     )
     evaluated_features = detect_features_with_llm_in_bulk(
-        prompt, evaluation_details.get("llm_params"), evaluation_details.get("group_by")
+        config, prompt, evaluation_details.get("llm_params"), evaluation_details.get("group_by")
     )
-    if VERBOSE:
+    if config.verbose:
         if len(evaluated_features) == 0:
             print(
                 f"WARNING: ABCD Detector was not able to process features for video {evaluation_details.get('video_uri')}... Please review. \n"
@@ -55,6 +56,7 @@ def evaluate_features(
 
 
 def evaluate_abcd_features_using_llms(
+    config: Configuration,
     video_uri: str,
     prompt_params: PromptParams,
     llm_params: LLMParameters,
@@ -62,6 +64,7 @@ def evaluate_abcd_features_using_llms(
     """Evaluates ABCD features using LLMs.
     Builds functions that will execute in parallel using ThreadPoolExecutor
     Args:
+        config: All the parameters
         video_uri: the video location in gcs.
         prompt_params: required params for the prompt.
         llm_params: required params for the LLM.
@@ -80,12 +83,13 @@ def evaluate_abcd_features_using_llms(
         if group_key == "no_grouping":
             for f_confing in feature_configs:
                 if f_confing.get("type") == "first_5_secs_video":
-                    uri = get_reduced_uri(video_uri)
+                    uri = get_reduced_uri(config, video_uri)
                 else:
                     uri = video_uri
                 # Build function to execute in parallel
                 func = functools.partial(
                     evaluate_features,
+                    config,
                     {
                         "group_by": f"{group_key}-{f_confing.get('id')}",
                         "video_uri": uri,
@@ -98,12 +102,13 @@ def evaluate_abcd_features_using_llms(
                 tasks.append(func)
         else:
             if group_key == "first_5_secs_video":
-                uri = get_reduced_uri(video_uri)
+                uri = get_reduced_uri(config, video_uri)
             else:
                 uri = video_uri
             # Build function to execute in parallel
             func = functools.partial(
                 evaluate_features,
+                config,
                 {
                     "group_by": group_key,
                     "video_uri": uri,

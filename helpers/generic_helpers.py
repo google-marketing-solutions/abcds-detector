@@ -31,15 +31,7 @@ from google.cloud import storage
 from moviepy.editor import VideoFileClip
 from helpers.bq_service import BigQueryService
 from feature_configs.features import get_feature_configs
-from input_parameters import (
-    ANNOTATION_PATH,
-    FFMPEG_BUFFER,
-    FFMPEG_BUFFER_REDUCED,
-    KNOWLEDGE_GRAPH_API_KEY,
-    BQ_DATASET_NAME,
-    BQ_TABLE_NAME,
-    BQ_LOCATION,
-)
+from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
 
 
 def get_blob(uri: str) -> any:
@@ -78,19 +70,20 @@ def expand_uris(uris: list) -> any:
             yield uri
 
 
-def get_annotation_uri(video_uri: str) -> str:
+def get_annotation_uri(config: Configuration, video_uri: str) -> str:
     """Helper to translate video to annotation uri."""
-    return video_uri.replace("gs://", ANNOTATION_PATH).replace(".", "_") + "/"
+    return video_uri.replace("gs://", config.annotation_path).replace(".", "_") + "/"
 
 
-def get_reduced_uri(video_uri: str) -> str:
+def get_reduced_uri(config: Configuration, video_uri: str) -> str:
     """Helper to translate video to reduced video uri."""
-    return get_annotation_uri(video_uri) + "reduced_1st_5_secs.mp4"
+    return get_annotation_uri(config, video_uri) + "reduced_1st_5_secs.mp4"
 
 
-def get_knowledge_graph_entities(queries: list[str]) -> dict[str, dict]:
+def get_knowledge_graph_entities(config: Configuration, queries: list[str]) -> dict[str, dict]:
     """Get the knowledge Graph Entities for a list of queries
     Args:
+        config: All the parameters
         queries: a list of entities to find in KG
     Returns:
         kg_entities: entities found in KG
@@ -107,7 +100,7 @@ def get_knowledge_graph_entities(queries: list[str]) -> dict[str, dict]:
                 "query": query,
                 "limit": 10,
                 "indent": True,
-                "key": KNOWLEDGE_GRAPH_API_KEY,
+                "key": config.knowledge_graph_api_key,
             }
             url = f"{service_url}?{urllib.parse.urlencode(params)}"
             response = json.loads(urllib.request.urlopen(url).read())
@@ -132,12 +125,13 @@ def remove_local_video_files():
         os.remove(FFMPEG_BUFFER_REDUCED)
 
 
-def trim_video(video_uri: str):
+def trim_video(config: Configuration, video_uri: str):
     """Trims videos to create new versions of 5 secs
     Args:
+        config: all the parameters
         video_uri: the video to trim the length for
     """
-    reduced_uri = get_reduced_uri(video_uri)
+    reduced_uri = get_reduced_uri(config, video_uri)
     reduced_blob = get_blob(reduced_uri)
     print(f"REDUCED: {reduced_uri} \n")
     if reduced_blob is None:
@@ -456,6 +450,7 @@ def update_llms_evaluated_features(
 
 
 def store_in_bq(
+    config:Configuration,
     bq_service: BigQueryService,
     video_assessment: dict,
     prompt_params: any,
@@ -489,18 +484,18 @@ def store_in_bq(
             columns=columns,
         )
         # Create dataset if it does not exist
-        bq_service.create_dataset(BQ_DATASET_NAME, BQ_LOCATION)
+        bq_service.create_dataset(config.bq_dataset_name, config.project_zone)
         schema = get_table_schema()
-        table_created = bq_service.create_table(BQ_DATASET_NAME, BQ_TABLE_NAME, schema)
+        table_created = bq_service.create_table(config.bq_dataset_name, config.bq_table_name, schema)
         # Wait for table creation
         if table_created:
             print(f"Inserting {len(assessment_bq)} rows into BQ... \n")
             bq_service.load_table_from_dataframe(
-                BQ_DATASET_NAME, BQ_TABLE_NAME, dataframe, schema, "WRITE_APPEND"
+                config.bq_dataset_name, config.bq_table_name, dataframe, schema, "WRITE_APPEND"
             )
         else:
             print(
-                f"Error: ABCD assessments not loaded to table {BQ_DATASET_NAME}.{BQ_TABLE_NAME} because the table could not be created. \n"
+                f"Error: ABCD assessments not loaded to table {config.bq_dataset_name}.{config.bq_table_name} because the table could not be created. \n"
             )
     else:
         print(

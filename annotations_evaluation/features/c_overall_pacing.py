@@ -26,14 +26,13 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import (
-    avg_shot_duration_seconds,
-)
+from configuration import Configuration
 
 
-def detect_overall_pacing(feature_name: str, video_uri: str) -> dict:
+def detect_overall_pacing(config: Configuration, feature_name: str, video_uri: str) -> dict:
     """Detect Overall Pacing
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -41,7 +40,7 @@ def detect_overall_pacing(feature_name: str, video_uri: str) -> dict:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     shot_annotation_results = load_blob(annotation_uri)
 
@@ -60,7 +59,7 @@ def detect_overall_pacing(feature_name: str, video_uri: str) -> dict:
             total_time_all_shots += total_shot_time
             total_shots += 1
         avg_pacing = total_time_all_shots / total_shots
-        if avg_pacing <= avg_shot_duration_seconds:
+        if avg_pacing <= config.avg_shot_duration_seconds:
             overall_pacing = True
     else:
         print(

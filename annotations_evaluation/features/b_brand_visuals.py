@@ -26,16 +26,8 @@ Annotations used:
 
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.generic_helpers import load_blob, get_annotation_uri, get_knowledge_graph_entities
-from helpers.annotations_helpers import (
-    calculate_time_seconds,
-    detected_text_in_first_5_seconds
-)
-from input_parameters import (
-    early_time_seconds,
-    confidence_threshold,
-    logo_size_threshold,
-    brand_variations,
-)
+from helpers.annotations_helpers import calculate_time_seconds, detected_text_in_first_5_seconds
+from configuration import Configuration
 
 
 def calculate_surface_area(points) -> float:
@@ -52,40 +44,43 @@ def calculate_surface_area(points) -> float:
     return surface_area * 100
 
 
-def detect_brand_visuals(feature_name: str, video_uri: str) -> bool:
+def detect_brand_visuals(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Brand Visuals
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         brand_visuals: brand visuals evaluation
     """
-    brand_visuals, na = detect(feature_name, video_uri)
+    brand_visuals, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {brand_visuals} \n")
 
     return brand_visuals
 
 
-def detect_brand_visuals_1st_5_secs(feature_name: str, video_uri: str) -> bool:
+def detect_brand_visuals_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Brand Visuals (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         brand_visuals_1st_5_secs: brand visuals evaluation
 
     """
-    na, brand_visuals_1st_5_secs = detect(feature_name, video_uri)
+    na, brand_visuals_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {brand_visuals_1st_5_secs} \n")
 
     return brand_visuals_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Brand Visuals & Brand Visuals (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -94,7 +89,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     annotation_results = load_blob(annotation_uri)
 
@@ -114,7 +109,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
         for text_annotation in annotation_results.get("text_annotations"):
             text = text_annotation.get("text")
             found_brand = [
-                brand for brand in brand_variations if brand.lower() in text.lower()
+                brand for brand in config.brand_variations if brand.lower() in text.lower()
             ]
             if found_brand:
                 brand_visuals = True
@@ -131,7 +126,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                             ((float(vertex.get("x"))), float(vertex.get("y")))
                         )
                     surface_area = calculate_surface_area(coordinates)
-                    if surface_area > logo_size_threshold:
+                    if surface_area > config.logo_size_threshold:
                         brand_visuals_logo_big_1st_5_secs = True
     else:
         print(
@@ -139,7 +134,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
         )
 
     # Evaluate brand_visuals_feature & brand_visuals_1st_5_secs in logo annotations
-    brand_kg_entities = get_knowledge_graph_entities(brand_variations)
+    brand_kg_entities = get_knowledge_graph_entities(config, config.brand_variations)
     brand_kg_entities_list = []
     for key, value in brand_kg_entities.items():
         entity_id = value["@id"][3:] if "@id" in value else ""
@@ -172,13 +167,13 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                 # to one logo instance appearing in consecutive frames.
                 for track in logo_recognition_annotation.get("tracks"):
                     # Check confidence against user defined threshold
-                    if track.get("confidence") >= confidence_threshold:
+                    if track.get("confidence") >= config.confidence_threshold:
                         brand_visuals = True
                         # Video segment of a track.
                         start_time_secs = calculate_time_seconds(
                             track.get("segment"), "start_time_offset"
                         )
-                        if start_time_secs <= early_time_seconds:
+                        if start_time_secs <= config.early_time_seconds:
                             brand_visuals_1st_5_secs = True
                             # The object with timestamp and attributes per frame in the track.
                             for timestamped_object in track.get("timestamped_objects"):
@@ -193,7 +188,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                                     normalized_bounding_box.get("right") or 0
                                 ) - (normalized_bounding_box.get("left") or 0)
                                 surface = bottom_top * right_left * 100
-                                if surface > logo_size_threshold:
+                                if surface > config.logo_size_threshold:
                                     brand_visuals_logo_big_1st_5_secs = True
 
                 # All video segments where the recognized logo appears. There might be
@@ -203,7 +198,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                     start_time_secs = calculate_time_seconds(
                         segment, "start_time_offset"
                     )
-                    if start_time_secs <= early_time_seconds:
+                    if start_time_secs <= config.early_time_seconds:
                         brand_visuals_1st_5_secs = True
     else:
         print(
