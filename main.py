@@ -159,24 +159,28 @@ if __name__ == "__main__":
     parser.add_argument('-bucket_name', '-bn', help='Google Cloud Project Bucket Name (not url).')
     parser.add_argument('-video_uris', '-vu', help='Comma delimited string of video or folder URIs.')
     parser.add_argument('-knowledge_graph_api_key', '-kgak', help='Path to CLIENT credentials json file.', default=None)
+    parser.add_argument('-bigquery_dataset', '-bd', help='name of BigQuery dataset to write to', default=None)
+    parser.add_argument('-bigquery_table', '-bt', help='name of BigQuery table to write to', default=None)
+    parser.add_argument('-assessment_file', '-af', help='local file path to write results to', default=None)
     parser.add_argument('-use_annotations', '-ua', help='Analyze videos using annotations.', action='store_true', default=False)
     parser.add_argument('-use_llms', '-ul', help='Analyze videos using LLMs.', action='store_true', default=False)
-    parser.add_argument('-assessment_file', '-af', help='local file path to write results to', default=None)
     parser.add_argument('-verbose', '-v', help='Print all the steps as they happen.', action='store_true', default=False)
 
     args = parser.parse_args()
 
-    config = Configuration(
+    config = Configuration()
+    config.set_parameters(
         project_id = args.project_id,
         project_zone = args.project_zone,
         bucket_name = args.bucket_name,
         knowledge_graph_api_key = args.knowledge_graph_api_key,
+        bigquery_dataset = args.bigquery_dataset,
+        bigquery_table = args.bigquery_table,
+        assessment_file = args.assessment_file,
         use_annotations = args.use_annotations,
         use_llms = args.use_llms,
-        assessment_file = args.assessment_file,
         verbose = args.verbose
     )
-
     config.set_videos(args.video_uris)
 
     start_time = time.time()

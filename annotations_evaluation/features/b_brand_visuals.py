@@ -114,6 +114,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
             if found_brand:
                 brand_visuals = True
                 found_brand_1st_5_secs, frame = detected_text_in_first_5_seconds(
+                    config,
                     text_annotation
                 )
                 if found_brand_1st_5_secs:

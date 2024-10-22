@@ -32,42 +32,25 @@ if not os.path.exists("reduced"):
 class Configuration:
     """Class that stores all parameters used by ABCD."""
 
-    def __init__(self, 
-        project_id,
-        project_zone:str,
-        bucket_name,
-        knowledge_graph_api_key:str,
-        use_annotations:bool,
-        use_llms:bool,
-        assessment_file:str,
-        verbose:bool,
-    ):
+    def __init__(self):
         """Initialize with only the required parameters.
 
           We set all optional parameter defaults in this class because
           we do not want anyone importing the global constants. Hence
           no global variables for hard coded values by design.
-
-        Args:
-          project_id: Google Cloud Project ID
-          project_zone: Google Cloud Project zone (us-central1 if None)
-          bucket_name: Google Cloud Storage Bucket name (not uri) 
-          knowledge_graph_api_key: Google Cloud API Key (limit this)
-          use_annotations: Use video annotation AI.
-          use_llms: Use LLM AI.
-          assessment_file: If present, results will be written to the file path.
-          verbose: Turn on extra debug and execution prints.
         """
-        self.project_id = project_id 
-        self.project_zone = project_zone or "us-central1"
-        self.bucket_name = bucket_name
-        self.knowledge_graph_api_key = knowledge_graph_api_key
-        self.use_annotations = use_annotations
-        self.use_llms = use_llms
-        self.assessment_file = assessment_file
-        self.verbose = verbose
-
-        self.annotation_path = f"gs://{bucket_name}/ABCD/"
+        # set parameters
+        self.project_id = "" 
+        self.project_zone = "us-central1"
+        self.bucket_name = ""
+        self.knowledge_graph_api_key = ""
+        self.bq_dataset_name = "abcd_detector_ds"
+        self.bq_table_name = "abcd_assessments"
+        self.assessment_file = ""
+        self.use_annotations = True
+        self.use_llms = True
+        self.verbose = True
+        self.annotation_path = ""
 
         # set videos
         self.video_uris = []
@@ -95,12 +78,49 @@ class Configuration:
         self.top_p = 0.95
         self.top_k = 32
 
-        # set bigquery
-        self.bq_dataset_name = "abcd_detector_ds"
-        self.bq_table_name = "abcd_assessments"
+
+    def set_parameters(self,
+        project_id: str,
+        project_zone: str,
+        bucket_name: str,
+        knowledge_graph_api_key: str,
+        bigquery_dataset:str,
+        bigquery_table:str,
+        assessment_file: str,
+        use_annotations: bool,
+        use_llms: bool,
+        verbose: bool
+    ) -> None:
+        """Set the required parameters for ABCD to run.
+            
+          Having a separate method for this allows colab multi cell edits.
+
+        Args:
+          project_id: Google Cloud Project ID
+          project_zone: Google Cloud Project zone (us-central1 if None)
+          bucket_name: Google Cloud Storage Bucket name (not uri) 
+          knowledge_graph_api_key: Google Cloud API Key (limit this)
+          bigquery_dataset: name of dataset in BigQuery.
+          bigquery_table: name of table to append results to in BigQuery.
+          assessment_file: If present, results will be written to the file path.
+          use_annotations: Use video annotation AI.
+          use_llms: Use LLM AI.
+          verbose: Turn on extra debug and execution prints.
+        """
+        self.project_id = project_id
+        self.project_zone = project_zone or "us-central1"
+        self.bucket_name = bucket_name
+        self.knowledge_graph_api_key = knowledge_graph_api_key
+        self.bq_dataset_name = bigquery_dataset
+        self.bq_table_name = bigquery_table
+        self.assessment_file = assessment_file
+        self.use_annotations = use_annotations
+        self.use_llms = use_llms
+        self.verbose = verbose
+        self.annotation_path = f"gs://{bucket_name}/ABCD/"
 
 
-    def set_videos(self, video_uris:list) -> None:
+    def set_videos(self, video_uris: list) -> None:
         """Set the videos that will be processed.
             
           Having a separate method for this allows multiple runs.
@@ -118,11 +138,11 @@ class Configuration:
 
 
     def set_brand(self,
-        name:str,
-        variations:str,
-        products:str,
-        products_categories:str,
-        call_to_actions:str
+        name: str,
+        variations: str,
+        products: str,
+        products_categories: str,
+        call_to_actions: str
     ) -> None:
         """Set brand values to help AI evaluate videos.
 
@@ -141,12 +161,12 @@ class Configuration:
 
 
     def set_annotation(self,
-        early_time_seconds:int,
-        confidence_threshold:float,
-        face_surface_threshold:float,
-        logo_size_threshold:float,
-        avg_shot_duration_seconds:int,
-        dynamic_cutoff_ms:int
+        early_time_seconds: int,
+        confidence_threshold: float,
+        face_surface_threshold: float,
+        logo_size_threshold: float,
+        avg_shot_duration_seconds: int,
+        dynamic_cutoff_ms: int
     ):
         """Set annotation thresholds to help the AI recognize content.
 
@@ -167,12 +187,12 @@ class Configuration:
 
             
     def set_model(self,
-        llm_name:str,
-        video_size_limit_mb:int,
-        max_output_tokens:int,
-        temperature:float,
-        top_p:float,
-        top_k:int
+        llm_name: str,
+        video_size_limit_mb: int,
+        max_output_tokens: int,
+        temperature: float,
+        top_p: float,
+        top_k: int
     ):
         """Set LLM model parameters.
         
@@ -190,17 +210,3 @@ class Configuration:
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
-
-
-    def set_bigquery(self,
-        dataset_name:str,
-        table_name:str
-    ):
-       """Set LLM model parameters.
-        
-          Args:
-            dataset_name: name of dataset in BigQuery.
-            table_name: name of table to append results to in BigQuery.
-        """
-        self.bq_dataset_name = dataset_name
-        self.bq_table_name = table_name
