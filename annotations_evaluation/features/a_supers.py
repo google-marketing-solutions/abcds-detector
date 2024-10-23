@@ -26,12 +26,11 @@ Annotations used:
 
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from helpers.annotations_helpers import (
-    find_elements_in_transcript,
-)
+from helpers.annotations_helpers import find_elements_in_transcript
+from configuration import Configuration
 
 
-def detect_supers(feature_name: str, video_uri: str) -> bool:
+def detect_supers(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Supers
     Args:
         feature_name: the name of the feature
@@ -41,7 +40,7 @@ def detect_supers(feature_name: str, video_uri: str) -> bool:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     text_annotation_results = load_blob(annotation_uri)
 
@@ -62,7 +61,7 @@ def detect_supers(feature_name: str, video_uri: str) -> bool:
     return supers
 
 
-def detect_supers_with_audio(feature_name: str, video_uri: str) -> bool:
+def detect_supers_with_audio(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Supers with Audio
     Args:
         feature_name: the name of the feature
@@ -72,12 +71,12 @@ def detect_supers_with_audio(feature_name: str, video_uri: str) -> bool:
     """
 
     t_annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     text_annotation_results = load_blob(t_annotation_uri)
 
     s_annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     )
     speech_annotation_results = load_blob(s_annotation_uri)
 
@@ -100,6 +99,7 @@ def detect_supers_with_audio(feature_name: str, video_uri: str) -> bool:
             supers_with_audio,
             na,
         ) = find_elements_in_transcript(
+            config,
             speech_transcriptions=speech_annotation_results.get(
                 "speech_transcriptions"
             ),

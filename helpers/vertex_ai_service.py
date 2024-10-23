@@ -27,11 +27,7 @@ import vertexai.preview.generative_models as generative_models
 from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig
 from google.api_core.exceptions import ResourceExhausted
 from feature_configs.features import RESPONSE_SCHEMA
-from input_parameters import (
-    PROJECT_ID,
-    LLM_NAME,
-    VERBOSE,
-)
+from configuration import Configuration
 
 
 class LLMParameters:
@@ -139,7 +135,7 @@ class VertexAIService:
                     or "500 Internal error encountered" in error_message
                     or "403" in error_message
                 ):
-                    if VERBOSE:
+                    if config.verbose:
                         print(
                             f"Error {error_message}. Retrying {retries} times using exponential backoff. Retry number {this_retry + 1}...\n"
                         )
@@ -147,7 +143,7 @@ class VertexAIService:
                     wait = 10 * 2**this_retry
                     time.sleep(wait)
                 else:
-                    if VERBOSE:
+                    if config.verbose:
                         print(
                             f"ERROR: the following issue can't be retried: {error_message}\n"
                         )
@@ -172,17 +168,19 @@ class VertexAIService:
         return []
 
 
-def get_vertex_ai_service():
+def get_vertex_ai_service(config:Configuration):
     """Gets Vertex AI service to interact with Gemini"""
-    vertex_ai_service = VertexAIService(PROJECT_ID)
+    vertex_ai_service = VertexAIService(config.project_id)
     return vertex_ai_service
 
 
 def detect_features_with_llm_in_bulk(
+    config: Configuration,
     prompt: str, llm_params: LLMParameters, features_group_by: str
 ) -> list[dict]:
     """Detect features in bulk using LLM
     Args:
+        config: all the variables
         prompt: prompt for the llm
         llm_params: object with llm params
     Returns:
@@ -191,8 +189,8 @@ def detect_features_with_llm_in_bulk(
     retries = 3
     for this_retry in range(retries):
         try:
-            vertex_ai_service = get_vertex_ai_service()
-            if llm_params.model_name == LLM_NAME:
+            vertex_ai_service = get_vertex_ai_service(config)
+            if llm_params.model_name == config.llm_name:
                 # Gemini 1.5 does not support top_k param
                 if "top_k" in llm_params.generation_config:
                     del llm_params.generation_config["top_k"]
@@ -205,7 +203,7 @@ def detect_features_with_llm_in_bulk(
             # Parse response
             features = json.loads(clean_llm_response(llm_response))
             if isinstance(features, list) and len(features) > 0:
-                if VERBOSE:
+                if config.verbose:
                     print(
                         f"***Powered by LLMs*** \n\n FEATURES in group {features_group_by}: \n\n {str(features)} \n"
                     )
@@ -224,7 +222,7 @@ def detect_features_with_llm_in_bulk(
             if this_retry == retries - 1:
                 break
 
-            if VERBOSE:
+            if config.verbose:
                 print(
                     f"LLM response could not be parsed. Error: {ex}.\n Using string version...\n"
                 )

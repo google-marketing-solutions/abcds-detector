@@ -26,20 +26,22 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import find_elements_in_transcript
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import branded_products, branded_products_categories
+from configuration import Configuration
 
 
 def detect_product_mention_speech(
+    config: Configuration,
     feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
     """Detect Product Mention (Speech)
     Args:
+        config: all the parameters 
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_speech: product mention speech evaluation
     """
-    product_mention_speech, na = detect(feature_name, video_uri)
+    product_mention_speech, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_mention_speech} \n")
 
@@ -47,32 +49,35 @@ def detect_product_mention_speech(
 
 
 def detect_product_mention_speech_1st_5_secs(
+    config: Configuration,
     feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
     """Detect Product Mention (Speech)
     Args:
+        config: all the parameters 
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_speech_1st_5_secs: product mention speech evaluation
     """
-    na, product_mention_speech_1st_5_secs = detect(feature_name, video_uri)
+    na, product_mention_speech_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_mention_speech_1st_5_secs} \n")
 
     return product_mention_speech_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Product Mention (Speech) & Product Mention (Speech) (First 5 seconds)
     Args:
+        config: all the parameters 
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_speech,
         product_mention_speech_1st_5_secs: product mention speech evaluation
     """
-    annotation_uri = f"{get_annotation_uri(video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+    annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     speech_annotation_results = load_blob(annotation_uri)
 
     # Feature Product Mention (Speech)
@@ -88,11 +93,12 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
             product_mention_speech,
             product_mention_speech_1st_5_secs,
         ) = find_elements_in_transcript(
+            config,
             speech_transcriptions=speech_annotation_results.get(
                 "speech_transcriptions"
             ),
-            elements=branded_products,
-            elements_categories=branded_products_categories,
+            elements=config.branded_products,
+            elements_categories=config.branded_products_categories,
             apply_condition=False,
         )
     else:

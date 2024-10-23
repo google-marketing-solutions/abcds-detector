@@ -26,15 +26,13 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import (
-    early_time_seconds,
-    confidence_threshold,
-)
+from configuration import Configuration
 
 
-def detect_audio_speech_early_1st_5_secs(feature_name: str, video_uri: str) -> bool:
+def detect_audio_speech_early_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Audio Early (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -42,7 +40,7 @@ def detect_audio_speech_early_1st_5_secs(feature_name: str, video_uri: str) -> b
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     )
     speech_annotation_results = load_blob(annotation_uri)
 
@@ -59,7 +57,7 @@ def detect_audio_speech_early_1st_5_secs(feature_name: str, video_uri: str) -> b
                 # Check confidence against user defined threshold
                 if (
                     alternative
-                    and alternative.get("confidence") >= confidence_threshold
+                    and alternative.get("confidence") >= config.confidence_threshold
                 ):
                     # For 1st 5 secs, check elements and elements_categories in words
                     # since only the words[] contain times
@@ -68,7 +66,7 @@ def detect_audio_speech_early_1st_5_secs(feature_name: str, video_uri: str) -> b
                         start_time_secs = calculate_time_seconds(
                             word_info, "start_time"
                         )
-                        if start_time_secs <= early_time_seconds:
+                        if start_time_secs <= config.early_time_seconds:
                             audio_speech_early_1st_5_secs = True
     else:
         print(

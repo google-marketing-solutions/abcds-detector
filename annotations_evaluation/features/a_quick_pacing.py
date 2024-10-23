@@ -22,16 +22,14 @@
 Annotations used:
     1. Shot annotations to calculate the pacing of the video
 """
-
-from input_parameters import (
-    early_time_seconds,
-)
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
 from annotations_evaluation.annotations_generation import Annotations
+from configuration import Configuration
 
 
 def detect_quick_pacing(
+    config: Configuration,
     feature_name: str, video_uri: str
 ) -> dict:
     """Detect Quick Pacing
@@ -42,14 +40,14 @@ def detect_quick_pacing(
     Returns:
         quick_pacing: quick pacing evaluation
     """
-    quick_pacing, na = detect(feature_name, video_uri)
+    quick_pacing, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {quick_pacing} \n")
 
     return quick_pacing
 
 
-def detect_quick_pacing_1st_5_secs(feature_name: str, video_uri: str) -> dict:
+def detect_quick_pacing_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> dict:
     """Detect Quick Pacing (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -57,14 +55,14 @@ def detect_quick_pacing_1st_5_secs(feature_name: str, video_uri: str) -> dict:
     Returns:
         quick_pacing, quick_pacing_1st_5_secs: quick pacing evaluation
     """
-    na, quick_pacing_1st_5_secs = detect(feature_name, video_uri)
+    na, quick_pacing_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {quick_pacing_1st_5_secs} \n")
 
     return quick_pacing_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Quick Pacing & Quick Pacing (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -73,7 +71,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
         quick_pacing, quick_pacing_1st_5_secs: quick pacing evaluation
     """
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     shot_annotation_results = load_blob(annotation_uri)
 
@@ -105,7 +103,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
             if total_time_all_shots < required_secs_for_quick_pacing:
                 total_shots_count += 1
                 # Quick Pacing (First 5 secs) calculation
-                if start_time_secs < early_time_seconds:
+                if start_time_secs < config.early_time_seconds:
                     total_shots_count_1st_5_secs += 1
             else:
                 # To start counting shot time and # shots again

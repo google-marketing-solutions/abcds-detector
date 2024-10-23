@@ -24,6 +24,7 @@ from enum import Enum
 from google.cloud import videointelligence
 from google.cloud.videointelligence import VideoContext
 from google.cloud import videointelligence_v1 as videointelligence2
+from configuration import Configuration
 from helpers.generic_helpers import (
     get_blob,
     get_annotation_uri,
@@ -89,7 +90,7 @@ def custom_annotations_detection(
     )
 
 
-def generate_video_annotations(video_uri: str):
+def generate_video_annotations(config: Configuration, video_uri: str):
     """Generates video annotations for videos in Google Cloud Storage"""
 
     standard_video_client = videointelligence.VideoIntelligenceServiceClient()
@@ -122,7 +123,7 @@ def generate_video_annotations(video_uri: str):
     # Video annotations processing
 
     tasks = []
-    annotation_uri = get_annotation_uri(video_uri)
+    annotation_uri = get_annotation_uri(config, video_uri)
 
     standard_annotations_uri = (
         f"{annotation_uri}{Annotations.GENERIC_ANNOTATIONS.value}.json"

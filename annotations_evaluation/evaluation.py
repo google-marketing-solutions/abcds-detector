@@ -22,9 +22,10 @@
 
 import annotations_evaluation.feature_modules as annotations_module
 from feature_configs.features import get_feature_configs
+from configuration import Configuration
 
 
-def evaluate_abcd_features_using_annotations(video_uri: str) -> list[dict]:
+def evaluate_abcd_features_using_annotations(config: Configuration, video_uri: str) -> list[dict]:
     """Evaluates ABCD features using annotations."""
     feature_configs = get_feature_configs()
     feature_evaluations: list = []
@@ -38,7 +39,7 @@ def evaluate_abcd_features_using_annotations(video_uri: str) -> list[dict]:
         detected = False
         if function_name:
             func = getattr(annotations_module, function_name)
-            detected = func(feature_config.get("name"), video_uri)
+            detected = func(config, feature_config.get("name"), video_uri)
             feature_evaluations.append(
                 {
                     "id": feature_config.get("id"),

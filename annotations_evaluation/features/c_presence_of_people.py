@@ -26,46 +26,46 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import (
-    early_time_seconds,
-    confidence_threshold,
-)
+from configuration import Configuration
 
 
-def detect_presence_of_people(feature_name: str, video_uri: str) -> bool:
+def detect_presence_of_people(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Presence of People
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         presence_of_people,
         presence_of_people_1st_5_secs: presence of people evaluation
     """
-    presence_of_people, na = detect(feature_name, video_uri)
+    presence_of_people, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {presence_of_people} \n")
 
     return presence_of_people
 
 
-def detect_presence_of_people_1st_5_secs(feature_name: str, video_uri: str) -> bool:
+def detect_presence_of_people_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Presence of People (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         presence_of_people_1st_5_secs: presence of people evaluation
     """
-    na, presence_of_people_1st_5_secs = detect(feature_name, video_uri)
+    na, presence_of_people_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {presence_of_people_1st_5_secs} \n")
 
     return presence_of_people_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Presence of People & Presence of People (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -74,7 +74,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.PEOPLE_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.PEOPLE_ANNOTATIONS.value}.json"
     )
     people_annotation_results = load_blob(annotation_uri)
 
@@ -92,12 +92,12 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
         ):
             for track in people_annotation.get("tracks"):
                 # Check confidence against user defined threshold
-                if track.get("confidence") >= confidence_threshold:
+                if track.get("confidence") >= config.confidence_threshold:
                     presence_of_people = True
                     start_time_secs = calculate_time_seconds(
                         track.get("segment"), "start_time_offset"
                     )
-                    if start_time_secs < early_time_seconds:
+                    if start_time_secs < config.early_time_seconds:
                         presence_of_people_1st_5_secs = True
                     # Each segment includes track.get("timestamped_objects") that include
                     # characteristics - -e.g.clothes, posture of the person detected.

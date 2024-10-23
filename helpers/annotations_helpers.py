@@ -20,12 +20,7 @@
 
 """Module to load helper functions to process annotations"""
 
-from input_parameters import (
-    VERBOSE,
-    early_time_seconds,
-    confidence_threshold,
-)
-
+from configuration import Configuration
 
 def calculate_time_seconds(part_obj: dict, part: str) -> float:
     """Calculate time of the provided part of the video
@@ -36,10 +31,9 @@ def calculate_time_seconds(part_obj: dict, part: str) -> float:
         time_seconds: the time in seconds
     """
     if part not in part_obj:
-        if VERBOSE:
-            print(f"There is no part time {part} in {part_obj}")
-            # TODO (ae) check this later
-            return 0
+        print(f"There is no part time {part} in {part_obj}")
+        # TODO (ae) check this later
+        return 0
     time_seconds = (
         (part_obj.get(part).get("seconds") or 0)
         + ((part_obj.get(part).get("microseconds") or 0) / 1e6)
@@ -48,9 +42,10 @@ def calculate_time_seconds(part_obj: dict, part: str) -> float:
     return time_seconds
 
 
-def detected_text_in_first_5_seconds(annotation: dict) -> tuple[bool, any]:
+def detected_text_in_first_5_seconds(config: Configuration, annotation: dict) -> tuple[bool, any]:
     """Detect if the text feature appears in the first 5 seconds
     Args:
+        config: All the parameters
         annotation: the text annotation
     Returns:
         True if the text is found in the 1st 5 secs, False otherwise
@@ -60,24 +55,26 @@ def detected_text_in_first_5_seconds(annotation: dict) -> tuple[bool, any]:
         start_time_secs = calculate_time_seconds(
             segment.get("segment"), "start_time_offset"
         )
-        if start_time_secs > early_time_seconds:
+        if start_time_secs > config.early_time_seconds:
             continue  # Ignore a segment > 5 secs
         frames = segment.get("frames")
         for frame in frames:
             start_time_seconds = calculate_time_seconds(frame, "time_offset")
-            if start_time_seconds <= early_time_seconds:
+            if start_time_seconds <= config.early_time_seconds:
                 return True, frame
     return False, None
 
 
 def find_elements_in_transcript(
+    config: Configuration,
     speech_transcriptions: list[dict],
     elements: list[str],
     elements_categories: list[str],
-    apply_condition: bool,
+    apply_condition: bool
 ) -> tuple[bool, bool]:
     """Finds a list of elements in the video transcript
     Args:
+        config: all the parametes
         speech_transcriptions: the speech annotations
         elements: list of elements to find in the transcript
         elements_categories: list of element categories to find in the transcript
@@ -97,7 +94,7 @@ def find_elements_in_transcript(
         # and has its own confidence score.
         for alternative in speech_transcription.get("alternatives"):
             # Check confidence against user defined threshold
-            if alternative and alternative.get("confidence") >= confidence_threshold:
+            if alternative and alternative.get("confidence") >= config.confidence_threshold:
                 transcript = alternative.get("transcript")
                 # Check if elements or elements categories are found in transcript
                 # TODO (ae) filter out words with less than x chars? - DONE
@@ -130,7 +127,7 @@ def find_elements_in_transcript(
                 for word_info in sorted_words:
                     start_time_secs = calculate_time_seconds(word_info, "start_time")
                     # Consider only words in the 1st 5 secs
-                    if start_time_secs <= early_time_seconds:
+                    if start_time_secs <= config.early_time_seconds:
                         words_1st_5_secs.append(word_info.get("word"))
 
     # Evaluate 1st 5 secs - Construct transcript from words
@@ -193,7 +190,7 @@ def get_speech_transcript(speech_transcriptions: list[dict]) -> str:
         for alternative in speech_transcription.get("alternatives"):
             # Check confidence against user defined threshold
             transcript = alternative.get("transcript")
-            if alternative and alternative.get("confidence") >= confidence_threshold:
+            if alternative and alternative.get("confidence") >= config.confidence_threshold:
                 transcript_alternatives.append(transcript)
                 transcript_alt_confidence.append(alternative)
 
@@ -211,9 +208,10 @@ def get_speech_transcript(speech_transcriptions: list[dict]) -> str:
     return final_transcript
 
 
-def get_speech_transcript_1st_5_secs(speech_transcriptions: list[dict]):
+def get_speech_transcript_1st_5_secs(config: Configuration, speech_transcriptions: list[dict]):
     """Get transcript with highest confidence
     Args:
+        config: all the parameters
         speech_transcriptions: the speech annotations
     Returns
         transcript_1st_5_secs: the transcript in the 1st 5 secs
@@ -226,7 +224,7 @@ def get_speech_transcript_1st_5_secs(speech_transcriptions: list[dict]):
         # and has its own confidence score.
         for alternative in speech_transcription.get("alternatives"):
             # Check confidence against user defined threshold
-            if alternative and alternative.get("confidence") >= confidence_threshold:
+            if alternative and alternative.get("confidence") >= config.confidence_threshold:
                 # For 1st 5 secs get transcript from words
                 # since only the words[] contain times
                 words = alternative.get("words") if "words" in alternative else []
@@ -239,7 +237,7 @@ def get_speech_transcript_1st_5_secs(speech_transcriptions: list[dict]):
                 for word_info in sorted_words:
                     start_time_secs = calculate_time_seconds(word_info, "start_time")
                     # Consider only words in the 1st 5 secs
-                    if start_time_secs <= early_time_seconds:
+                    if start_time_secs <= config.early_time_seconds:
                         words_1st_5_secs.append(word_info.get("word"))
     # Construct transcript from words
     transcript_1st_5_secs = " ".join(words_1st_5_secs)
