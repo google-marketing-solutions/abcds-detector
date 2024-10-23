@@ -85,11 +85,12 @@ For questions, please reach out to: abcds-detector@google.com
 ## Requirements
 Please esure you have access to all of the following before starting:
 * [Google Cloud Project](https://cloud.google.com) with enabled APIs:
-    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com)
-    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
-    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
+    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com) - Optional if you are only using LLMs.
+    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com) - Optional if you are only using Annotations.
+    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com) - Optional if you are only using LLMs.
     * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
-* [API Key](https://cloud.google.com/docs/authentication/api-keys) provisioned.
+    * [BigQuery](https://cloud.google.com/bigquery/docs/reference/rest) - Optional if you don't want to store the results in BQ.
+* [API Key](https://cloud.google.com/docs/authentication/api-keys) provisioned. - Optional if you are only using LLMs.
 * [Project Billing](https://cloud.google.google.com/billing/) enabled.
 * Python libraries:
     * `google-cloud-videointelligence`
@@ -107,8 +108,6 @@ You can see more on the ABCD methodology [here.](https://www.thinkwithgoogle.com
 3. Enter the url from this page.
 
 **Note:** This repository provides python modules that can be executed on local machines for easier debugging and troubleshooting.
-If you make any changes to the modules and plan to update your colab, please make sure to remove the sections that are marked
-as ### REMOVE FOR COLAB - START and ### REMOVE FOR COLAB - END, since those are ONLY required when running the code locally.
 
 ## Instructions
 Please follow the steps below before executing the ABCDs Detector solution. Every **[VARIABLE]** is a parameter you can configure in the **Define ABCDs Detector Parameters** section.
@@ -126,6 +125,7 @@ Please follow the steps below before executing the ABCDs Detector solution. Ever
     * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
     * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
     * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
+    * [BigQuery](https://console.cloud.google.com/marketplace/product/google/bigquery.googleapis.com)
   * Provision [An API Key](https://cloud.google.com/docs/authentication/api-keys):
     1. Visit [Credentials Page](https://cloud.console.google.com/apis/credentials).
     1. Create a **New API Key** and copy it into **[KNOWLEDGE_GRAPH_API_KEY]** below.
@@ -162,6 +162,8 @@ Please follow the steps below before executing the ABCDs Detector solution. Ever
 * Modify the ABCDs signals detection logic to fit yours.
 * Add or remove ABCDs signals.
 * Specify your own logic for calculating ABCDs score per video.
+* ABCD features are dynamically added to a JSON list. If you want to add/remove features, please do that directly in the features_config/features.py file.
+* To optimize LLM execution, features support grouping by 'full_video' and 'first_5_secs_video'. If you want to execute the features separately, please specify 'no_grouping' in the "group_by" field. 
 
 **Note:**
 
