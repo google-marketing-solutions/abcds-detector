@@ -24,46 +24,47 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
-from helpers.annotations_helpers import (
-    detected_text_in_first_5_seconds,
-)
+from helpers.annotations_helpers import detected_text_in_first_5_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import branded_products, branded_products_categories
+from configuration import Configuration
 
 
-def detect_product_mention_text(feature_name: str, video_uri: str) -> bool:
+def detect_product_mention_text(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Product Mention (Text)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_text: product mention text evaluation
     """
-    product_mention_text, na = detect(feature_name, video_uri)
+    product_mention_text, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_mention_text} \n")
 
     return product_mention_text
 
 
-def detect_product_mention_text_1st_5_secs(feature_name: str, video_uri: str) -> bool:
+def detect_product_mention_text_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Product Mention (Text) (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_text_1st_5_secs: product mention text evaluation
     """
-    na, product_mention_text_1st_5_secs = detect(feature_name, video_uri)
+    na, product_mention_text_1st_5_secs = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {product_mention_text_1st_5_secs} \n")
 
     return product_mention_text_1st_5_secs
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -72,7 +73,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     text_annotation_results = load_blob(annotation_uri)
 
@@ -88,11 +89,11 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
         for text_annotation in text_annotation_results.get("text_annotations"):
             text = text_annotation.get("text")
             found_branded_products = [
-                prod for prod in branded_products if prod.lower() in text.lower()
+                prod for prod in config.branded_products if prod.lower() in text.lower()
             ]
             found_branded_products_categories = [
                 prod
-                for prod in branded_products_categories
+                for prod in config.branded_products_categories
                 if prod.lower() in text.lower()
             ]
             if (

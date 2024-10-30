@@ -22,6 +22,8 @@
 
 import json
 import time
+import argparse
+import textwrap
 from annotations_evaluation.annotations_generation import generate_video_annotations
 from annotations_evaluation.evaluation import evaluate_abcd_features_using_annotations
 from llms_evaluation.evaluation import evaluate_abcd_features_using_llms
@@ -37,67 +39,54 @@ from helpers.generic_helpers import (
 )
 from helpers.vertex_ai_service import LLMParameters
 from helpers.bq_service import BigQueryService
-from input_parameters import (
-    PROJECT_ID,
-    ASSESSMENT_FILE,
-    LLM_NAME,
-    USE_ANNOTATIONS,
-    USE_LLMS,
-    VERBOSE,
-    VIDEO_SIZE_LIMIT_MB,
-    VIDEO_URIS,
-    STORE_IN_BQ,
-    brand_name,
-    brand_variations,
-    branded_call_to_actions,
-    branded_products,
-    branded_products_categories,
-    llm_generation_config,
-    llm_location,
-)
+from configuration import Configuration
 
-
-def execute_abcd_assessment_for_videos():
+def execute_abcd_assessment_for_videos(config):
     """Execute ABCD Assessment for all brand videos in GCS"""
 
     prompt_params = PromptParams(
-        brand_name,
-        brand_variations,
-        branded_products,
-        branded_products_categories,
-        branded_call_to_actions,
+        config.brand_name,
+        config.brand_variations,
+        config.branded_products,
+        config.branded_products_categories,
+        config.branded_call_to_actions,
     )
 
     llm_params = LLMParameters(
-        model_name=LLM_NAME,
-        location=llm_location,
-        generation_config=llm_generation_config,
+        model_name=config.llm_name,
+        location=config.project_zone,
+        generation_config={
+            "max_output_tokens": config.max_output_tokens,
+            "temperature": config.temperature,
+            "top_p": config.top_p,
+            "top_k": config.top_k,
+        }    
     )
 
-    if STORE_IN_BQ:
-        bq_service = BigQueryService(PROJECT_ID)
+    if config.bq_table_name:
+        bq_service = BigQueryService(config.project_id)
 
     brand_assessment = {
-        "brand_name": brand_name,
+        "brand_name": config.brand_name,
         "video_assessments": [],
         "prompt_params": prompt_params.__dict__,
         "llm_params": llm_params.__dict__,
     }
 
-    video_uris = expand_uris(VIDEO_URIS)
+    video_uris = expand_uris(config.video_uris)
 
     for video_uri in video_uris:
         print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
 
         # 1) Prepare video
-        trim_video(video_uri)
+        trim_video(config, video_uri)
 
         # Check size of video to avoid processing videos > 7MB
         video_metadata = get_blob(video_uri)
         size_mb = video_metadata.size / 1e6
-        if USE_LLMS and size_mb > VIDEO_SIZE_LIMIT_MB:
+        if config.use_llms and size_mb > config.video_size_limit_mb:
             print(
-                f"The size of video {video_uri} is greater than {VIDEO_SIZE_LIMIT_MB} MB. Skipping execution."
+                f"The size of video {video_uri} is greater than {config.video_size_limit_mb} MB. Skipping execution."
             )
             continue
 
@@ -106,24 +95,25 @@ def execute_abcd_assessment_for_videos():
             "video_uri": video_uri,
         }
 
-        if USE_ANNOTATIONS:
-            generate_video_annotations(video_uri)
+        if config.use_annotations:
+            generate_video_annotations(config, video_uri)
             annotations_evaluated_features = evaluate_abcd_features_using_annotations(
+                config,
                 video_uri
             )
             video_assessment["annotations_evaluation"] = {
                 "evaluated_features": annotations_evaluated_features,
             }
 
-        if USE_LLMS:
+        if config.use_llms:
             llm_evaluated_features = evaluate_abcd_features_using_llms(
-                video_uri, prompt_params, llm_params
+                config, video_uri, prompt_params, llm_params
             )
             video_assessment["llms_evaluation"] = {
                 "evaluated_features": llm_evaluated_features,
             }
 
-            if VERBOSE:
+            if config.verbose:
                 if len(llm_evaluated_features) < len(get_feature_configs()):
                     print(
                         f"WARNING: ABCD Detector was not able to process all the features for video {video_uri}. Please check and execute again. \n"
@@ -134,34 +124,72 @@ def execute_abcd_assessment_for_videos():
                     Processed features: {len(llm_evaluated_features)} - Original features: {len(get_feature_configs())}"
                     )
 
-        print_abcd_assessment(brand_name, video_assessment)
+        print_abcd_assessment(config.brand_name, video_assessment)
         brand_assessment.get("video_assessments").append(video_assessment)
-        if STORE_IN_BQ:
-            store_in_bq(bq_service, video_assessment, prompt_params, llm_params)
+        if config.bq_table_name:
+            store_in_bq(config, bq_service, video_assessment, prompt_params, llm_params)
         # Remove local version of video files
         remove_local_video_files()
 
-    if ASSESSMENT_FILE:
-        with open(ASSESSMENT_FILE, "w", encoding="utf-8") as f:
+    if config.assessment_file:
+        with open(config.assessment_file, "w", encoding="utf-8") as f:
             json.dump(brand_assessment, f, ensure_ascii=False, indent=4)
 
     return brand_assessment
 
 
-def execute_abcd_detector():
-    """Main ABCD Assessment execution"""
+if __name__ == "__main__":
+    """Main ABCD Assessment execution. See docstring and args."""
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent("""\
+            Command line to execute ABCD detector with parameters.
+  
+            This loads the minimal parameters needed to configure the tool.
+            See the configuration.py file for additional parameters.
+ 
+            Example: python main.py -pi gtech-kenjora -pz "us-central1" -bn " shape-shifters" -vu "gs://shape-shifters/Test/Google/videos/" -ua -ul -v
+        """
+        )
+    )
+  
+    parser.add_argument('-project_id', '-pi', help='Google Cloud Project ID.')
+    parser.add_argument('-project_zone', '-pz', help='Google Cloud Project Zone.')
+    parser.add_argument('-bucket_name', '-bn', help='Google Cloud Project Bucket Name (not url).')
+    parser.add_argument('-video_uris', '-vu', help='Comma delimited string of video or folder URIs.')
+    parser.add_argument('-knowledge_graph_api_key', '-kgak', help='Path to CLIENT credentials json file.', default=None)
+    parser.add_argument('-bigquery_dataset', '-bd', help='name of BigQuery dataset to write to', default=None)
+    parser.add_argument('-bigquery_table', '-bt', help='name of BigQuery table to write to', default=None)
+    parser.add_argument('-assessment_file', '-af', help='local file path to write results to', default=None)
+    parser.add_argument('-use_annotations', '-ua', help='Analyze videos using annotations.', action='store_true', default=False)
+    parser.add_argument('-use_llms', '-ul', help='Analyze videos using LLMs.', action='store_true', default=False)
+    parser.add_argument('-verbose', '-v', help='Print all the steps as they happen.', action='store_true', default=False)
+
+    args = parser.parse_args()
+
+    config = Configuration()
+    config.set_parameters(
+        project_id = args.project_id,
+        project_zone = args.project_zone,
+        bucket_name = args.bucket_name,
+        knowledge_graph_api_key = args.knowledge_graph_api_key,
+        bigquery_dataset = args.bigquery_dataset,
+        bigquery_table = args.bigquery_table,
+        assessment_file = args.assessment_file,
+        use_annotations = args.use_annotations,
+        use_llms = args.use_llms,
+        verbose = args.verbose
+    )
+    config.set_videos(args.video_uris)
 
     start_time = time.time()
     print("Starting ABCD assessment... \n")
 
-    if VIDEO_URIS:
-        execute_abcd_assessment_for_videos()
+    if config.video_uris:
+        execute_abcd_assessment_for_videos(config)
         print("Finished ABCD assessment. \n")
     else:
         print("There are no videos to process. \n")
 
     print(f"ABCD assessment took --- {(time.time() - start_time) / 60} mins. --- \n")
-
-
-if __name__ == "__main__":
-    execute_abcd_detector()

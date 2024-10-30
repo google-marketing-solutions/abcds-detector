@@ -26,22 +26,19 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import calculate_time_seconds
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import (
-    early_time_seconds,
-    confidence_threshold,
-    face_surface_threshold,
-)
+from configuration import Configuration
 
 
-def detect_visible_face(feature_name: str, video_uri: str) -> bool:
+def detect_visible_face(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Visible Face (First 5 seconds)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         visible_face_1st_5_secs: visible face evaluation
     """
-    visible_face_1st_5_secs, na = detect(feature_name, video_uri)
+    visible_face_1st_5_secs, na = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {visible_face_1st_5_secs} \n")
 
@@ -49,24 +46,26 @@ def detect_visible_face(feature_name: str, video_uri: str) -> bool:
 
 
 def detect_visible_face_close_up(
+    config: Configuration,
     feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
     """Detect Visible Face (Close Up)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         visible_face_1st_5_secs,
         visible_face_close_up: visible face evaluation
     """
-    na, visible_face_close_up = detect(feature_name, video_uri)
+    na, visible_face_close_up = detect(config, feature_name, video_uri)
 
     print(f"{feature_name}: {visible_face_close_up} \n")
 
     return visible_face_close_up
 
 
-def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """Detect Visible Face (First 5 seconds) & Visible Face (Close Up)
     Args:
         feature_name: the name of the feature
@@ -77,7 +76,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.FACE_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.FACE_ANNOTATIONS.value}.json"
     )
     face_annotation_results = load_blob(annotation_uri)
 
@@ -97,8 +96,8 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                         track.get("segment"), "start_time_offset"
                     )
                     # Check confidence against user defined threshold
-                    if track.get("confidence") >= confidence_threshold:
-                        if start_time_secs < early_time_seconds:
+                    if track.get("confidence") >= config.confidence_threshold:
+                        if start_time_secs < config.early_time_seconds:
                             visible_face_1st_5_secs = True
                         for face_object in track.get("timestamped_objects"):
                             box = face_object.get("normalized_bounding_box")
@@ -109,7 +108,7 @@ def detect(feature_name: str, video_uri: str) -> tuple[bool, bool]:
                             width = right - left
                             height = bottom - top
                             surface = width * height
-                            if surface >= face_surface_threshold:
+                            if surface >= config.face_surface_threshold:
                                 visible_face_close_up = True
     else:
         print(

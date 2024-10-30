@@ -27,12 +27,13 @@ Annotations used:
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.annotations_helpers import find_elements_in_transcript
 from helpers.generic_helpers import load_blob, get_annotation_uri, get_call_to_action_api_list
-from input_parameters import branded_call_to_actions
+from configuration import Configuration
 
 
-def detect_call_to_action_speech(feature_name: str, video_uri: str) -> bool:
+def detect_call_to_action_speech(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Call To Action (Speech)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -40,7 +41,7 @@ def detect_call_to_action_speech(feature_name: str, video_uri: str) -> bool:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     )
     speech_annotation_results = load_blob(annotation_uri)
 
@@ -49,7 +50,7 @@ def detect_call_to_action_speech(feature_name: str, video_uri: str) -> bool:
 
     call_to_action_examples = get_call_to_action_api_list()
     all_call_to_actions = [cta for cta in call_to_action_examples]
-    all_call_to_actions.extend(branded_call_to_actions)
+    all_call_to_actions.extend(config.branded_call_to_actions)
 
     # Video API: Evaluate call_to_action_speech_feature
     if "speech_transcriptions" in speech_annotation_results:
@@ -58,6 +59,7 @@ def detect_call_to_action_speech(feature_name: str, video_uri: str) -> bool:
             call_to_action_speech,
             na,
         ) = find_elements_in_transcript(
+            config,
             speech_transcriptions=speech_annotation_results.get(
                 "speech_transcriptions"
             ),
@@ -75,9 +77,10 @@ def detect_call_to_action_speech(feature_name: str, video_uri: str) -> bool:
     return call_to_action_speech
 
 
-def detect_call_to_action_text(feature_name: str, video_uri: str) -> bool:
+def detect_call_to_action_text(config: Configuration, feature_name: str, video_uri: str) -> bool:
     """Detect Call To Action (Text)
     Args:
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -85,7 +88,7 @@ def detect_call_to_action_text(feature_name: str, video_uri: str) -> bool:
     """
 
     annotation_uri = (
-        f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
     text_annotation_results = load_blob(annotation_uri)
 
@@ -94,7 +97,7 @@ def detect_call_to_action_text(feature_name: str, video_uri: str) -> bool:
 
     call_to_action_examples = get_call_to_action_api_list()
     all_call_to_actions = [cta for cta in call_to_action_examples]
-    all_call_to_actions.extend(branded_call_to_actions)
+    all_call_to_actions.extend(config.branded_call_to_actions)
 
     # Video API: Evaluate call_to_action_text_feature
     if "text_annotations" in text_annotation_results:

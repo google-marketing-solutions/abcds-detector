@@ -25,11 +25,10 @@ Annotations used:
 
 from annotations_evaluation.annotations_generation import Annotations
 from helpers.generic_helpers import load_blob, get_annotation_uri
-from input_parameters import dynamic_cutoff_ms
+from configuration import Configuration
 
 
-def detect_dynamic_start(
-    feature_name: str, video_uri: str
+def detect_dynamic_start(config: Configuration, feature_name: str, video_uri: str
 ) -> dict:
     """Detects Dynamic Start
     Args:
@@ -38,7 +37,7 @@ def detect_dynamic_start(
     Returns:
         dynamic_start: dynamic start evaluation
     """
-    annotation_uri = f"{get_annotation_uri(video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     shot_annotation_results = load_blob(annotation_uri)
 
     # Feature Dynamic Start
@@ -58,7 +57,7 @@ def detect_dynamic_start(
             if seconds:
                 total_ms_first_shot = (seconds * 1e9) / 1e6
 
-        if total_ms_first_shot < dynamic_cutoff_ms:
+        if total_ms_first_shot < config.dynamic_cutoff_ms:
             dynamic_start = True
     else:
         print(
