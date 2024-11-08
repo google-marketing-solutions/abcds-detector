@@ -20,9 +20,10 @@
 
 """ Module to test ABCD parameters """
 
-from utils.utils import build_abcd_params_config
+from utils import build_abcd_params_config
+from dataclasses import dataclass
 
-
+@dataclass
 class ArgsMock():
   """Mock class to define params"""
   project_id: str
@@ -30,7 +31,7 @@ class ArgsMock():
   bucket_name: str
   knowledge_graph_api_key: str
   bigquery_dataset: str
-  bq_table_name: str
+  bigquery_table: str
   assessment_file: str
   use_annotations: str
   use_llms: bool
@@ -59,86 +60,23 @@ class ArgsMock():
   top_p: float
   top_k: float
 
-  def __init__(self,
-    project_id: str,
-    project_zone: str,
-    bucket_name: str,
-    knowledge_graph_api_key: str,
-    bigquery_dataset: str,
-    bigquery_table: str,
-    assessment_file: str,
-    use_annotations: str,
-    use_llms: bool,
-    verbose: bool,
-    annotation_path: str,
-    # set videos
-    video_uris: str,
-    # set brand
-    brand_name: str,
-    brand_variations: list[str],
-    branded_products: list[str],
-    branded_products_categories: list[str],
-    branded_call_to_actions: list[str],
-    # set thresholds
-    early_time_seconds: float,
-    confidence_threshold: float,
-    face_surface_threshold: float,
-    logo_size_threshold: float,
-    avg_shot_duration_seconds: float,
-    dynamic_cutoff_ms: float,
-    # set model
-    llm_name: str,
-    video_size_limit_mb: int,
-    max_output_tokens: int,
-    temperature: float,
-    top_p: float,
-    top_k: float):
-
-    self.project_id = project_id
-    self.project_zone = project_zone
-    self.bucket_name = bucket_name
-    self.knowledge_graph_api_key = knowledge_graph_api_key
-    self.bigquery_dataset = bigquery_dataset
-    self.bigquery_table = bigquery_table
-    self.assessment_file = assessment_file
-    self.use_annotations = use_annotations
-    self.use_llms = use_llms
-    self.verbose = verbose
-    self.annotation_path = annotation_path
-    # set videos
-    self.video_uris = video_uris
-    # set brand
-    self.brand_name = brand_name
-    self.brand_variations = brand_variations
-    self.branded_products = branded_products
-    self.branded_products_categories = branded_products_categories
-    self.branded_call_to_actions = branded_call_to_actions
-    # set thresholds
-    self.early_time_seconds = early_time_seconds
-    self.confidence_threshold = confidence_threshold
-    self.face_surface_threshold = face_surface_threshold
-    self.logo_size_threshold = logo_size_threshold
-    self.avg_shot_duration_seconds = avg_shot_duration_seconds
-    self.dynamic_cutoff_ms = dynamic_cutoff_ms
-    # set model
-    self.llm_name = llm_name
-    self.video_size_limit_mb = video_size_limit_mb
-    self.max_output_tokens = max_output_tokens
-    self.temperature = temperature
-    self.top_p = top_p
-    self.top_k = top_k
-
 
 def test_not_empty_abcd_params():
   """Tests that all brand parameters are provided"""
 
   args = ArgsMock(project_id="tighlock-test", project_zone="us-central1",
-    bucket_name="abcd-detector-input", knowledge_graph_api_key="asdfds", bigquery_dataset="abcd_detector_ds", bigquery_table="my_table",
-    assessment_file="", use_annotations=True, use_llms=True, verbose=True, annotation_path="",video_uris="gs://abcd-detector-input/Google/videos/",
-    brand_name="Google", brand_variations="Google,google", branded_products="Google pixel, Google pixel buds, Google pixel watch",
-    branded_products_categories="phone, watch, buds", branded_call_to_actions="buy it!, buy", early_time_seconds=5, confidence_threshold=0.5,
-    face_surface_threshold=0.5, logo_size_threshold=0.5, avg_shot_duration_seconds=3, dynamic_cutoff_ms=3000, llm_name="asd",
-    video_size_limit_mb=50, max_output_tokens=8000, temperature=1, top_k=0.1, top_p=0.1
+    bucket_name="abcd-detector-input", knowledge_graph_api_key="asdfds",
+    bigquery_dataset="abcd_detector_ds", bigquery_table="my_table",
+    assessment_file="", use_annotations=True, use_llms=True, verbose=True,
+    annotation_path="",video_uris="gs://abcd-detector-input/Google/videos/",
+    brand_name="Google", brand_variations="Google,google",
+    branded_products="Google pixel, Google pixel buds, Google pixel watch",
+    branded_products_categories="phone, watch, buds",
+    branded_call_to_actions="buy it!, buy",
+    early_time_seconds=5, confidence_threshold=0.5, face_surface_threshold=0.5,
+    logo_size_threshold=0.5, avg_shot_duration_seconds=3, dynamic_cutoff_ms=3000,
+    llm_name="gemini-1.5-pro-002", top_p=0.1, video_size_limit_mb=50,
+    max_output_tokens=8000, temperature=1, top_k=0.1,
   )
 
   config = build_abcd_params_config(args)

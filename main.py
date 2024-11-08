@@ -38,7 +38,7 @@ from helpers.generic_helpers import (
 from helpers.vertex_ai_service import LLMParameters
 from helpers.bq_service import BigQueryService
 from configuration import Configuration
-from utils.utils import parse_args, build_abcd_params_config
+from utils import parse_args, build_abcd_params_config
 
 
 def execute_abcd_assessment_for_videos(config: Configuration):
@@ -82,10 +82,10 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     video_metadata = get_blob(video_uri)
     size_mb = video_metadata.size / 1e6
     if config.use_llms and size_mb > config.video_size_limit_mb:
-        print(
-            f"The size of video {video_uri} is greater than {config.video_size_limit_mb} MB. Skipping execution."
-        )
-        continue
+      print(
+          f"The size of video {video_uri} is greater than {config.video_size_limit_mb} MB. Skipping execution."
+      )
+      continue
 
     # 3) Execute ABCD Assessment
     video_assessment = {
@@ -159,7 +159,7 @@ def main(arg_list: list[str] | None = None) -> None:
   else:
     print("There are no videos to process. \n")
 
-  print(f"ABCD assessment took --- {(time.time() - start_time) / 60} mins. --- \n")
+  print(f"ABCD assessment took - {(time.time() - start_time) / 60} mins. - \n")
 
 
 if __name__ == "__main__":

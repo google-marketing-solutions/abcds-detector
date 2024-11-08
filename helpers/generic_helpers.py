@@ -450,7 +450,7 @@ def update_llms_evaluated_features(
 
 
 def store_in_bq(
-    config:Configuration,
+    config: Configuration,
     bq_service: BigQueryService,
     video_assessment: dict,
     prompt_params: any,
