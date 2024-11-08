@@ -40,7 +40,7 @@ class Configuration:
           no global variables for hard coded values by design.
         """
         # set parameters
-        self.project_id = "" 
+        self.project_id = ""
         self.project_zone = "us-central1"
         self.bucket_name = ""
         self.knowledge_graph_api_key = ""
@@ -92,13 +92,13 @@ class Configuration:
         verbose: bool
     ) -> None:
         """Set the required parameters for ABCD to run.
-            
+
           Having a separate method for this allows colab multi cell edits.
 
         Args:
           project_id: Google Cloud Project ID
           project_zone: Google Cloud Project zone (us-central1 if None)
-          bucket_name: Google Cloud Storage Bucket name (not uri) 
+          bucket_name: Google Cloud Storage Bucket name (not uri)
           knowledge_graph_api_key: Google Cloud API Key (limit this)
           bigquery_dataset: name of dataset in BigQuery.
           bigquery_table: name of table to append results to in BigQuery.
@@ -110,7 +110,7 @@ class Configuration:
         self.project_id = project_id
         self.project_zone = project_zone or "us-central1"
         self.bucket_name = bucket_name
-        self.knowledge_graph_api_key = knowledge_graph_api_key
+        self.knowledge_graph_api_key = knowledge_graph_api_key.strip()
         self.bq_dataset_name = bigquery_dataset
         self.bq_table_name = bigquery_table
         self.assessment_file = assessment_file
@@ -122,7 +122,7 @@ class Configuration:
 
     def set_videos(self, video_uris: list) -> None:
         """Set the videos that will be processed.
-            
+
           Having a separate method for this allows multiple runs.
           We accept a string in case someone passes only one video.
 
@@ -137,24 +137,24 @@ class Configuration:
             self.video_uris = [video_uris]
 
 
-    def set_brand(self,
-        name: str,
-        variations: str,
+    def set_brand_details(self,
+        brand_name: str,
+        brand_variations: str,
         products: str,
         products_categories: str,
         call_to_actions: str
     ) -> None:
         """Set brand values to help AI evaluate videos.
 
-          Args:
+        Args:
             name: name of brand featured in video.
             variations: comma delimited variations on the brand name.
             products: comma delimited list of products in the video.
             products_categories: comma delimited list of product types.
             call_to_actions: comma delimited list of actions
         """
-        self.brand_name = name
-        self.brand_variations = [t.strip() for t in variations.split(",")]
+        self.brand_name = brand_name
+        self.brand_variations = [t.strip() for t in brand_variations.split(",")]
         self.branded_products = [t.strip() for t in products.split(",")]
         self.branded_products_categories = [t.strip() for t in products_categories.split(",")]
         self.branded_call_to_actions = [t.strip() for t in call_to_actions.split(",")]
@@ -167,7 +167,7 @@ class Configuration:
         logo_size_threshold: float,
         avg_shot_duration_seconds: int,
         dynamic_cutoff_ms: int
-    ):
+    ) -> None:
         """Set annotation thresholds to help the AI recognize content.
 
           Args:
@@ -185,7 +185,7 @@ class Configuration:
         self.avg_shot_duration_seconds = avg_shot_duration_seconds
         self.dynamic_cutoff_ms = dynamic_cutoff_ms
 
-            
+
     def set_model(self,
         llm_name: str,
         video_size_limit_mb: int,
@@ -193,9 +193,9 @@ class Configuration:
         temperature: float,
         top_p: float,
         top_k: int
-    ):
+    ) -> None:
         """Set LLM model parameters.
-        
+
           Args:
             llm_name: name of LLm model to use
             video_size_limit_mb: largest video file to analyze (limit API costs)

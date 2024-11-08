@@ -61,6 +61,7 @@ def detect_product_visuals_1st_5_secs(config: Configuration, feature_name: str, 
 
 
 def detect_annotation(
+    config: Configuration,
     entity: dict,
     segment: dict,
     branded_products_kg_entities: dict,
@@ -69,6 +70,7 @@ def detect_annotation(
 ):
     """Detect Product Visuals & Product Visuals (First 5 seconds)
     Args:
+        config: All the config params
         entity: entity found in annotations
         segment: segment of the video
         branded_products_kg_entities
@@ -139,6 +141,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         for segment_label in label_annotation_results.get("segment_label_annotations"):
             for segment in segment_label.get("segments"):
                 pv, pv_1st_5_secs = detect_annotation(
+                    config,
                     segment_label.get("entity"),
                     segment,
                     branded_products_kg_entities,
@@ -160,6 +163,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         for shot_label in label_annotation_results.get("shot_label_annotations"):
             for segment in shot_label.get("segments"):
                 pv, pv_1st_5_secs = detect_annotation(
+                    config,
                     shot_label.get("entity"),
                     segment,
                     branded_products_kg_entities,
@@ -181,6 +185,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         for frame_label in label_annotation_results.get("frame_label_annotations"):
             for frame in frame_label.get("frames"):
                 pv, pv_1st_5_secs = detect_annotation(
+                    config,
                     frame_label.get("entity"),
                     frame,
                     branded_products_kg_entities,

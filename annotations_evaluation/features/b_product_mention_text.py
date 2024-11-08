@@ -102,7 +102,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
             ):
                 product_mention_text = True
                 pmt_1st_5_secs, frame = detected_text_in_first_5_seconds(
-                    text_annotation
+                    config, text_annotation
                 )
                 if pmt_1st_5_secs:
                     product_mention_text_1st_5_secs = True

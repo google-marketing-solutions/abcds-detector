@@ -75,6 +75,7 @@ def custom_annotations_detection(
     annotations_uri: str,
 ) -> None:
     """Detect the following custom annotations: Face, People and Speech"""
+
     operation = video_client.annotate_video(
         request={
             "features": features,
@@ -90,7 +91,7 @@ def custom_annotations_detection(
     )
 
 
-def generate_video_annotations(config: Configuration, video_uri: str):
+def generate_video_annotations(config: Configuration, video_uri: str) -> None:
     """Generates video annotations for videos in Google Cloud Storage"""
 
     standard_video_client = videointelligence.VideoIntelligenceServiceClient()
