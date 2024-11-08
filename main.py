@@ -63,9 +63,6 @@ def execute_abcd_assessment_for_videos(config: Configuration):
       }
   )
 
-  if config.bq_table_name:
-    bq_service = BigQueryService(config.project_id)
-
   brand_assessment = {
       "brand_name": config.brand_name,
       "video_assessments": [],
@@ -128,6 +125,7 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     brand_assessment.get("video_assessments").append(video_assessment)
 
     if config.bq_table_name:
+      bq_service = BigQueryService(config.project_id)
       store_in_bq(config, bq_service, video_assessment, prompt_params, llm_params)
 
     # Remove local version of video files
