@@ -27,6 +27,7 @@ from configuration import Configuration
 
 def evaluate_abcd_features_using_annotations(config: Configuration, video_uri: str) -> list[dict]:
     """Evaluates ABCD features using annotations."""
+
     feature_configs = get_feature_configs()
     feature_evaluations: list = []
 

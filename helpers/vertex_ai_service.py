@@ -77,7 +77,7 @@ class VertexAIService:
     def __init__(self, project_id: str):
         self.project_id = project_id
 
-    def execute_gemini_pro(self, prompt: str, params: LLMParameters) -> str:
+    def execute_gemini_pro(self, config: Configuration, prompt: str, params: LLMParameters) -> str:
         """Makes a request to Gemini to get a prediction based on the provided prompt
         and multi-modal params
         Args:
@@ -168,7 +168,7 @@ class VertexAIService:
         return []
 
 
-def get_vertex_ai_service(config:Configuration):
+def get_vertex_ai_service(config: Configuration):
     """Gets Vertex AI service to interact with Gemini"""
     vertex_ai_service = VertexAIService(config.project_id)
     return vertex_ai_service
@@ -180,7 +180,7 @@ def detect_features_with_llm_in_bulk(
 ) -> list[dict]:
     """Detect features in bulk using LLM
     Args:
-        config: all the variables
+        config: All the variables
         prompt: prompt for the llm
         llm_params: object with llm params
     Returns:
@@ -195,7 +195,7 @@ def detect_features_with_llm_in_bulk(
                 if "top_k" in llm_params.generation_config:
                     del llm_params.generation_config["top_k"]
                 llm_response = vertex_ai_service.execute_gemini_pro(
-                    prompt=prompt, params=llm_params
+                    config=config, prompt=prompt, params=llm_params
                 )
             else:
                 print(f"LLM {llm_params.model_name} not supported.")

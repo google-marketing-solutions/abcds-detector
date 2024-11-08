@@ -48,6 +48,7 @@ def detect_dynamic_start(config: Configuration, feature_name: str, video_uri: st
         first_shot_end_time_off_set = shot_annotation_results.get("shot_annotations")[0]
         nanos = first_shot_end_time_off_set.get("end_time_offset").get("nanos")
         seconds = first_shot_end_time_off_set.get("end_time_offset").get("seconds")
+        total_ms_first_shot = 0
         if nanos:
             if seconds:
                 total_ms_first_shot = (nanos + seconds * 1e9) / 1e6
