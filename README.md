@@ -74,6 +74,10 @@ ABCDs Detector MVP supports a single video evaluation for the following features
   - Call To Action (Text)
   - Call To Action (Speech)
 
+For a definition for each of these signals please take a look at the [features.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/feature_configs/features.py) file.
+
+The final result of the assessment (Excellent, Might Improve or Needs Review) is defined in the [generics_helpers.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/helpers/generic_helpers.py?plain=1#L186) and can be customized based on preferences.
+
 ### Google Cloud Cost breakdown
 
 1. Video Intelligence API: Prices are per minute. Partial minutes are rounded up to the next full minute. Volume is per month. For more details please check the official [documentation](https://cloud.google.com/video-intelligence/pricing).
