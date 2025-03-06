@@ -26,6 +26,7 @@ import urllib
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 import pandas
+import logging
 from google.cloud import bigquery
 from google.cloud import storage
 from moviepy.editor import VideoFileClip
@@ -139,7 +140,13 @@ def trim_video(config: Configuration, video_uri: str):
 
         # download
         with open(FFMPEG_BUFFER, "wb") as f:
-            f.write(get_blob(video_uri).download_as_string(client=None))
+            blob = get_blob(video_uri)
+            if blob:
+                f.write(blob.download_as_string(client=None))
+            else:
+                msg = f"Video URI: {video_uri} does not exist. Skipping execution."
+                logging.error(msg)
+                raise Exception(msg)
 
         # trim
         clip = VideoFileClip(FFMPEG_BUFFER)
