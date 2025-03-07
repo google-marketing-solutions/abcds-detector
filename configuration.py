@@ -78,7 +78,6 @@ class Configuration:
         self.top_p = 0.95
         self.top_k = 32
 
-
     def set_parameters(self,
         project_id: str,
         project_zone: str,
@@ -119,7 +118,6 @@ class Configuration:
         self.verbose = verbose
         self.annotation_path = f"gs://{bucket_name}/ABCD/"
 
-
     def set_videos(self, video_uris: list) -> None:
         """Set the videos that will be processed.
 
@@ -136,13 +134,13 @@ class Configuration:
         else:
             self.video_uris = [video_uris]
 
-
-    def set_brand_details(self,
+    def set_brand_details(
+        self,
         brand_name: str,
         brand_variations: str,
         products: str,
         products_categories: str,
-        call_to_actions: str
+        call_to_actions: str,
     ) -> None:
         """Set brand values to help AI evaluate videos.
 
@@ -154,11 +152,20 @@ class Configuration:
             call_to_actions: comma delimited list of actions
         """
         self.brand_name = brand_name
-        self.brand_variations = [t.strip() for t in brand_variations.split(",")]
-        self.branded_products = [t.strip() for t in products.split(",")]
-        self.branded_products_categories = [t.strip() for t in products_categories.split(",")]
-        self.branded_call_to_actions = [t.strip() for t in call_to_actions.split(",")]
-
+        self.brand_variations = (
+            [t.strip() for t in brand_variations.split(",")] if brand_variations else []
+        )
+        self.branded_products = (
+            [t.strip() for t in products.split(",")] if products else []
+        )
+        self.branded_products_categories = (
+            [t.strip() for t in products_categories.split(",")]
+            if products_categories
+            else []
+        )
+        self.branded_call_to_actions = (
+            [t.strip() for t in call_to_actions.split(",")] if call_to_actions else []
+        )
 
     def set_annotation(self,
         early_time_seconds: int,
@@ -184,7 +191,6 @@ class Configuration:
         self.logo_size_threshold = logo_size_threshold
         self.avg_shot_duration_seconds = avg_shot_duration_seconds
         self.dynamic_cutoff_ms = dynamic_cutoff_ms
-
 
     def set_model(self,
         llm_name: str,

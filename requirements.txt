@@ -1,7 +1,7 @@
-google-cloud-aiplatform
-google-cloud-videointelligence
-google-cloud-storage
-moviepy
-google-api-python-client
-pandas
-pyarrow
+google-cloud-aiplatform==1.83.0
+google-cloud-videointelligence==2.16.0
+google-cloud-storage==2.19.0
+moviepy==1.0.3
+google-api-python-client==2.163.0
+pandas==2.2.3
+pyarrow==19.0.1
