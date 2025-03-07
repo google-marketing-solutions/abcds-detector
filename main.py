@@ -23,6 +23,7 @@
 import json
 import time
 import traceback
+import logging
 from annotations_evaluation.annotations_generation import generate_video_annotations
 from annotations_evaluation.evaluation import evaluate_abcd_features_using_annotations
 from llms_evaluation.evaluation import evaluate_abcd_features_using_llms
@@ -153,17 +154,17 @@ def main(arg_list: list[str] | None = None) -> None:
     config = build_abcd_params_config(args)
 
     start_time = time.time()
-    print("Starting ABCD assessment... \n")
+    logging.info("Starting ABCD assessment... \n")
 
     if config.video_uris:
       execute_abcd_assessment_for_videos(config)
-      print("Finished ABCD assessment. \n")
+      logging.info("Finished ABCD assessment. \n")
     else:
-      print("There are no videos to process. \n")
+      logging.info("There are no videos to process. \n")
 
-    print(f"ABCD assessment took - {(time.time() - start_time) / 60} mins. - \n")
+    logging.info("ABCD assessment took - %s mins. - \n", (time.time() - start_time) / 60)
   except Exception as ex:
-    print(f"ERROR: {ex}")
+    logging.info("ERROR: %s", ex)
     traceback.print_exc()
 
 

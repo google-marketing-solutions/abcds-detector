@@ -146,7 +146,7 @@ def trim_video(config: Configuration, video_uri: str):
             else:
                 msg = f"Video URI: {video_uri} does not exist. Skipping execution."
                 logging.error(msg)
-                raise Exception(msg)
+                raise ValueError(msg)
 
         # trim
         clip = VideoFileClip(FFMPEG_BUFFER)
