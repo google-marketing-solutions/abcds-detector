@@ -164,7 +164,7 @@ def main(arg_list: list[str] | None = None) -> None:
 
     logging.info("ABCD assessment took - %s mins. - \n", (time.time() - start_time) / 60)
   except Exception as ex:
-    logging.info("ERROR: %s", ex)
+    logging.error("ERROR: %s", ex)
     traceback.print_exc()
 
 
