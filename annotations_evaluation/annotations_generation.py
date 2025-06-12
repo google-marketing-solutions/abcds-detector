@@ -26,10 +26,9 @@ from google.cloud.videointelligence import VideoContext
 from google.cloud import videointelligence_v1 as videointelligence2
 from configuration import Configuration
 from helpers.generic_helpers import (
-    get_blob,
-    get_annotation_uri,
     execute_tasks_in_parallel,
 )
+from gcp_api_services.gcs_api_service import gcs_api_service
 
 
 class Annotations(Enum):
@@ -124,22 +123,22 @@ def generate_video_annotations(config: Configuration, video_uri: str) -> None:
     # Video annotations processing
 
     tasks = []
-    annotation_uri = get_annotation_uri(config, video_uri)
+    annotation_uri = gcs_api_service.get_annotation_uri(config, video_uri)
 
     standard_annotations_uri = (
         f"{annotation_uri}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
-    standard_annotations_blob = get_blob(standard_annotations_uri)
+    standard_annotations_blob = gcs_api_service.get_blob(standard_annotations_uri)
     face_annotations_uri = f"{annotation_uri}{Annotations.FACE_ANNOTATIONS.value}.json"
-    face_annotations_blob = get_blob(face_annotations_uri)
+    face_annotations_blob = gcs_api_service.get_blob(face_annotations_uri)
     people_annotations_uri = (
         f"{annotation_uri}{Annotations.PEOPLE_ANNOTATIONS.value}.json"
     )
-    people_annotations_blob = get_blob(people_annotations_uri)
+    people_annotations_blob = gcs_api_service.get_blob(people_annotations_uri)
     speech_annotations_uri = (
         f"{annotation_uri}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     )
-    speech_annotations_blob = get_blob(speech_annotations_uri)
+    speech_annotations_blob = gcs_api_service.get_blob(speech_annotations_uri)
 
     # Detect Standard annotations & Custom annotations
     if not standard_annotations_blob:

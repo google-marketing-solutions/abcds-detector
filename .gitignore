@@ -2,7 +2,7 @@
 
 # Python
 venv
-__pycache__
+**/__pycache__/
 reduced/
 ffmpeg
 annotations_evaluation/_pycache_
@@ -21,7 +21,7 @@ prompts/_pycache_
 *.sublime-workspace
 
 # Visual Studio Code
-.vscode/*
+.vscode/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json

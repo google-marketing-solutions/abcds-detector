@@ -26,58 +26,121 @@ import vertexai
 import vertexai.preview.generative_models as generative_models
 from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig
 from google.api_core.exceptions import ResourceExhausted
+from google import genai
+from google.genai import types
 from feature_configs.features import RESPONSE_SCHEMA
 from configuration import Configuration
+from prompts.prompt_generator import PromptConfig
+from models import LLMParameters
 
 
-class LLMParameters:
-    """Class that represents the required params to make a prediction to the LLM"""
-
-    model_name: str
-    location: str
-    modality: dict
-    generation_config: dict = {  # Default model config
-        "max_output_tokens": 2048,
-        "temperature": 0.5,
-        "top_p": 1,
-        "top_k": 40,
-    }
-
-    def __init__(
-        self,
-        model_name: str,
-        location: str,
-        generation_config: dict,
-        modality: dict = None,
-    ):
-        self.model_name = model_name
-        self.location = location
-        self.generation_config = generation_config
-        self.modality = modality
-
-    def set_modality(self, modality: dict) -> None:
-        """Sets the modal to use in the LLM
-        The modality object changes depending on the type.
-        For video:
-        {
-            "type": "video", # prompt is handled separately
-            "video_uri": ""
-        }
-        For text:
-        {
-            "type": "text" # prompt is handled separately
-        }
-        """
-        self.modality = modality
+DEFAULT_CONFIG = LLMParameters()
 
 
-class VertexAIService:
-    """Vertex AI Service to leverage the Vertex APIs for inference"""
+class GeminiAPIService:
+    """Gemini API Service to leverage the Vertex APIs for inference"""
 
     def __init__(self, project_id: str):
         self.project_id = project_id
 
-    def execute_gemini_pro(self, config: Configuration, prompt: str, params: LLMParameters) -> str:
+    def execute_gemini_with_genai(
+        self, prompt_config: PromptConfig, llm_params: LLMParameters | None = None
+    ):
+        """Executes Gemini using the GenAI library"""
+        if not llm_params:
+            llm_params = DEFAULT_CONFIG
+        # Retry call for retriable errors
+        retries = 3
+        for this_retry in range(retries):
+            try:
+                client = genai.Client(
+                    vertexai=True,
+                    project=self.project_id,
+                    location=llm_params.location,
+                )
+                # Build prompt part
+                prompt_part = types.Part.from_text(text=prompt_config.prompt)
+                contents = [
+                    types.Content(role="user", parts=[prompt_part]),
+                ]
+                generate_content_config = types.GenerateContentConfig(
+                    temperature=llm_params.generation_config.get("temperature"),
+                    top_p=llm_params.generation_config.get("top_p"),
+                    seed=0,
+                    max_output_tokens=llm_params.generation_config.get(
+                        "max_output_tokens"
+                    ),
+                    response_modalities=[llm_params.modality.get("type")],
+                    safety_settings=[
+                        types.SafetySetting(
+                            category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"
+                        ),
+                        types.SafetySetting(
+                            category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"
+                        ),
+                        types.SafetySetting(
+                            category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"
+                        ),
+                        types.SafetySetting(
+                            category="HARM_CATEGORY_HARASSMENT", threshold="OFF"
+                        ),
+                    ],
+                    system_instruction=[
+                        types.Part.from_text(text=prompt_config.system_instructions)
+                    ],
+                    response_mime_type="application/json",
+                    response_schema=llm_params.generation_config.get("response_schema"),
+                )
+                # Get response from Gemini
+                response = client.models.generate_content(
+                    model=llm_params.model_name,
+                    contents=contents,
+                    config=generate_content_config,
+                )
+
+                return response
+            except ResourceExhausted as ex:
+                print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)} ...")
+                wait = 10 * 2**this_retry
+                time.sleep(wait)
+            except AttributeError as ex:
+                error_message = str(ex)
+                if "Content has no parts" in error_message:
+                    # Retry request
+                    print(
+                        f"Error: {ex} Gemini might be blocking the response due to safety"
+                        f" issues. Retrying {retries} times using exponential backoff."
+                        f" Retry number {this_retry + 1}...\n"
+                    )
+                    wait = 10 * 2**this_retry
+                    time.sleep(wait)
+            except Exception as ex:
+                print("GENERAL EXCEPTION...\n")
+                error_message = str(ex)
+                # Check quota issues for now
+                if (
+                    "429 Quota exceeded" in error_message
+                    or "503 The service is currently unavailable" in error_message
+                    or "500 Internal error encountered" in error_message
+                ):
+                    print(
+                        f"Error {error_message}. Retrying {retries} times using"
+                        f" exponential backoff. Retry number {this_retry + 1}...\n"
+                    )
+                    # Retry request
+                    wait = 10 * 2**this_retry
+                    time.sleep(wait)
+                else:
+                    print(
+                        "ERROR: the following issue can't be retried:"
+                        f" {error_message}\n"
+                    )
+                    # Raise exception for non-retriable errors
+                    raise
+
+    def execute_gemini_pro(
+        self, config: Configuration, prompt: str, params: LLMParameters
+    ) -> str:
         """Makes a request to Gemini to get a prediction based on the provided prompt
         and multi-modal params
         Args:
@@ -168,15 +231,17 @@ class VertexAIService:
         return []
 
 
-def get_vertex_ai_service(config: Configuration):
+def get_gemini_api_service(config: Configuration) -> GeminiAPIService:
     """Gets Vertex AI service to interact with Gemini"""
-    vertex_ai_service = VertexAIService(config.project_id)
-    return vertex_ai_service
+    gemini_api_service = GeminiAPIService(config.project_id)
+
+    return gemini_api_service
 
 
 def detect_features_with_llm_in_bulk(
     config: Configuration,
-    prompt: str, llm_params: LLMParameters, features_group_by: str
+    prompt_config: PromptConfig,
+    features_group_by: str,
 ) -> list[dict]:
     """Detect features in bulk using LLM
     Args:
@@ -189,16 +254,17 @@ def detect_features_with_llm_in_bulk(
     retries = 3
     for this_retry in range(retries):
         try:
-            vertex_ai_service = get_vertex_ai_service(config)
-            if llm_params.model_name == config.llm_name:
+            gemini_api_service = get_gemini_api_service(config)
+            if config.llm_params.model_name == config.llm_params.model_name:
                 # Gemini 1.5 does not support top_k param
-                if "top_k" in llm_params.generation_config:
-                    del llm_params.generation_config["top_k"]
-                llm_response = vertex_ai_service.execute_gemini_pro(
-                    config=config, prompt=prompt, params=llm_params
+                if "top_k" in config.llm_params.generation_config:
+                    del config.llm_params.generation_config["top_k"]
+                llm_response = gemini_api_service.execute_gemini_with_genai(
+                    prompt_config=prompt_config,
+                    llm_params=config.llm_params,
                 )
             else:
-                print(f"LLM {llm_params.model_name} not supported.")
+                print(f"LLM {config.llm_params.model_name} not supported.")
                 return False
             # Parse response
             features = json.loads(clean_llm_response(llm_response))

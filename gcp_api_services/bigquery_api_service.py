@@ -24,7 +24,7 @@ from google.cloud import bigquery
 from google.cloud import exceptions as cloud_exceptions
 
 
-class BigQueryService:
+class BigQueryAPIService:
     """BigQuery service to write data to BigQuery using the specified client."""
 
     def __init__(self, project_id):
@@ -150,7 +150,9 @@ class BigQueryService:
         # Check if table was created
         table = client.get_table(full_table_name)
         if table:
-            print(f"Rows inserted in {full_table_name} successfully! Total rows in table {table.num_rows}. \n")
+            print(
+                f"Rows inserted in {full_table_name} successfully! Total rows in table {table.num_rows}. \n"
+            )
         else:
             print(
                 f"There was an error loading the users to the table {full_table_name}. The table could not be created."

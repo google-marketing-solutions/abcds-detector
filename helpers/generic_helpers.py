@@ -28,60 +28,16 @@ from concurrent.futures import ThreadPoolExecutor
 import pandas
 import logging
 from google.cloud import bigquery
-from google.cloud import storage
 from moviepy.editor import VideoFileClip
-from helpers.bq_service import BigQueryService
+from gcp_api_services.bigquery_api_service import BigQueryAPIService
+from gcp_api_services.gcs_api_service import gcs_api_service
 from feature_configs.features import get_feature_configs
 from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
 
 
-def get_blob(uri: str) -> any:
-    """Return GCS blob object from full uri."""
-    bucket, path = uri.replace("gs://", "").split("/", 1)
-    return storage.Client().get_bucket(bucket).get_blob(path)
-
-
-def upload_blob(uri: str, file_path: str) -> any:
-    """Uploads GCS blob object from file."""
-    bucket, path = uri.replace("gs://", "").split("/", 1)
-    storage.Client().get_bucket(bucket).blob(path).upload_from_filename(file_path)
-
-
-def load_blob(annotation_uri: str):
-    """Loads a blob to json"""
-    blob = get_blob(annotation_uri)
-    blob_json = json.loads(blob.download_as_string()).get("annotation_results")[0]
-    return blob_json
-
-
-def expand_uris(uris: list) -> any:
-    """Expands any GCS URI entry that is a folder path into its files."""
-    for uri in uris:
-        if uri.endswith("/"):
-            print(f"EXPANDING URI: {uri} \n")
-            bucket, prefix = uri.replace("gs://", "").split("/", 1)
-            for blob in (
-                storage.Client()
-                .get_bucket(bucket)
-                .list_blobs(prefix=prefix, delimiter="/")
-            ):
-                if not blob.name.endswith("/"):
-                    yield f"gs://{bucket}/{blob.name}"
-        else:
-            yield uri
-
-
-def get_annotation_uri(config: Configuration, video_uri: str) -> str:
-    """Helper to translate video to annotation uri."""
-    return video_uri.replace("gs://", config.annotation_path).replace(".", "_") + "/"
-
-
-def get_reduced_uri(config: Configuration, video_uri: str) -> str:
-    """Helper to translate video to reduced video uri."""
-    return get_annotation_uri(config, video_uri) + "reduced_1st_5_secs.mp4"
-
-
-def get_knowledge_graph_entities(config: Configuration, queries: list[str]) -> dict[str, dict]:
+def get_knowledge_graph_entities(
+    config: Configuration, queries: list[str]
+) -> dict[str, dict]:
     """Get the knowledge Graph Entities for a list of queries
     Args:
         config: All the parameters
@@ -132,15 +88,15 @@ def trim_video(config: Configuration, video_uri: str):
         config: all the parameters
         video_uri: the video to trim the length for
     """
-    reduced_uri = get_reduced_uri(config, video_uri)
-    reduced_blob = get_blob(reduced_uri)
+    reduced_uri = gcs_api_service.get_reduced_uri(config, video_uri)
+    reduced_blob = gcs_api_service.get_blob(reduced_uri)
     print(f"REDUCED: {reduced_uri} \n")
     if reduced_blob is None:
         print(f"Shortening video {video_uri}. \n")
 
         # download
         with open(FFMPEG_BUFFER, "wb") as f:
-            blob = get_blob(video_uri)
+            blob = gcs_api_service.get_blob(video_uri)
             if blob:
                 f.write(blob.download_as_string(client=None))
             else:
@@ -154,7 +110,7 @@ def trim_video(config: Configuration, video_uri: str):
         clip.write_videofile(FFMPEG_BUFFER_REDUCED)
 
         # upload
-        upload_blob(reduced_uri, FFMPEG_BUFFER_REDUCED)
+        gcs_api_service.upload_blob(reduced_uri, FFMPEG_BUFFER_REDUCED)
 
     else:
         print(f"Video {video_uri} has already been trimmed. Skipping...\n")
@@ -298,16 +254,7 @@ def calculate_score(evaluated_features: list[str]) -> float:
     return score
 
 
-def get_video_name_from_uri(uri: str):
-    """Gets the video name from the video uri"""
-    video_parts = uri.split("/")
-    if len(video_parts) > 0:
-        # Video name is the last element
-        return video_parts[-1]
-    return ""
-
-
-def get_feature_by_id(features: list[dict], feature_id: str) -> list[str]:
+def get_feature_by_id(features: list[str], feature_id: str) -> list[str]:
     """Get feature configs by id"""
     features_found = [
         feature_config
@@ -381,7 +328,7 @@ def build_features_for_bq(video_uri: str, brand_name: str) -> list[dict]:
                 "execution_timestamp": datetime.datetime.now(),
                 "brand_name": brand_name,
                 "video_id": video_uri,
-                "video_name": get_video_name_from_uri(video_uri),
+                "video_name": cloud_storage_service.get_video_name_from_uri(video_uri),
                 "video_uri": video_uri,
                 "feature_id": f_config.get("id"),
                 "feature_name": f_config.get("name"),
@@ -458,9 +405,8 @@ def update_llms_evaluated_features(
 
 def store_in_bq(
     config: Configuration,
-    bq_service: BigQueryService,
+    bq_api_service: BigQueryAPIService,
     video_assessment: dict,
-    prompt_params: any,
     llm_params: any,
 ):
     """Store ABCD assessment results in BQ"""
@@ -470,15 +416,16 @@ def store_in_bq(
     )
 
     assessment_bq = build_features_for_bq(
-        video_assessment.get("video_uri"), prompt_params.brand_name
+        video_assessment.get("video_uri"), config.brand_name
     )
 
     annotations_evaluation = video_assessment.get("annotations_evaluation")
     update_annotations_evaluated_features(assessment_bq, annotations_evaluation)
 
     llms_evaluation = video_assessment.get("llms_evaluation")
+    # TODO (ae) check config.__dict__!
     update_llms_evaluated_features(
-        assessment_bq, llms_evaluation, prompt_params.__dict__, llm_params.__dict__
+        assessment_bq, llms_evaluation, config.__dict__, llm_params.__dict__
     )
 
     # Insert if there is any feature evaluation
@@ -491,14 +438,20 @@ def store_in_bq(
             columns=columns,
         )
         # Create dataset if it does not exist
-        bq_service.create_dataset(config.bq_dataset_name, config.project_zone)
+        bq_api_service.create_dataset(config.bq_dataset_name, config.project_zone)
         schema = get_table_schema()
-        table_created = bq_service.create_table(config.bq_dataset_name, config.bq_table_name, schema)
+        table_created = bq_api_service.create_table(
+            config.bq_dataset_name, config.bq_table_name, schema
+        )
         # Wait for table creation
         if table_created:
             print(f"Inserting {len(assessment_bq)} rows into BQ... \n")
-            bq_service.load_table_from_dataframe(
-                config.bq_dataset_name, config.bq_table_name, dataframe, schema, "WRITE_APPEND"
+            bq_api_service.load_table_from_dataframe(
+                config.bq_dataset_name,
+                config.bq_table_name,
+                dataframe,
+                schema,
+                "WRITE_APPEND",
             )
         else:
             print(
@@ -508,3 +461,15 @@ def store_in_bq(
         print(
             f"There are no rows to insert into BQ for video {video_assessment.get('video_uri')}. \n"
         )
+
+
+def load_blob(self, annotation_uri: str):
+    """Loads a blob to json"""
+    blob = self.get_blob(annotation_uri)
+    blob_json = json.loads(blob.download_as_string()).get("annotation_results")[0]
+    return blob_json
+
+
+def get_annotation_uri(self, config: Configuration, video_uri: str) -> str:
+    """Helper to translate video to annotation uri."""
+    return video_uri.replace("gs://", config.annotation_path).replace(".", "_") + "/"
