@@ -51,7 +51,7 @@ class Configuration:
         self.verbose: bool = True
         self.annotation_path: str = ""
 
-        self.run_full_abcd: bool = True
+        self.run_full_abcd: bool = False
         self.run_shorts: bool = True
         self.features_to_evaluate: list[str]  # list of feature ids to run
         self.creative_provider_type = CreativeProviderType.GCS  # GCS by default
@@ -213,8 +213,8 @@ class Configuration:
         self.llm_params.model_name = llm_name
         self.llm_params.location = location
         self.llm_params.generation_config = {
-            "max_output_tokens": max_output_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
+            "max_output_tokens": int(max_output_tokens),
+            "temperature": float(temperature),
+            "top_p": float(top_p),
             "response_schema": {"type": "string"},
         }

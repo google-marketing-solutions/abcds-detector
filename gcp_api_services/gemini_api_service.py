@@ -28,7 +28,7 @@ from vertexai.preview.generative_models import GenerativeModel, Part, Generation
 from google.api_core.exceptions import ResourceExhausted
 from google import genai
 from google.genai import types
-from feature_configs.features import RESPONSE_SCHEMA
+from features_repository.features import RESPONSE_SCHEMA
 from configuration import Configuration
 from prompts.prompt_generator import PromptConfig
 from models import LLMParameters
@@ -58,11 +58,10 @@ class GeminiAPIService:
                     project=self.project_id,
                     location=llm_params.location,
                 )
-                # Build prompt part
-                prompt_part = types.Part.from_text(text=prompt_config.prompt)
-                contents = [
-                    types.Content(role="user", parts=[prompt_part]),
-                ]
+                # Build prompt parts
+                contents = self._get_modality_params_genai(
+                    prompt_config.prompt, llm_params
+                )
                 generate_content_config = types.GenerateContentConfig(
                     temperature=llm_params.generation_config.get("temperature"),
                     top_p=llm_params.generation_config.get("top_p"),
@@ -70,7 +69,7 @@ class GeminiAPIService:
                     max_output_tokens=llm_params.generation_config.get(
                         "max_output_tokens"
                     ),
-                    response_modalities=[llm_params.modality.get("type")],
+                    response_modalities=["TEXT"],  # Just text for now
                     safety_settings=[
                         types.SafetySetting(
                             category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"
@@ -98,7 +97,7 @@ class GeminiAPIService:
                     config=generate_content_config,
                 )
 
-                return response
+                return response.parsed
             except ResourceExhausted as ex:
                 print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)} ...")
                 wait = 10 * 2**this_retry
@@ -213,6 +212,33 @@ class GeminiAPIService:
                     # Raise exception for non-retriable errors
                     raise
         return ""
+
+    def _get_modality_params_genai(
+        self, prompt: str, params: LLMParameters
+    ) -> list[any]:
+        """Build the modality params based on the type of llm capability to use
+        Args:
+            prompt: a string with the prompt for LLM
+            model_params: the model params for inference, see defaults above
+        Returns:
+            modality_params: list of modality params based on the model capability to use
+        """
+        if params.modality["type"] == "video":
+            mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
+            video = types.Part.from_uri(
+                file_uri=params.modality["video_uri"], mime_type=mime_type
+            )
+            return [
+                types.Content(
+                    role="user", parts=[video, types.Part.from_text(text=prompt)]
+                )
+            ]
+        elif params.modality["type"] == "text":
+            return [
+                types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+            ]
+
+        return []
 
     def _get_modality_params(self, prompt: str, params: LLMParameters) -> list[any]:
         """Build the modality params based on the type of llm capability to use

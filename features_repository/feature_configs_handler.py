@@ -49,7 +49,7 @@ class FeaturesConfigsHandler:
         else:
             logging.log("Category %s not supported. Please check", category)
 
-    def get_groups_of_features(self, category: VideoFeatureCategory) -> dict:
+    def get_features_by_category_by_group_config(self, category: VideoFeatureCategory) -> dict:
         """Groups features by video_segment in feature_configs"""
         feature_configs = self.get_feature_configs_by_category(category)
         grouped_features = {}

@@ -21,7 +21,7 @@
 """Module to evaluate features for ABCDs using annotations."""
 
 import annotations_evaluation.feature_modules as annotations_module
-from feature_configs.features import get_feature_configs
+from features_repository.features import get_feature_configs
 from configuration import Configuration
 
 

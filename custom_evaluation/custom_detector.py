@@ -31,7 +31,7 @@ class CustomDetector:
     def __init__(self):
         pass
 
-    def evaluate_feature(
+    def evaluate_features(
         self, config: Configuration, feature_config: VideoFeature, video_uri: str
     ) -> list[dict]:
         """Evaluates ABCD features using custom functions."""

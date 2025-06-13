@@ -31,7 +31,7 @@ from google.cloud import bigquery
 from moviepy.editor import VideoFileClip
 from gcp_api_services.bigquery_api_service import BigQueryAPIService
 from gcp_api_services.gcs_api_service import gcs_api_service
-from feature_configs.features import get_feature_configs
+from features_repository.features import get_feature_configs
 from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
 
 

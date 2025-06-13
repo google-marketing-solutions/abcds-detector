@@ -87,7 +87,9 @@ class PromptGenerator:
             Feature ID: {feature.id}
             Feature Name: {feature.name}
             Feature Category: {feature.category}
-            Feature Criteria: {feature.evaluation_criteria}
+            Feature Sub Category: {feature.sub_category}
+            Feature Video Segment: {feature.video_segment}
+            Feature Evaluation Criteria: {feature.evaluation_criteria}
             Question: {feature.prompt_template}
             {instructions} \n\n
         """

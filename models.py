@@ -148,7 +148,7 @@ VIDEO_RESPONSE_SCHEMA = {
                 "type": "boolean",
             },
             "confidence_score": {
-                "type": "float",
+                "type": "number",
             },
             "rationale": {
                 "type": "string",
