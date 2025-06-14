@@ -50,11 +50,6 @@ def execute_abcd_assessment_for_videos(config: Configuration):
 
     for video_uri in video_uris:
 
-        if not config.brand_name:
-            pass
-            # Extract video metadata
-            # config.brand_name =
-
         print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
 
         # Generate video annotations for custom features

@@ -183,3 +183,64 @@ VIDEO_RESPONSE_SCHEMA = {
         ],
     },
 }
+
+
+VIDEO_METADATA_RESPONSE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "brand_name": {
+            "type": "string",
+        },
+        "brand_variations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "brand_name": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        "branded_products": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "product_name": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        "branded_products_categories": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "product_category": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+        "branded_call_to_actions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "call_to_action": {
+                        "type": "string",
+                    },
+                },
+            },
+        },
+    },
+    "required": [
+        "brand_name",
+        "brand_variations",
+        "branded_products",
+        "branded_products_categories",
+        "branded_call_to_actions",
+    ],
+}

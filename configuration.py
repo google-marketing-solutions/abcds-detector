@@ -51,6 +51,7 @@ class Configuration:
         self.verbose: bool = True
         self.annotation_path: str = ""
 
+        self.extract_video_metadata = True
         self.run_full_abcd: bool = True
         self.run_shorts: bool = True
         self.features_to_evaluate: list[str]  # list of feature ids to run
@@ -86,8 +87,11 @@ class Configuration:
         bigquery_dataset: str,
         bigquery_table: str,
         assessment_file: str,
+        extract_video_metadata: bool,
         run_full_abcd: bool,
         run_shorts: bool,
+        features_to_evaluate: list[str],
+        creative_provider_type: CreativeProviderType,
         verbose: bool,
     ) -> None:
         """Set the required parameters for ABCD to run.
@@ -113,9 +117,18 @@ class Configuration:
         self.bq_dataset_name = bigquery_dataset
         self.bq_table_name = bigquery_table
         self.assessment_file = assessment_file
+        self.extract_video_metadata = extract_video_metadata
         self.run_full_abcd = run_full_abcd
         self.run_shorts = run_shorts
         self.verbose = verbose
+        self.features_to_evaluate = features_to_evaluate
+
+        if creative_provider_type == CreativeProviderType.GCS.value:
+            self.creative_provider_type = CreativeProviderType.GCS
+
+        if creative_provider_type == CreativeProviderType.YOUTUBE.value:
+            self.creative_provider_type = CreativeProviderType.YOUTUBE
+
         self.annotation_path = f"gs://{bucket_name}/ABCD/"
 
     def set_videos(self, video_uris: list) -> None:

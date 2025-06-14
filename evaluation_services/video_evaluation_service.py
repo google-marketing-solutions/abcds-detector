@@ -25,6 +25,16 @@ class VideoEvaluationService:
     ):
         """Run ABCD evaluation on videos for Full ABCD features or Shorts"""
 
+        if not config.extract_video_metadata:
+            metadata = llm_detector.get_video_metadata(config, video_uri)
+            config.brand_name = metadata.get("brand_name")
+            config.brand_variations = metadata.get("brand_variations")
+            config.branded_products = metadata.get("branded_products")
+            config.branded_products_categories = metadata.get(
+                "branded_products_categories"
+            )
+            config.branded_call_to_actions = metadata.get("branded_call_to_actions")
+
         feature_evaluations: list[FeatureEvaluation] = []
         tasks = []
         feature_groups = (
@@ -87,25 +97,25 @@ class VideoEvaluationService:
 
             logging.info("Starting ABCD evaluation using LLMs... \n")
 
-            llm_evals = execute_tasks_in_parallel(tasks)
+        llm_evals = execute_tasks_in_parallel(tasks)
 
-            # Process LLM results and create feature objs in the required format
-            for evals in llm_evals:
-                for evaluated_feature in evals:
-                    feature: VideoFeature = self.get_feature_by_id(
-                        evaluated_feature.get("id"), feature_configs
+        # Process LLM results and create feature objs in the required format
+        for evals in llm_evals:
+            for evaluated_feature in evals:
+                feature: VideoFeature = self.get_feature_by_id(
+                    evaluated_feature.get("id"), feature_configs
+                )
+                feature_evaluations.append(
+                    FeatureEvaluation(
+                        feature=feature,
+                        detected=evaluated_feature.get("detected"),
+                        confidence_score=evaluated_feature.get("confidence_score"),
+                        rationale=evaluated_feature.get("rationale"),
+                        evidence=evaluated_feature.get("evidence"),
+                        strengths=evaluated_feature.get("strengths"),
+                        weaknesses=evaluated_feature.get("weaknesses"),
                     )
-                    feature_evaluations.append(
-                        FeatureEvaluation(
-                            feature=feature,
-                            detected=evaluated_feature.get("detected"),
-                            confidence_score=evaluated_feature.get("confidence_score"),
-                            rationale=evaluated_feature.get("rationale"),
-                            evidence=evaluated_feature.get("evidence"),
-                            strengths=evaluated_feature.get("strengths"),
-                            weaknesses=evaluated_feature.get("weaknesses"),
-                        )
-                    )
+                )
 
         # Sort features by category and id for presentation
         """feature_evaluations = sorted(

@@ -40,20 +40,25 @@ class CustomDetector:
 
         feature_evaluations: list[FeatureEvaluation] = []
 
-        print(f"Custom function evaluation for feature {feature_config.name}...")
+        print(f"Custom function evaluation for feature {feature_config.name}... \n")
         eval_function_name = feature_config.evaluation_function
         func = getattr(annotations_module, eval_function_name)
-        detected = func(config, feature_config.name, video_uri)
+        evaluation = func(config, feature_config.name, video_uri)
 
-        feature_evaluation = FeatureEvaluation(
-            feature=feature_config,
-            detected=detected,
-            confidence_score=1,  # TODO (ae) calculate this for annotations
-            rationale="",
-            evidence="",
-            strengths="",
-            weaknesses="",
-        )
+        if isinstance(evaluation, bool):
+            feature_evaluation = {
+                "id": feature_config.id,
+                "detected": evaluation,
+                "confidence_score": 1,  # TODO (ae) calculate this for annotations
+                "rationale": "",
+                "evidence": "",
+                "strengths": "",
+                "weaknesses": "",
+            }
+        else:
+            # TODO (ae) add details about the interface returned here
+            feature_evaluation = evaluation
+
         feature_evaluations.append(feature_evaluation)
 
         return feature_evaluations

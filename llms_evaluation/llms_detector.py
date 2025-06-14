@@ -24,7 +24,7 @@
 from configuration import Configuration
 from gcp_api_services.gemini_api_service import get_gemini_api_service
 from prompts.prompt_generator import prompt_generator
-from models import VIDEO_RESPONSE_SCHEMA
+from models import VIDEO_RESPONSE_SCHEMA, VIDEO_METADATA_RESPONSE_SCHEMA
 
 
 class LLMDetector:
@@ -42,7 +42,7 @@ class LLMDetector:
         print(
             f"Starting LLM evaluation for features grouped by {evaluation_details.get('group_by')}... \n"
         )
-        prompt_config = prompt_generator.get_abcds_prompt(
+        prompt_config = prompt_generator.get_abcds_prompt_config(
             evaluation_details.get("feature_configs"),
             config,
         )
@@ -63,6 +63,22 @@ class LLMDetector:
                 )
 
         return evaluated_features
+
+
+    def get_video_metadata(self, config: Configuration, video_uri: str):
+        print(
+            f"Extracting brand metadata for video {video_uri}... \n"
+        )
+        prompt_config = prompt_generator.get_metadata_prompt_config()
+        # Set modality for API
+        config.llm_params.set_modality({"type": "video", "video_uri": video_uri})
+        # Set the required schema for the LLM response
+        config.llm_params.generation_config["response_schema"] = VIDEO_METADATA_RESPONSE_SCHEMA
+        metadata = get_gemini_api_service(config).execute_gemini_with_genai(
+            prompt_config, config.llm_params
+        )
+
+        return metadata
 
 
 llm_detector = LLMDetector()

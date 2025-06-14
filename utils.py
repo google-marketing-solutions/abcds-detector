@@ -43,8 +43,11 @@ def build_abcd_params_config(args: any) -> Configuration:
         bigquery_dataset=args.bigquery_dataset,
         bigquery_table=args.bigquery_table,
         assessment_file=args.assessment_file,
+        extract_video_metadata=args.extract_video_metadata,
         run_full_abcd=args.run_full_abcd,
         run_shorts=args.run_shorts,
+        features_to_evaluate=args.features_to_evaluate.split(","),
+        creative_provider_type=args.creative_provider_type,
         verbose=args.verbose,
     )
     config.set_videos(args.video_uris)
@@ -57,11 +60,11 @@ def build_abcd_params_config(args: any) -> Configuration:
     )
 
     config.set_llm_params(
-        args.llm_name,
-        args.llm_location,
-        args.max_output_tokens,
-        args.temperature,
-        args.top_p,
+        llm_name=args.llm_name,
+        location=args.llm_location,
+        max_output_tokens=args.max_output_tokens,
+        temperature=args.temperature,
+        top_p=args.top_p,
     )
 
     return config
@@ -175,16 +178,35 @@ def parse_args(arg_list: list[str] | None = None) -> None:
         default=None,
     )
     parser.add_argument(
+        "-features_to_evaluate",
+        "-fteval",
+        help="List of features to evaluate",
+        default=None,
+    )
+    parser.add_argument(
+        "-creative_provider_type",
+        "-crpt",
+        help="Creative provider type where the creatives are coming from",
+        default=None,
+    )
+    parser.add_argument(
+        "-extract_video_metadata",
+        "-extvn",
+        help="Extract video metadata to get brand information",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "-run_full_abcd",
         "-rfa",
-        help="Analyze videos using annotations.",
+        help="Run evaluation for Full ABCD features",
         action="store_true",
         default=False,
     )
     parser.add_argument(
         "-run_shorts",
         "-rs",
-        help="Analyze videos using LLMs.",
+        help="Run evaluation for Shorts features",
         action="store_true",
         default=False,
     )

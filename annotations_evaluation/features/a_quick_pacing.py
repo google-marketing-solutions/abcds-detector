@@ -29,8 +29,7 @@ from configuration import Configuration
 
 
 def detect_quick_pacing(
-    config: Configuration,
-    feature_name: str, video_uri: str
+    config: Configuration, feature_name: str, video_uri: str
 ) -> dict:
     """Detect Quick Pacing
     Args:
@@ -47,7 +46,9 @@ def detect_quick_pacing(
     return quick_pacing
 
 
-def detect_quick_pacing_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> dict:
+def detect_quick_pacing_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> dict:
     """Detect Quick Pacing (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -62,7 +63,9 @@ def detect_quick_pacing_1st_5_secs(config: Configuration, feature_name: str, vid
     return quick_pacing_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Quick Pacing & Quick Pacing (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -70,9 +73,7 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
     Returns:
         quick_pacing, quick_pacing_1st_5_secs: quick pacing evaluation
     """
-    annotation_uri = (
-        f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     required_secs_for_quick_pacing = 5

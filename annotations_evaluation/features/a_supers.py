@@ -25,7 +25,7 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
-from helpers.generic_helpers import load_blob, get_annotation_uri
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import find_elements_in_transcript
 from configuration import Configuration
 
@@ -39,10 +39,8 @@ def detect_supers(config: Configuration, feature_name: str, video_uri: str) -> b
         supers: supers evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    text_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    text_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Supers
     supers = False
@@ -61,7 +59,9 @@ def detect_supers(config: Configuration, feature_name: str, video_uri: str) -> b
     return supers
 
 
-def detect_supers_with_audio(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_supers_with_audio(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Supers with Audio
     Args:
         feature_name: the name of the feature
@@ -70,14 +70,10 @@ def detect_supers_with_audio(config: Configuration, feature_name: str, video_uri
         supers_with_audio: supers with audio evaluation
     """
 
-    t_annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
+    t_annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     text_annotation_results = load_blob(t_annotation_uri)
 
-    s_annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    )
+    s_annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
     speech_annotation_results = load_blob(s_annotation_uri)
 
     # Feature Supers with Audio

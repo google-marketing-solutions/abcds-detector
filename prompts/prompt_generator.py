@@ -31,7 +31,7 @@ class PromptGenerator:
     def __init__(self):
         pass
 
-    def get_abcds_prompt(
+    def get_abcds_prompt_config(
         self, features: list[VideoFeature], config: Configuration
     ) -> PromptConfig:
         """Gets the prompt with required ABCD features
@@ -93,6 +93,15 @@ class PromptGenerator:
             Question: {feature.prompt_template}
             {instructions} \n\n
         """
+
+        # This is specific to the Shorts features
+        video_metadata = f"""
+            Brand Name: {config.brand_name}
+            Brand Variations: {config.brand_variations}
+            Branded Products: {config.branded_products}
+            Branded Product Categories: {config.branded_products_categories}
+        """
+
         features_prompt = (
             features_prompt.replace("{brand_name}", config.brand_name)
             .replace("{brand_variations}", ", ".join(config.brand_variations))
@@ -105,6 +114,7 @@ class PromptGenerator:
                 "{branded_call_to_actions_str}",
                 ", ".join(config.branded_call_to_actions),
             )
+            .replace("{metadata_summary}", video_metadata)
         )
         return features_prompt
 
@@ -119,6 +129,39 @@ class PromptGenerator:
             .replace("{call_to_actions}", ", ".join(call_to_actions))
         )
         return instructions
+
+    def get_metadata_prompt_config(self):
+        """Get metadata from a video to identify key brand elements"""
+
+        system_instructions = """
+            You are BrandVision AI, a world-class expert in brand strategy, digital marketing, and multimedia content analysis.
+            Your primary function is to meticulously analyze video content to identify and extract key brand elements with unparalleled accuracy and detail.
+            You operate under the following core principles:
+
+            **Holistic Analysis:** You must analyze the video content from multiple dimensions simultaneously:
+                **Visual:** Logos, product packaging, brand colors, branded apparel, physical product placement.
+                **Auditory:** Spoken brand names, product mentions, jingles, sponsored messaging.
+                **Textual:** On-screen text, chyrons, text in the video description, closed captions/subtitles if available.
+            **Canonical Naming:** Use the official, canonical name for all brands and products (e.g., "The Coca-Cola Company" or "Coca-Cola" instead of "coke";
+            "iPhone 15 Pro Max" instead of "the new iphone").
+            **Zero Hallucination:** It is critically important that you DO NOT invent or infer information. If a requested element (e.g., a call-to-action)
+            is not present in the video, you will return an empty array `[]` for that key.
+            Do not state "There were no CTAs." Simply provide the empty array within the JSON structure.
+            **Comprehensive Call-to-Action (CTA) Analysis:** CTAs are not just "buy now." Identify and classify all types:
+                **Explicit:** Direct commands like "Click the link in the description," "Subscribe to my channel," "Visit our website at..."
+                **Implicit:** Softer suggestions like "You can check these out for yourself," "Let me know what you think in the comments."
+                **Destination:** Where does the CTA direct the user? (e.g., a website URL, the comments section, a social media handle).
+        """
+
+        prompt = """
+            Analyze the provided video to extract key brand elements such as brand name, branded products, branded categories and branded call to actions.
+        """
+
+        prompt_config = PromptConfig(
+            prompt=prompt, system_instructions=system_instructions
+        )
+
+        return prompt_config
 
 
 prompt_generator = PromptGenerator()
