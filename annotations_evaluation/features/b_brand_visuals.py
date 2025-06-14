@@ -25,8 +25,12 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
-from helpers.generic_helpers import load_blob, get_annotation_uri, get_knowledge_graph_entities
-from helpers.annotations_helpers import calculate_time_seconds, detected_text_in_first_5_seconds
+from gcp_api_services.gcs_api_service import gcs_api_service
+from helpers.generic_helpers import get_knowledge_graph_entities
+from helpers.annotations_helpers import (
+    calculate_time_seconds,
+    detected_text_in_first_5_seconds,
+)
 from configuration import Configuration
 
 
@@ -44,7 +48,9 @@ def calculate_surface_area(points) -> float:
     return surface_area * 100
 
 
-def detect_brand_visuals(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_brand_visuals(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Brand Visuals
     Args:
         config: all the parameters
@@ -60,7 +66,9 @@ def detect_brand_visuals(config: Configuration, feature_name: str, video_uri: st
     return brand_visuals
 
 
-def detect_brand_visuals_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_brand_visuals_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Brand Visuals (First 5 seconds)
     Args:
         config: all the parameters
@@ -77,7 +85,9 @@ def detect_brand_visuals_1st_5_secs(config: Configuration, feature_name: str, vi
     return brand_visuals_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Brand Visuals & Brand Visuals (First 5 seconds)
     Args:
         config: all the parameters
@@ -88,10 +98,8 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         brand_visuals_1st_5_secs: brand visuals evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Brand Visuals
     brand_visuals = False
@@ -109,13 +117,14 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         for text_annotation in annotation_results.get("text_annotations"):
             text = text_annotation.get("text")
             found_brand = [
-                brand for brand in config.brand_variations if brand.lower() in text.lower()
+                brand
+                for brand in config.brand_variations
+                if brand.lower() in text.lower()
             ]
             if found_brand:
                 brand_visuals = True
                 found_brand_1st_5_secs, frame = detected_text_in_first_5_seconds(
-                    config,
-                    text_annotation
+                    config, text_annotation
                 )
                 if found_brand_1st_5_secs:
                     brand_visuals_1st_5_secs = True

@@ -26,6 +26,7 @@ class VideoSegment(Enum):
     FULL_VIDEO = "FULL_VIDEO"
     FIRST_5_SECS_VIDEO = "FIRST_5_SECS_VIDEO"
     LAST_5_SECS_VIDEO = "LAST_5_SECS_VIDEO"
+    NONE = "NO_GROUPING"
 
 
 class EvaluationMethod(Enum):
@@ -62,9 +63,12 @@ class VideoFeature:
 
 
 @dataclass
-class EvaluationDetails:
-    """Class that represents the evaluation details of a feature"""
+class FeatureEvaluation:
+    """Class that represents the evaluation of a feature"""
 
+    feature: VideoFeature
+    detected: bool
+    confidence_score: float
     rationale: str
     evidence: str
     strengths: str
@@ -72,13 +76,13 @@ class EvaluationDetails:
 
 
 @dataclass
-class FeatureEvaluation:
+class VideoAssessment:
     """Class that represents the evaluation of a feature"""
 
-    feature: VideoFeature
-    detected: bool
-    confidence_score: float
-    evaluation_details: EvaluationDetails
+    brand_name: str
+    video_uri: str
+    evaluated_features: list[FeatureEvaluation]
+    config: any  # TODO (ae) change this later
 
 
 @dataclass

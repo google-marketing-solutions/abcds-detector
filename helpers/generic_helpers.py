@@ -31,8 +31,8 @@ from google.cloud import bigquery
 from moviepy.editor import VideoFileClip
 from gcp_api_services.bigquery_api_service import BigQueryAPIService
 from gcp_api_services.gcs_api_service import gcs_api_service
-from features_repository.features import get_feature_configs
 from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
+from models import VideoAssessment
 
 
 def get_knowledge_graph_entities(
@@ -317,30 +317,35 @@ def get_table_schema() -> list[bigquery.SchemaField]:
     return schema
 
 
-def build_features_for_bq(video_uri: str, brand_name: str) -> list[dict]:
+def build_features_for_bq(
+    config: Configuration, video_assessment: VideoAssessment
+) -> list[dict]:
     """Builds features schema with values and default values for table in BQ"""
     assessment_bq = []
-    feature_configs = get_feature_configs()
     # Insert all feature configs first
-    for f_config in feature_configs:
+    for eval_feature in video_assessment.evaluated_features:
         assessment_bq.append(
             {
                 "execution_timestamp": datetime.datetime.now(),
-                "brand_name": brand_name,
-                "video_id": video_uri,
-                "video_name": cloud_storage_service.get_video_name_from_uri(video_uri),
-                "video_uri": video_uri,
-                "feature_id": f_config.get("id"),
-                "feature_name": f_config.get("name"),
-                "feature_category": f_config.get("category"),
-                "feature_criteria": f_config.get("criteria"),
-                "using_annotations": False,  # Default value to build a correct schema from the beginning
-                "annotations_evaluation": False,  # Default value to build a correct schema from the beginning
-                "using_llms": False,  # Default value to build a correct schema from the beginning
-                "llms_evaluation": False,  # Default value to build a correct schema from the beginning
-                "llm_explanation": "",  # Default value to build a correct schema from the beginning
-                "prompt_params": "",  # Default value to build a correct schema from the beginning
-                "llm_params": "",  # Default value to build a correct schema from the beginning
+                "brand_name": video_assessment.brand_name,
+                "video_id": video_assessment.video_uri,
+                "video_name": gcs_api_service.get_video_name_from_uri(
+                    video_assessment.video_uri
+                ),
+                "video_uri": video_assessment.video_uri,
+                "feature_id": eval_feature.feature.id,
+                "feature_name": eval_feature.feature.name,
+                "feature_category": eval_feature.feature.category,
+                "feature_sub_category": eval_feature.feature.sub_category,
+                "feature_video_segment": eval_feature.feature.video_segment,
+                "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
+                "detected": eval_feature.detected,
+                "confidence_score": eval_feature.confidence_score,
+                "evidence": eval_feature.evidence,
+                "rationale": eval_feature.rationale,
+                "strengths": eval_feature.strengths,
+                "weaknesses": eval_feature.weaknesses,
+                "config": config.__dict__,
             }
         )
     return assessment_bq
@@ -406,30 +411,18 @@ def update_llms_evaluated_features(
 def store_in_bq(
     config: Configuration,
     bq_api_service: BigQueryAPIService,
-    video_assessment: dict,
-    llm_params: any,
+    video_assessment: VideoAssessment,
 ):
     """Store ABCD assessment results in BQ"""
 
     print(
-        f"Storing ABCD assessment for video {video_assessment.get('video_uri')} in BigQuery... \n"
+        f"Storing ABCD assessment for video {video_assessment.video_uri} in BigQuery... \n"
     )
 
-    assessment_bq = build_features_for_bq(
-        video_assessment.get("video_uri"), config.brand_name
-    )
-
-    annotations_evaluation = video_assessment.get("annotations_evaluation")
-    update_annotations_evaluated_features(assessment_bq, annotations_evaluation)
-
-    llms_evaluation = video_assessment.get("llms_evaluation")
-    # TODO (ae) check config.__dict__!
-    update_llms_evaluated_features(
-        assessment_bq, llms_evaluation, config.__dict__, llm_params.__dict__
-    )
+    assessment_bq = build_features_for_bq(video_assessment.video_uri, config.brand_name)
 
     # Insert if there is any feature evaluation
-    if (annotations_evaluation or llms_evaluation) and len(assessment_bq) > 0:
+    if len(assessment_bq) > 0:
         columns = get_table_columns()
         dataframe = pandas.DataFrame(
             assessment_bq,
@@ -461,15 +454,3 @@ def store_in_bq(
         print(
             f"There are no rows to insert into BQ for video {video_assessment.get('video_uri')}. \n"
         )
-
-
-def load_blob(self, annotation_uri: str):
-    """Loads a blob to json"""
-    blob = self.get_blob(annotation_uri)
-    blob_json = json.loads(blob.download_as_string()).get("annotation_results")[0]
-    return blob_json
-
-
-def get_annotation_uri(self, config: Configuration, video_uri: str) -> str:
-    """Helper to translate video to annotation uri."""
-    return video_uri.replace("gs://", config.annotation_path).replace(".", "_") + "/"

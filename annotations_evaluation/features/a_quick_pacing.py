@@ -23,7 +23,7 @@ Annotations used:
     1. Shot annotations to calculate the pacing of the video
 """
 from helpers.annotations_helpers import calculate_time_seconds
-from helpers.generic_helpers import load_blob, get_annotation_uri
+from gcp_api_services.gcs_api_service import gcs_api_service
 from annotations_evaluation.annotations_generation import Annotations
 from configuration import Configuration
 
@@ -71,9 +71,9 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         quick_pacing, quick_pacing_1st_5_secs: quick pacing evaluation
     """
     annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+        f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
     )
-    shot_annotation_results = load_blob(annotation_uri)
+    shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     required_secs_for_quick_pacing = 5
     required_shots_for_quick_pacing = 5

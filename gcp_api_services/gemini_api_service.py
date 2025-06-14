@@ -28,7 +28,6 @@ from vertexai.preview.generative_models import GenerativeModel, Part, Generation
 from google.api_core.exceptions import ResourceExhausted
 from google import genai
 from google.genai import types
-from features_repository.features import RESPONSE_SCHEMA
 from configuration import Configuration
 from prompts.prompt_generator import PromptConfig
 from models import LLMParameters
@@ -118,7 +117,7 @@ class GeminiAPIService:
                 error_message = str(ex)
                 # Check quota issues for now
                 if (
-                    "429 Quota exceeded" in error_message
+                    "429" in error_message
                     or "503 The service is currently unavailable" in error_message
                     or "500 Internal error encountered" in error_message
                 ):
@@ -163,7 +162,7 @@ class GeminiAPIService:
                         ),
                         top_p=params.generation_config.get("top_p"),
                         response_mime_type="application/json",
-                        response_schema=RESPONSE_SCHEMA,
+                        response_schema={},  # TOD (ae) fix this later
                     ),
                     safety_settings={
                         generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,

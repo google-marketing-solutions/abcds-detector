@@ -24,12 +24,14 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import calculate_time_seconds
-from helpers.generic_helpers import load_blob, get_annotation_uri
 from configuration import Configuration
 
 
-def detect_audio_speech_early_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_audio_speech_early_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Audio Early (First 5 seconds)
     Args:
         config: all the parameters
@@ -39,10 +41,8 @@ def detect_audio_speech_early_1st_5_secs(config: Configuration, feature_name: st
         audio_speech_early: audio early evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    )
-    speech_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+    speech_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Audio Early (First 5 seconds)
     audio_speech_early_1st_5_secs = False

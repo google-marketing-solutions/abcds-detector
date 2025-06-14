@@ -51,7 +51,7 @@ class Configuration:
         self.verbose: bool = True
         self.annotation_path: str = ""
 
-        self.run_full_abcd: bool = False
+        self.run_full_abcd: bool = True
         self.run_shorts: bool = True
         self.features_to_evaluate: list[str]  # list of feature ids to run
         self.creative_provider_type = CreativeProviderType.GCS  # GCS by default

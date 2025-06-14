@@ -24,13 +24,15 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import calculate_time_seconds
-from helpers.generic_helpers import load_blob, get_annotation_uri
 from helpers.generic_helpers import get_knowledge_graph_entities
 from configuration import Configuration
 
 
-def detect_product_visuals(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_product_visuals(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Product Visuals
     Args:
         feature_name: the name of the feature
@@ -45,7 +47,9 @@ def detect_product_visuals(config: Configuration, feature_name: str, video_uri: 
     return product_visuals
 
 
-def detect_product_visuals_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_product_visuals_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Product Visuals (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -111,7 +115,9 @@ def detect_annotation(
     return product_visuals, product_visuals_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Product Visuals & Product Visuals (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -121,10 +127,8 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         product_visuals_1st_5_secs: product visuals evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    label_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    label_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Product Visuals
     product_visuals = False
@@ -132,7 +136,9 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
     # Feature Product Visuals (First 5 seconds)
     product_visuals_1st_5_secs = False
 
-    branded_products_kg_entities = get_knowledge_graph_entities(config, config.branded_products)
+    branded_products_kg_entities = get_knowledge_graph_entities(
+        config, config.branded_products
+    )
 
     # Video API: Evaluate product_visuals_feature and product_visuals_1st_5_secs_feature
     # Check in annotations at segment level

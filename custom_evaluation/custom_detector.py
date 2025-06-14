@@ -22,7 +22,7 @@
 
 import annotations_evaluation.feature_modules as annotations_module  # Change this
 from configuration import Configuration
-from models import VideoFeature
+from models import VideoFeature, FeatureEvaluation
 
 
 class CustomDetector:
@@ -33,18 +33,28 @@ class CustomDetector:
 
     def evaluate_features(
         self, config: Configuration, feature_config: VideoFeature, video_uri: str
-    ) -> list[dict]:
+    ) -> list[FeatureEvaluation]:
         """Evaluates ABCD features using custom functions."""
 
-        feature_evaluations: list = []
-
         print("Starting ABCD evaluation using custom functions... \n")
+
+        feature_evaluations: list[FeatureEvaluation] = []
 
         print(f"Custom function evaluation for feature {feature_config.name}...")
         eval_function_name = feature_config.evaluation_function
         func = getattr(annotations_module, eval_function_name)
-        evaluation = func(config, feature_config.get("name"), video_uri)
-        feature_evaluations.append(evaluation)
+        detected = func(config, feature_config.name, video_uri)
+
+        feature_evaluation = FeatureEvaluation(
+            feature=feature_config,
+            detected=detected,
+            confidence_score=1,  # TODO (ae) calculate this for annotations
+            rationale="",
+            evidence="",
+            strengths="",
+            weaknesses="",
+        )
+        feature_evaluations.append(feature_evaluation)
 
         return feature_evaluations
 

@@ -24,12 +24,14 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import detected_text_in_first_5_seconds
-from helpers.generic_helpers import load_blob, get_annotation_uri
 from configuration import Configuration
 
 
-def detect_product_mention_text(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_product_mention_text(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Product Mention (Text)
     Args:
         config: all the parameters
@@ -45,7 +47,9 @@ def detect_product_mention_text(config: Configuration, feature_name: str, video_
     return product_mention_text
 
 
-def detect_product_mention_text_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_product_mention_text_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Product Mention (Text) (First 5 seconds)
     Args:
         config: all the parameters
@@ -61,7 +65,9 @@ def detect_product_mention_text_1st_5_secs(config: Configuration, feature_name: 
     return product_mention_text_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
     Args:
         config: all the parameters
@@ -72,10 +78,8 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         product_mention_text_1st_5_secs: product mention text evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    text_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    text_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Product Mention (Text)
     product_mention_text = False

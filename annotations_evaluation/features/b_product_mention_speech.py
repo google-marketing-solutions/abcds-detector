@@ -24,18 +24,17 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import find_elements_in_transcript
-from helpers.generic_helpers import load_blob, get_annotation_uri
 from configuration import Configuration
 
 
 def detect_product_mention_speech(
-    config: Configuration,
-    feature_name: str, video_uri: str
+    config: Configuration, feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
     """Detect Product Mention (Speech)
     Args:
-        config: all the parameters 
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -49,12 +48,11 @@ def detect_product_mention_speech(
 
 
 def detect_product_mention_speech_1st_5_secs(
-    config: Configuration,
-    feature_name: str, video_uri: str
+    config: Configuration, feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
     """Detect Product Mention (Speech)
     Args:
-        config: all the parameters 
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
@@ -67,18 +65,20 @@ def detect_product_mention_speech_1st_5_secs(
     return product_mention_speech_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Product Mention (Speech) & Product Mention (Speech) (First 5 seconds)
     Args:
-        config: all the parameters 
+        config: all the parameters
         feature_name: the name of the feature
         video_uri: video location in gcs
     Returns:
         product_mention_speech,
         product_mention_speech_1st_5_secs: product mention speech evaluation
     """
-    annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    speech_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+    speech_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Product Mention (Speech)
     product_mention_speech = False

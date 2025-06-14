@@ -20,16 +20,10 @@
 
 """Module to evaluate and detect features using LLMs."""
 
-import functools
+
 from configuration import Configuration
-from helpers.generic_helpers import execute_tasks_in_parallel
-from gcp_api_services.gemini_api_service import (
-    LLMParameters,
-    get_gemini_api_service,
-)
-from gcp_api_services.gcs_api_service import gcs_api_service
+from gcp_api_services.gemini_api_service import get_gemini_api_service
 from prompts.prompt_generator import prompt_generator
-from features_repository.features import get_groups_of_features
 from models import VIDEO_RESPONSE_SCHEMA
 
 

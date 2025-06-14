@@ -24,11 +24,12 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
-from helpers.generic_helpers import load_blob, get_annotation_uri
+from gcp_api_services.gcs_api_service import gcs_api_service
 from configuration import Configuration
 
 
-def detect_dynamic_start(config: Configuration, feature_name: str, video_uri: str
+def detect_dynamic_start(
+    config: Configuration, feature_name: str, video_uri: str
 ) -> dict:
     """Detects Dynamic Start
     Args:
@@ -37,8 +38,8 @@ def detect_dynamic_start(config: Configuration, feature_name: str, video_uri: st
     Returns:
         dynamic_start: dynamic start evaluation
     """
-    annotation_uri = f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    shot_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Dynamic Start
     dynamic_start = False

@@ -24,12 +24,14 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import calculate_time_seconds
-from helpers.generic_helpers import load_blob, get_annotation_uri
 from configuration import Configuration
 
 
-def detect_overall_pacing(config: Configuration, feature_name: str, video_uri: str) -> dict:
+def detect_overall_pacing(
+    config: Configuration, feature_name: str, video_uri: str
+) -> dict:
     """Detect Overall Pacing
     Args:
         config: all the parameters
@@ -39,10 +41,8 @@ def detect_overall_pacing(config: Configuration, feature_name: str, video_uri: s
         overall_pacing: overall pacing evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    shot_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Overall Pacing
     overall_pacing = False

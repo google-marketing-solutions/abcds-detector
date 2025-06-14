@@ -24,12 +24,14 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
-from helpers.generic_helpers import load_blob, get_annotation_uri
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import find_elements_in_transcript
 from configuration import Configuration
 
 
-def detect_brand_mention_speech(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_brand_mention_speech(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Brand Mention (Speech)
     Args:
         feature_name: the name of the feature
@@ -44,7 +46,9 @@ def detect_brand_mention_speech(config: Configuration, feature_name: str, video_
     return brand_mention_speech
 
 
-def detect_brand_mention_speech_1st_5_secs(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_brand_mention_speech_1st_5_secs(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Brand Mention (Speech) (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -59,7 +63,9 @@ def detect_brand_mention_speech_1st_5_secs(config: Configuration, feature_name: 
     return brand_mention_speech_1st_5_secs
 
 
-def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bool, bool]:
+def detect(
+    config: Configuration, feature_name: str, video_uri: str
+) -> tuple[bool, bool]:
     """Detect Brand Mention (Speech) & Brand Mention (Speech) (First 5 seconds)
     Args:
         feature_name: the name of the feature
@@ -69,10 +75,8 @@ def detect(config: Configuration, feature_name: str, video_uri: str) -> tuple[bo
         brand_mention_speech_1st_5_secs: brand mention speech evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    )
-    speech_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+    speech_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Brand Mention (Speech)
     brand_mention_speech = False

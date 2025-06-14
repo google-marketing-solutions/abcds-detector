@@ -25,12 +25,15 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import find_elements_in_transcript
-from helpers.generic_helpers import load_blob, get_annotation_uri, get_call_to_action_api_list
+from helpers.generic_helpers import get_call_to_action_api_list
 from configuration import Configuration
 
 
-def detect_call_to_action_speech(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_call_to_action_speech(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Call To Action (Speech)
     Args:
         config: all the parameters
@@ -40,10 +43,8 @@ def detect_call_to_action_speech(config: Configuration, feature_name: str, video
         call_to_action_speech: call to action speech evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    )
-    speech_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+    speech_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Call To Action (Speech)
     call_to_action_speech = False
@@ -77,7 +78,9 @@ def detect_call_to_action_speech(config: Configuration, feature_name: str, video
     return call_to_action_speech
 
 
-def detect_call_to_action_text(config: Configuration, feature_name: str, video_uri: str) -> bool:
+def detect_call_to_action_text(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
     """Detect Call To Action (Text)
     Args:
         config: all the parameters
@@ -87,10 +90,8 @@ def detect_call_to_action_text(config: Configuration, feature_name: str, video_u
         call_to_action_text: call to action text evaluation
     """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    )
-    text_annotation_results = load_blob(annotation_uri)
+    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    text_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
     # Feature Call To Action (Text)
     call_to_action_text = False
