@@ -29,10 +29,10 @@ import pandas
 import logging
 from google.cloud import bigquery
 from moviepy.editor import VideoFileClip
-from gcp_api_services.bigquery_api_service import BigQueryAPIService
-from gcp_api_services.gcs_api_service import gcs_api_service
+from gcp_api_services import bigquery_api_service
+from gcp_api_services import gcs_api_service
 from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
-from models import VideoAssessment
+import models
 
 
 def get_knowledge_graph_entities(
@@ -88,15 +88,15 @@ def trim_video(config: Configuration, video_uri: str):
         config: all the parameters
         video_uri: the video to trim the length for
     """
-    reduced_uri = gcs_api_service.get_reduced_uri(config, video_uri)
-    reduced_blob = gcs_api_service.get_blob(reduced_uri)
+    reduced_uri = gcs_api_service.gcs_api_service.get_reduced_uri(config, video_uri)
+    reduced_blob = gcs_api_service.gcs_api_service.get_blob(reduced_uri)
     print(f"REDUCED: {reduced_uri} \n")
     if reduced_blob is None:
         print(f"Shortening video {video_uri}. \n")
 
         # download
         with open(FFMPEG_BUFFER, "wb") as f:
-            blob = gcs_api_service.get_blob(video_uri)
+            blob = gcs_api_service.gcs_api_service.get_blob(video_uri)
             if blob:
                 f.write(blob.download_as_string(client=None))
             else:
@@ -110,7 +110,7 @@ def trim_video(config: Configuration, video_uri: str):
         clip.write_videofile(FFMPEG_BUFFER_REDUCED)
 
         # upload
-        gcs_api_service.upload_blob(reduced_uri, FFMPEG_BUFFER_REDUCED)
+        gcs_api_service.gcs_api_service.upload_blob(reduced_uri, FFMPEG_BUFFER_REDUCED)
 
     else:
         print(f"Video {video_uri} has already been trimmed. Skipping...\n")
@@ -121,42 +121,26 @@ def player(video_url: str):
     print(f"{video_url} \n")
 
 
-def print_abcd_assessment(brand_name: str, video_assessment: dict) -> None:
+def print_abcd_assessment(
+    brand_name: str, video_uri: str, evaluated_features: list[models.FeatureEvaluation]
+) -> None:
     """Print ABCD Assessments"""
-    bucket_name, path = (
-        video_assessment.get("video_uri").replace("gs://", "").split("/", 1)
-    )
+    bucket_name, path = video_uri.replace("gs://", "").split("/", 1)
     video_url = f"/content/{bucket_name}/{path}"
     # Play Video
     player(video_url)
     print(f"***** ABCD Assessment for brand {brand_name} ***** \n")
-    print(f"Asset name: {video_assessment.get('video_uri')} \n")
-
-    # Get ABCD evaluations
-    if video_assessment.get("annotations_evaluation"):
-        print("***** ABCD Assessment using Annotations ***** \n")
-        print_score_details(video_assessment.get("annotations_evaluation"))
-    else:
-        print("No annotations_evaluation found. Skipping from priting. \n")
-
-    if video_assessment.get("llms_evaluation"):
-        print("***** ABCD Assessment using LLMs ***** \n")
-        print_score_details(video_assessment.get("llms_evaluation"))
-    else:
-        print("No llms_evaluation found. Skipping from priting. \n")
+    print(f"Asset name: {video_uri} \n")
+    print_score_details(evaluated_features)
 
 
-def print_score_details(abcd_eval: dict) -> None:
+def print_score_details(evaluated_features: list[models.FeatureEvaluation]) -> None:
     """Print score details"""
-    total_features = len(abcd_eval.get("evaluated_features"))
+    total_features = len(evaluated_features)
     total_features_detected = len(
-        [
-            feature
-            for feature in abcd_eval.get("evaluated_features")
-            if feature.get("detected")
-        ]
+        [feature for feature in evaluated_features if feature.detected]
     )
-    score = calculate_score(abcd_eval.get("evaluated_features"))
+    score = calculate_score(evaluated_features)
     print(
         f"Video score: {round(score, 2)}%, adherence ({total_features_detected}/{total_features})\n"
     )
@@ -168,11 +152,11 @@ def print_score_details(abcd_eval: dict) -> None:
         print("Asset result: ❌ Needs Review \n")
 
     print("Evaluated Features: \n")
-    for feature in abcd_eval.get("evaluated_features"):
-        if feature.get("detected"):
-            print(f' * ✅ {feature.get("name")}')
+    for eval_feature in evaluated_features:
+        if eval_feature.detected:
+            print(f" * ✅ {eval_feature.feature.name}")
         else:
-            print(f' * ❌ {feature.get("name")}')
+            print(f" * ❌ {eval_feature.feature.name}")
     print("\n")
 
 
@@ -230,22 +214,12 @@ def get_call_to_action_verbs_api_list() -> list[str]:
     ]
 
 
-def execute_tasks_in_parallel(tasks: list[any]) -> None:
-    """Executes a list of tasks in parallel"""
-    results = []
-    with ThreadPoolExecutor() as executor:
-        running_tasks = [executor.submit(task) for task in tasks]
-        for running_task in running_tasks:
-            results.append(running_task.result())
-    return results
-
-
-def calculate_score(evaluated_features: list[str]) -> float:
+def calculate_score(evaluated_features: list[models.FeatureEvaluation]) -> float:
     """Calculate ABCD final score"""
     total_features = len(evaluated_features)
     passed_features_count = 0
     for feature in evaluated_features:
-        if feature.get("detected"):
+        if feature.detected:
             passed_features_count += 1
     # Get score
     score = (
@@ -280,20 +254,32 @@ def get_table_columns_schema() -> list[str]:
         {"column": "feature_id", "data_type": bigquery.enums.SqlTypeNames.STRING},
         {"column": "feature_name", "data_type": bigquery.enums.SqlTypeNames.STRING},
         {"column": "feature_category", "data_type": bigquery.enums.SqlTypeNames.STRING},
-        {"column": "feature_criteria", "data_type": bigquery.enums.SqlTypeNames.STRING},
         {
-            "column": "using_annotations",
+            "column": "feature_sub_category",
+            "data_type": bigquery.enums.SqlTypeNames.STRING,
+        },
+        {
+            "column": "feature_video_segment",
+            "data_type": bigquery.enums.SqlTypeNames.STRING,
+        },
+        {
+            "column": "feature_evaluation_criteria",
+            "data_type": bigquery.enums.SqlTypeNames.STRING,
+        },
+        {
+            "column": "detected",
             "data_type": bigquery.enums.SqlTypeNames.BOOLEAN,
         },
         {
-            "column": "annotations_evaluation",
-            "data_type": bigquery.enums.SqlTypeNames.BOOLEAN,
+            "column": "confidence_score",
+            "data_type": bigquery.enums.SqlTypeNames.STRING,
         },
-        {"column": "using_llms", "data_type": bigquery.enums.SqlTypeNames.BOOLEAN},
-        {"column": "llms_evaluation", "data_type": bigquery.enums.SqlTypeNames.BOOLEAN},
-        {"column": "llm_explanation", "data_type": bigquery.enums.SqlTypeNames.STRING},
-        {"column": "prompt_params", "data_type": bigquery.enums.SqlTypeNames.STRING},
-        {"column": "llm_params", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "evidence", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "rationale", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "strengths", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "weaknesses", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "brand_metadata", "data_type": bigquery.enums.SqlTypeNames.STRING},
+        {"column": "config", "data_type": bigquery.enums.SqlTypeNames.STRING},
     ]
 
 
@@ -315,40 +301,6 @@ def get_table_schema() -> list[bigquery.SchemaField]:
             )
         )
     return schema
-
-
-def build_features_for_bq(
-    config: Configuration, video_assessment: VideoAssessment
-) -> list[dict]:
-    """Builds features schema with values and default values for table in BQ"""
-    assessment_bq = []
-    # Insert all feature configs first
-    for eval_feature in video_assessment.evaluated_features:
-        assessment_bq.append(
-            {
-                "execution_timestamp": datetime.datetime.now(),
-                "brand_name": video_assessment.brand_name,
-                "video_id": video_assessment.video_uri,
-                "video_name": gcs_api_service.get_video_name_from_uri(
-                    video_assessment.video_uri
-                ),
-                "video_uri": video_assessment.video_uri,
-                "feature_id": eval_feature.feature.id,
-                "feature_name": eval_feature.feature.name,
-                "feature_category": eval_feature.feature.category,
-                "feature_sub_category": eval_feature.feature.sub_category,
-                "feature_video_segment": eval_feature.feature.video_segment,
-                "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
-                "detected": eval_feature.detected,
-                "confidence_score": eval_feature.confidence_score,
-                "evidence": eval_feature.evidence,
-                "rationale": eval_feature.rationale,
-                "strengths": eval_feature.strengths,
-                "weaknesses": eval_feature.weaknesses,
-                "config": config.__dict__,
-            }
-        )
-    return assessment_bq
 
 
 def update_annotations_evaluated_features(
@@ -410,16 +362,15 @@ def update_llms_evaluated_features(
 
 def store_in_bq(
     config: Configuration,
-    bq_api_service: BigQueryAPIService,
-    video_assessment: VideoAssessment,
+    video_assessment: models.VideoAssessment,
 ):
     """Store ABCD assessment results in BQ"""
 
     print(
         f"Storing ABCD assessment for video {video_assessment.video_uri} in BigQuery... \n"
     )
-
-    assessment_bq = build_features_for_bq(video_assessment.video_uri, config.brand_name)
+    bq_api_service = bigquery_api_service.BigQueryAPIService(config.project_id)
+    assessment_bq = build_features_for_bq(config, video_assessment)
 
     # Insert if there is any feature evaluation
     if len(assessment_bq) > 0:
@@ -454,3 +405,66 @@ def store_in_bq(
         print(
             f"There are no rows to insert into BQ for video {video_assessment.get('video_uri')}. \n"
         )
+
+
+def build_features_for_bq(
+    config: Configuration, video_assessment: models.VideoAssessment
+) -> list[dict]:
+    """Builds features schema with values and default values for table in BQ"""
+    assessment_bq = []
+    evaluated_features = []
+    evaluated_features.extend(video_assessment.full_abcd_evaluated_features)
+    evaluated_features.extend(video_assessment.shorts_evaluated_features)
+    # Insert all feature configs first
+    for eval_feature in evaluated_features:
+        if config.creative_provider_type == models.CreativeProviderType:
+            video_name = gcs_api_service.gcs_api_service.get_video_name_from_uri(
+                video_assessment.video_uri
+            )
+        else:
+            video_name = video_assessment.video_uri
+        assessment_bq.append(
+            {
+                "execution_timestamp": datetime.datetime.now(),
+                "brand_name": video_assessment.brand_name,
+                "video_id": video_assessment.video_uri,
+                "video_name": video_name,
+                "video_uri": video_assessment.video_uri,
+                "feature_id": eval_feature.feature.id,
+                "feature_name": eval_feature.feature.name,
+                "feature_category": eval_feature.feature.category.value,
+                "feature_sub_category": eval_feature.feature.sub_category.value,
+                "feature_video_segment": eval_feature.feature.video_segment.value,
+                "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
+                "detected": eval_feature.detected,
+                "confidence_score": str(
+                    eval_feature.confidence_score
+                ),  # TODO (ae) convertir to str for now to avoid pandas issue
+                "evidence": eval_feature.evidence,
+                "rationale": eval_feature.rationale,
+                "strengths": eval_feature.strengths,
+                "weaknesses": eval_feature.weaknesses,
+                "brand_metadata": str(
+                    {
+                        "brand_name": config.brand_name,
+                        "brand_variations": ",".join(config.brand_variations),
+                        "branded_products": ",".join(config.branded_products),
+                        "branded_product_categories": ",".join(
+                            config.branded_products_categories
+                        ),
+                    }
+                ),
+                "config": str(config.__dict__),
+            }
+        )
+    return assessment_bq
+
+
+def execute_tasks_in_parallel(tasks: list[any]) -> None:
+    """Executes a list of tasks in parallel"""
+    results = []
+    with ThreadPoolExecutor() as executor:
+        running_tasks = [executor.submit(task) for task in tasks]
+        for running_task in running_tasks:
+            results.append(running_task.result())
+    return results
