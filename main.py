@@ -23,78 +23,97 @@
 import time
 import traceback
 import logging
-from annotations_evaluation.annotations_generation import generate_video_annotations
-from helpers.generic_helpers import (
-    print_abcd_assessment,
-    trim_video,
-    store_in_bq,
-    remove_local_video_files,
-)
+import models
+import utils
+from annotations_evaluation import annotations_generation
+from helpers import generic_helpers
 from configuration import Configuration
-from models import VideoFeatureCategory, FeatureEvaluation, VideoAssessment
-from gcp_api_services.bigquery_api_service import BigQueryAPIService
-from creative_providers.creative_provider_proto import CreativeProviderProto
-from creative_providers.creative_provider_registry import provider_factory
-from evaluation_services.video_evaluation_service import video_evaluation_service
-from utils import parse_args, build_abcd_params_config
+from creative_providers import creative_provider_proto
+from creative_providers import creative_provider_registry
+from evaluation_services import video_evaluation_service
 
 
 def execute_abcd_assessment_for_videos(config: Configuration):
-    """Execute ABCD Assessment for all brand videos in GCS"""
+    """Execute ABCD Assessment for all brand videos retrieved by the Creative Provider"""
 
-    creative_provider: CreativeProviderProto = provider_factory.get_provider(
-        config.creative_provider_type.value
+    creative_provider: creative_provider_proto.CreativeProviderProto = (
+        creative_provider_registry.provider_factory.get_provider(
+            config.creative_provider_type.value
+        )
     )
 
-    video_uris = creative_provider.get_creative_uris(config.video_uris)
+    video_uris = creative_provider.get_creative_uris(config)
 
     for video_uri in video_uris:
 
         print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
 
-        # Generate video annotations for custom features
-        generate_video_annotations(config, video_uri)
+        # Generate video annotations for custom features. Annotations are supported only for GCS providers
+        if config.creative_provider_type == models.CreativeProviderType.GCS:
+            annotations_generation.generate_video_annotations(config, video_uri)
+
+        # Full ABCD features require 1st_5_secs videos only for GCS providers
+        if (
+            config.run_full_abcd
+            and config.creative_provider_type == models.CreativeProviderType.GCS
+        ):
+            generic_helpers.trim_video(config, video_uri)
+
+        # Execute ABCD Assessment
+        full_abcd_evaluated_features: models.FeatureEvaluation = []
+        shorts_evaluated_features: models.FeatureEvaluation = []
 
         if config.run_full_abcd:
-            # 1) Full ABCD features require 1st_5_secs videos
-            trim_video(config, video_uri)
-
-        # 3) Execute ABCD Assessment
-
-        evaluated_features: FeatureEvaluation = []
-
-        if config.run_full_abcd:
-            full_abcd_evaluated_features = video_evaluation_service.evaluate_features(
-                config=config,
-                video_uri=video_uri,
-                features_category=VideoFeatureCategory.FULL_ABCD,
+            full_abcd_evaluated_features = (
+                video_evaluation_service.video_evaluation_service.evaluate_features(
+                    config=config,
+                    video_uri=video_uri,
+                    features_category=models.VideoFeatureCategory.FULL_ABCD,
+                )
             )
-            evaluated_features.extend(full_abcd_evaluated_features)
 
         if config.run_shorts:
-            shorts_evaluated_features = video_evaluation_service.evaluate_features(
-                config=config,
-                video_uri=video_uri,
-                features_category=VideoFeatureCategory.SHORTS,
+            shorts_evaluated_features = (
+                video_evaluation_service.video_evaluation_service.evaluate_features(
+                    config=config,
+                    video_uri=video_uri,
+                    features_category=models.VideoFeatureCategory.SHORTS,
+                )
             )
-            evaluated_features.extend(shorts_evaluated_features)
 
-        video_assessment: VideoAssessment = VideoAssessment(
+        video_assessment: models.VideoAssessment = models.VideoAssessment(
             brand_name=config.brand_name,
             video_uri=video_uri,
-            evaluated_features=evaluated_features,
+            full_abcd_evaluated_features=full_abcd_evaluated_features,
+            shorts_evaluated_features=shorts_evaluated_features,
             config=config,
         )
 
-        # Print assessment and store results
-        print_abcd_assessment(config.brand_name, video_assessment)
+        # Print assessments for Full ABCD and Shorts and store results
+        if len(full_abcd_evaluated_features) > 0:
+            generic_helpers.print_abcd_assessment(
+                video_assessment.brand_name,
+                video_assessment.video_uri,
+                full_abcd_evaluated_features,
+            )
+        else:
+            logging.info(
+                "There are not Full ABCD evaluated features results to display."
+            )
+        if len(shorts_evaluated_features) > 0:
+            generic_helpers.print_abcd_assessment(
+                video_assessment.brand_name,
+                video_assessment.video_uri,
+                shorts_evaluated_features,
+            )
+        else:
+            logging.info("There are not Shorts evaluated features results to display.")
 
         if config.bq_table_name:
-            bq_service = BigQueryAPIService(config.project_id)
-            store_in_bq(config, bq_service, video_assessment)
+            generic_helpers.store_in_bq(config, video_assessment)
 
         # Remove local version of video files
-        remove_local_video_files()
+        generic_helpers.remove_local_video_files()
 
 
 def main(arg_list: list[str] | None = None) -> None:
@@ -106,9 +125,16 @@ def main(arg_list: list[str] | None = None) -> None:
     """
 
     try:
-        args = parse_args(arg_list)
+        args = utils.parse_args(arg_list)
 
-        config = build_abcd_params_config(args)
+        config = utils.build_abcd_params_config(args)
+
+        if utils.invalid_brand_metadata(config):
+            logging.error(
+                "The Extract Brand Metadata option is disabled and no brand details were defined. \n"
+            )
+            logging.error("Please enable the option or define brand details. \n")
+            return
 
         start_time = time.time()
         logging.info("Starting ABCD assessment... \n")

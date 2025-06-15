@@ -26,20 +26,23 @@ For example:
     - YoutubeProviderService - retrieves uris from Youtube
 """
 
-from creative_providers.creative_provider_factory import CreativeProviderFactory
-
-from creative_providers.gcs_creative_provider import GCSCreativeProvider
-from models import CreativeProviderType
-
+import models
+from creative_providers import creative_provider_factory
+from creative_providers import gcs_creative_provider
+from creative_providers import youtube_creative_provider
 
 # Content Generation Service Factory
-provider_factory = CreativeProviderFactory()
+provider_factory = creative_provider_factory.CreativeProviderFactory()
 
 
 def register_content_generation_services():
     """Register the different creative providers"""
     provider_factory.register_provider(
-        CreativeProviderType.GCS.value, GCSCreativeProvider
+        models.CreativeProviderType.GCS.value, gcs_creative_provider.GCSCreativeProvider
+    )
+    provider_factory.register_provider(
+        models.CreativeProviderType.YOUTUBE.value,
+        youtube_creative_provider.YoutubeCreativeProvider,
     )
 
 

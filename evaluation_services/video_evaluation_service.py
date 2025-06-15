@@ -2,13 +2,13 @@
 
 import logging
 import functools
-from features_repository.feature_configs_handler import features_configs_handler
-from llms_evaluation.llms_detector import llm_detector
-from custom_evaluation.custom_detector import custom_detector
-from configuration import Configuration
-from helpers.generic_helpers import execute_tasks_in_parallel
-from gcp_api_services.gcs_api_service import gcs_api_service
-from models import VideoFeature, FeatureEvaluation, VideoFeatureCategory, VideoSegment
+import models
+import configuration
+from features_repository import feature_configs_handler
+from llms_evaluation import llms_detector
+from custom_evaluation import custom_detector
+from helpers import generic_helpers
+from gcp_api_services import gcs_api_service
 
 
 class VideoEvaluationService:
@@ -19,14 +19,14 @@ class VideoEvaluationService:
 
     def evaluate_features(
         self,
-        config: Configuration,
+        config: configuration.Configuration,
         video_uri: str,
-        features_category: VideoFeatureCategory,
+        features_category: models.VideoFeatureCategory,
     ):
         """Run ABCD evaluation on videos for Full ABCD features or Shorts"""
 
-        if not config.extract_video_metadata:
-            metadata = llm_detector.get_video_metadata(config, video_uri)
+        if config.extract_brand_metadata:
+            metadata = llms_detector.llms_detector.get_video_metadata(config, video_uri)
             config.brand_name = metadata.get("brand_name")
             config.brand_variations = metadata.get("brand_variations")
             config.branded_products = metadata.get("branded_products")
@@ -35,26 +35,30 @@ class VideoEvaluationService:
             )
             config.branded_call_to_actions = metadata.get("branded_call_to_actions")
 
-        feature_evaluations: list[FeatureEvaluation] = []
+        feature_evaluations: list[models.FeatureEvaluation] = []
         tasks = []
-        feature_groups = (
-            features_configs_handler.get_features_by_category_by_group_config(
-                features_category
-            )
+        feature_groups = feature_configs_handler.features_configs_handler.get_features_by_category_by_group_config(
+            features_category
         )
         uri = video_uri  # use full video uri by default
 
         for group_key in feature_groups:
-            feature_configs: list[VideoFeature] = feature_groups.get(group_key)
+            feature_configs: list[models.VideoFeature] = feature_groups.get(group_key)
             # Process the features that are not grouped individually
             # meaning, each will be a separate request to the LLM
-            if group_key == "NO_GROUPING":
+            if (
+                group_key == "NO_GROUPING"
+                and config.creative_provider_type == models.CreativeProviderType.GCS
+                # For now only GCS creative providers can be processed individually
+            ):
                 for f_config in feature_configs:
                     if (
                         f_config.video_segment.value
-                        == VideoSegment.FIRST_5_SECS_VIDEO.value
+                        == models.VideoSegment.FIRST_5_SECS_VIDEO.value
                     ):
-                        uri = gcs_api_service.get_reduced_uri(config, video_uri)
+                        uri = gcs_api_service.gcs_api_service.get_reduced_uri(
+                            config, video_uri
+                        )
                     else:
                         uri = video_uri
 
@@ -62,13 +66,17 @@ class VideoEvaluationService:
                     # If custom detector was not defined, default to LLMs
                     if self.is_custom_evaluation(f_config.evaluation_function):
                         func = functools.partial(
-                            custom_detector.evaluate_features, config, f_config, uri
+                            custom_detector.custom_detector.evaluate_features,
+                            config,
+                            f_config,
+                            uri,
                         )
                     else:
                         func = functools.partial(
-                            llm_detector.evaluate_features,
+                            llms_detector.llms_detector.evaluate_features,
                             config,
                             {
+                                "category": features_category,
                                 "group_by": f"{group_key}-{f_config.id}",
                                 "video_uri": uri,
                                 "feature_configs": feature_configs,  # process feature individually
@@ -77,16 +85,23 @@ class VideoEvaluationService:
                     # Add task to be process
                     tasks.append(func)
             else:
-                if group_key == "first_5_secs_video":
-                    uri = gcs_api_service.get_reduced_uri(config, video_uri)
+                # Use full video for Public URL videos
+                if (
+                    group_key == models.VideoSegment.FIRST_5_SECS_VIDEO.value
+                    and config.creative_provider_type == models.CreativeProviderType.GCS
+                ):
+                    uri = gcs_api_service.gcs_api_service.get_reduced_uri(
+                        config, video_uri
+                    )
                 else:
                     uri = video_uri
 
                 # Build function to execute in parallel
                 func = functools.partial(
-                    llm_detector.evaluate_features,
+                    llms_detector.llms_detector.evaluate_features,
                     config,
                     {
+                        "category": features_category,
                         "group_by": f"{group_key}",
                         "video_uri": uri,
                         "feature_configs": feature_configs,  # process feature individually
@@ -95,27 +110,35 @@ class VideoEvaluationService:
                 # Add task to be process
                 tasks.append(func)
 
-            logging.info("Starting ABCD evaluation using LLMs... \n")
+        logging.info("Starting ABCD evaluation for features... \n")
 
-        llm_evals = execute_tasks_in_parallel(tasks)
+        llm_evals = generic_helpers.execute_tasks_in_parallel(tasks)
 
         # Process LLM results and create feature objs in the required format
         for evals in llm_evals:
             for evaluated_feature in evals:
-                feature: VideoFeature = self.get_feature_by_id(
-                    evaluated_feature.get("id"), feature_configs
-                )
-                feature_evaluations.append(
-                    FeatureEvaluation(
-                        feature=feature,
-                        detected=evaluated_feature.get("detected"),
-                        confidence_score=evaluated_feature.get("confidence_score"),
-                        rationale=evaluated_feature.get("rationale"),
-                        evidence=evaluated_feature.get("evidence"),
-                        strengths=evaluated_feature.get("strengths"),
-                        weaknesses=evaluated_feature.get("weaknesses"),
+                feature: models.VideoFeature = (
+                    feature_configs_handler.features_configs_handler.get_feature_by_id(
+                        evaluated_feature.get("id")
                     )
                 )
+                if feature:
+                    feature_evaluations.append(
+                        models.FeatureEvaluation(
+                            feature=feature,
+                            detected=evaluated_feature.get("detected"),
+                            confidence_score=evaluated_feature.get("confidence_score"),
+                            rationale=evaluated_feature.get("rationale"),
+                            evidence=evaluated_feature.get("evidence"),
+                            strengths=evaluated_feature.get("strengths"),
+                            weaknesses=evaluated_feature.get("weaknesses"),
+                        )
+                    )
+                else:
+                    logging.warning(
+                        "Feature %s not found. Feature was not added to feature_evaluations.",
+                        evaluated_feature.get("id"),
+                    )
 
         # Sort features by category and id for presentation
         """feature_evaluations = sorted(
@@ -125,14 +148,6 @@ class VideoEvaluationService:
         )"""
 
         return feature_evaluations
-
-    def get_feature_by_id(self, feature_id: str, feature_configs: list[VideoFeature]):
-        """Gets a feature by id"""
-        feature = [feature for feature in feature_configs if feature.id == feature_id]
-        if len(feature) > 0:
-            return feature[0]
-
-        return None
 
     def is_custom_evaluation(self, function_name):
         return function_name is not ""

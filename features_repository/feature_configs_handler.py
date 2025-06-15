@@ -61,5 +61,26 @@ class FeaturesConfigsHandler:
             )  # Check this video_segment!
         return grouped_features
 
+    def get_all_features(self):
+        """Gets all feature configs for Full ABCD and Shorts"""
+        feature_configs = []
+        feature_configs.extend(
+            self.get_feature_configs_by_category(VideoFeatureCategory.FULL_ABCD)
+        )
+        feature_configs.extend(
+            self.get_feature_configs_by_category(VideoFeatureCategory.SHORTS)
+        )
+
+        return feature_configs
+
+    def get_feature_by_id(self, feature_id: str):
+        """Gets a feature by id"""
+        feature_configs = self.get_all_features()
+        feature = [feature for feature in feature_configs if feature.id == feature_id]
+        if len(feature) > 0:
+            return feature[0]
+
+        return None
+
 
 features_configs_handler = FeaturesConfigsHandler()

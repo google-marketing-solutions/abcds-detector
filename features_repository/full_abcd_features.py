@@ -57,6 +57,32 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
             evaluation_function="detect_dynamic_start",
             include_in_evaluation=True,
             group_by=VideoSegment.NONE,
+        )
+    ]
+    return feature_configs
+    '''feature_configs = [
+        VideoFeature(
+            id="a_dynamic_start",
+            name="Dynamic Start",
+            category=VideoFeatureCategory.FULL_ABCD,
+            sub_category=VideoFeatureSubCategory.ATTRACT,
+            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
+            evaluation_criteria="""
+                The first shot in the video changes in less than 3 seconds.
+            """,
+            prompt_template="""
+                Does the first shot in the video change in less than 3 seconds?
+            """,
+            extra_instructions=[
+                "Consider the following criteria for your answer: {criteria}.",
+                "Look through each frame in the video carefully and answer the question.",
+                "Provide the exact timestamp when the first shot in the video changes.",
+                "Return True if and only if the first shot in the video changes in less than 3 seconds.",
+            ],
+            evaluation_method=EvaluationMethod.ANNOTATIONS,
+            evaluation_function="detect_dynamic_start",
+            include_in_evaluation=True,
+            group_by=VideoSegment.NONE,
         ),
         VideoFeature(
             id="a_quick_pacing",
@@ -596,4 +622,4 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
         ),
     ]
 
-    return feature_configs
+    return feature_configs'''

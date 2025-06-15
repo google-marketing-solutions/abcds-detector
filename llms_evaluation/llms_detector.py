@@ -40,7 +40,7 @@ class LLMDetector:
     ):
         """Evaluates ABCD features using LLMs."""
         print(
-            f"Starting LLM evaluation for features grouped by {evaluation_details.get('group_by')}... \n"
+            f"Starting LLM evaluation for features grouped by {evaluation_details.get('category')} and {evaluation_details.get('group_by')}... \n"
         )
         prompt_config = prompt_generator.get_abcds_prompt_config(
             evaluation_details.get("feature_configs"),
@@ -64,16 +64,15 @@ class LLMDetector:
 
         return evaluated_features
 
-
     def get_video_metadata(self, config: Configuration, video_uri: str):
-        print(
-            f"Extracting brand metadata for video {video_uri}... \n"
-        )
+        print(f"Extracting brand metadata for video {video_uri}... \n")
         prompt_config = prompt_generator.get_metadata_prompt_config()
         # Set modality for API
         config.llm_params.set_modality({"type": "video", "video_uri": video_uri})
         # Set the required schema for the LLM response
-        config.llm_params.generation_config["response_schema"] = VIDEO_METADATA_RESPONSE_SCHEMA
+        config.llm_params.generation_config["response_schema"] = (
+            VIDEO_METADATA_RESPONSE_SCHEMA
+        )
         metadata = get_gemini_api_service(config).execute_gemini_with_genai(
             prompt_config, config.llm_params
         )
@@ -81,4 +80,4 @@ class LLMDetector:
         return metadata
 
 
-llm_detector = LLMDetector()
+llms_detector = LLMDetector()

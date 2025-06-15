@@ -43,7 +43,7 @@ def build_abcd_params_config(args: any) -> Configuration:
         bigquery_dataset=args.bigquery_dataset,
         bigquery_table=args.bigquery_table,
         assessment_file=args.assessment_file,
-        extract_video_metadata=args.extract_video_metadata,
+        extract_brand_metadata=args.extract_brand_metadata,
         run_full_abcd=args.run_full_abcd,
         run_shorts=args.run_shorts,
         features_to_evaluate=args.features_to_evaluate.split(","),
@@ -68,6 +68,15 @@ def build_abcd_params_config(args: any) -> Configuration:
     )
 
     return config
+
+
+def invalid_brand_metadata(config: Configuration):
+    return not config.extract_brand_metadata and (
+        not config.brand_name
+        or len(config.brand_variations) == 0
+        or len(config.branded_products) == 0
+        or len(config.branded_products_categories) == 0
+    )
 
 
 def parse_args(arg_list: list[str] | None = None) -> None:
@@ -190,7 +199,7 @@ def parse_args(arg_list: list[str] | None = None) -> None:
         default=None,
     )
     parser.add_argument(
-        "-extract_video_metadata",
+        "-extract_brand_metadata",
         "-extvn",
         help="Extract video metadata to get brand information",
         action="store_true",

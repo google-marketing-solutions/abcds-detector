@@ -51,7 +51,7 @@ class Configuration:
         self.verbose: bool = True
         self.annotation_path: str = ""
 
-        self.extract_video_metadata = True
+        self.extract_brand_metadata = True
         self.run_full_abcd: bool = True
         self.run_shorts: bool = True
         self.features_to_evaluate: list[str]  # list of feature ids to run
@@ -87,7 +87,7 @@ class Configuration:
         bigquery_dataset: str,
         bigquery_table: str,
         assessment_file: str,
-        extract_video_metadata: bool,
+        extract_brand_metadata: bool,
         run_full_abcd: bool,
         run_shorts: bool,
         features_to_evaluate: list[str],
@@ -117,7 +117,7 @@ class Configuration:
         self.bq_dataset_name = bigquery_dataset
         self.bq_table_name = bigquery_table
         self.assessment_file = assessment_file
-        self.extract_video_metadata = extract_video_metadata
+        self.extract_brand_metadata = extract_brand_metadata
         self.run_full_abcd = run_full_abcd
         self.run_shorts = run_shorts
         self.verbose = verbose

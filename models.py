@@ -81,7 +81,8 @@ class VideoAssessment:
 
     brand_name: str
     video_uri: str
-    evaluated_features: list[FeatureEvaluation]
+    full_abcd_evaluated_features: list[FeatureEvaluation]
+    shorts_evaluated_features: list[FeatureEvaluation]
     config: any  # TODO (ae) change this later
 
 
