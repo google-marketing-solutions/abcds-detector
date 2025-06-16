@@ -40,33 +40,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
             name="Dynamic Start",
             category=VideoFeatureCategory.FULL_ABCD,
             sub_category=VideoFeatureSubCategory.ATTRACT,
-            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
-            evaluation_criteria="""
-                The first shot in the video changes in less than 3 seconds.
-            """,
-            prompt_template="""
-                Does the first shot in the video change in less than 3 seconds?
-            """,
-            extra_instructions=[
-                "Consider the following criteria for your answer: {criteria}.",
-                "Look through each frame in the video carefully and answer the question.",
-                "Provide the exact timestamp when the first shot in the video changes.",
-                "Return True if and only if the first shot in the video changes in less than 3 seconds.",
-            ],
-            evaluation_method=EvaluationMethod.ANNOTATIONS,
-            evaluation_function="detect_dynamic_start",
-            include_in_evaluation=True,
-            group_by=VideoSegment.NONE,
-        )
-    ]
-    return feature_configs
-    '''feature_configs = [
-        VideoFeature(
-            id="a_dynamic_start",
-            name="Dynamic Start",
-            category=VideoFeatureCategory.FULL_ABCD,
-            sub_category=VideoFeatureSubCategory.ATTRACT,
-            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
+            video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
             evaluation_criteria="""
                 The first shot in the video changes in less than 3 seconds.
             """,
@@ -89,7 +63,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
             name="Quick Pacing",
             category=VideoFeatureCategory.FULL_ABCD,
             sub_category=VideoFeatureSubCategory.ATTRACT,
-            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
+            video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
             evaluation_criteria="""
                 Within ANY 5 consecutive seconds there are 5 or more shots in the video. These include hard cuts, soft
                 transitions and camera changes such as camera pans, swipes, zooms, depth of field changes, tracking shots
@@ -115,7 +89,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
             name="Quick Pacing (First 5 seconds)",
             category=VideoFeatureCategory.FULL_ABCD,
             sub_category=VideoFeatureSubCategory.ATTRACT,
-            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
+            video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
             evaluation_criteria="""
                 There are at least 5 shot changes or visual cuts detected in the video. These include hard cuts,
                 soft transitions and camera changes such as camera pans, swipes, zooms, depth of field changes,
@@ -424,7 +398,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
             name="Overall Pacing",
             category=VideoFeatureCategory.FULL_ABCD,
             sub_category=VideoFeatureSubCategory.CONNECT,
-            video_segment=VideoSegment.FULL_VIDEO, # Use full video for annotations
+            video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
             evaluation_criteria="""
                 The pace of the video is greater than 2 seconds per shot/frame.
             """,
@@ -622,4 +596,4 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
         ),
     ]
 
-    return feature_configs'''
+    return feature_configs
