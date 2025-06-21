@@ -423,6 +423,17 @@ def build_features_for_bq(
             )
         else:
             video_name = video_assessment.video_uri
+        # Get Category
+        if hasattr(eval_feature.feature.category, "value"):
+            category = eval_feature.feature.category.value
+        else:
+            category = eval_feature.feature.category
+        # Get Sub category
+        if hasattr(eval_feature.feature.sub_category, "value"):
+            sub_category = eval_feature.feature.sub_category.value
+        else:
+            sub_category = eval_feature.feature.sub_category
+
         assessment_bq.append(
             {
                 "execution_timestamp": datetime.datetime.now(),
@@ -432,8 +443,8 @@ def build_features_for_bq(
                 "video_uri": video_assessment.video_uri,
                 "feature_id": eval_feature.feature.id,
                 "feature_name": eval_feature.feature.name,
-                "feature_category": eval_feature.feature.category.value,
-                "feature_sub_category": eval_feature.feature.sub_category.value,
+                "feature_category": category,
+                "feature_sub_category": sub_category,
                 "feature_video_segment": eval_feature.feature.video_segment.value,
                 "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
                 "detected": eval_feature.detected,

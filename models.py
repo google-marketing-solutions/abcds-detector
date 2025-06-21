@@ -18,6 +18,7 @@ class VideoFeatureSubCategory(Enum):
     BRAND = "BRAND"
     CONNECT = "CONNECT"
     DIRECT = "DIRECT"
+    NONE = "NONE" # Remove this later
 
 
 class VideoSegment(Enum):
@@ -189,52 +190,22 @@ VIDEO_RESPONSE_SCHEMA = {
 VIDEO_METADATA_RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
-        "brand_name": {
-            "type": "string",
-        },
+        "brand_name": {"type": "string"},
         "brand_variations": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "brand_name": {
-                        "type": "string",
-                    },
-                },
-            },
+            "items": {"type": "string"},
         },
         "branded_products": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "product_name": {
-                        "type": "string",
-                    },
-                },
-            },
+            "items": {"type": "string"},
         },
         "branded_products_categories": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "product_category": {
-                        "type": "string",
-                    },
-                },
-            },
+            "items": {"type": "string"},
         },
         "branded_call_to_actions": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "call_to_action": {
-                        "type": "string",
-                    },
-                },
-            },
+            "items": {"type": "string"},
         },
     },
     "required": [

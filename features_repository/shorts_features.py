@@ -26,6 +26,7 @@ from models import (
     VideoSegment,
     EvaluationMethod,
     VideoFeatureCategory,
+    VideoFeatureSubCategory,
 )
 
 
@@ -39,7 +40,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_production_style",
             name="Shorts Production Style",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Analyze whether the video uses full studio production or user-generated studio style.
@@ -193,7 +194,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_tv_ad_style",
             name="Shorts TV Ad Style",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Analyze if the short-form video matches traditional TV advertisement style.
@@ -343,7 +344,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_sfv_adaptation_low",
             name="Native Content Style_LOW",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Evaluate if the video emulates native, organic shortform video content vs appearing commercial/polished.
@@ -380,7 +381,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                 - Authentic settings
                 - Personal spaces
                 - Imperfect framing
-            
+
             b) Commercial Indicators:
                 - Steady camera work
                 - Professional lighting
@@ -396,8 +397,8 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                 - Conversational tone
                 - Casual voices
                 - Informal speech
-            
-            b) Commercial Indicators:  
+
+            b) Commercial Indicators:
                 - Studio sound
                 - Clean audio mix
                 - Professional voices
@@ -411,7 +412,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                 - Natural pauses
                 - Informal language
                 - Authentic reactions
-            
+
             b) Commercial Indicators:
                 - Formal delivery
                 - Marketing language
@@ -426,7 +427,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                 - Spontaneous moments
                 - Creator-style
                 - Organic pacing
-            
+
             b) Commercial Indicators:
                 - Brand messaging
                 - Planned sequences
@@ -487,7 +488,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_sfv_adaptation_medium",
             name="SFV Adaptation Balance",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Evaluate if the video achieves an effective balance between professional production and native social content style.
@@ -616,7 +617,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_sfv_adaptation_high",
             name="Short Form Video Adaptation_high",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Analyze how well the video adapts to native short form video style versus maintaining
@@ -770,7 +771,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_emoji_usage",
             name="Emoji Usage",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video use emojis as visual elements? Detection includes:
@@ -875,7 +876,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_micro_trend",
             name="Micro-Trend Usage",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video incorporate a micro-trend? Micro-trends are short-lived content patterns that:
@@ -994,7 +995,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_meso_trend",
             name="Meso-Trend Usage",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video utilize a meso-trend? Meso-trends are established content patterns that:
@@ -1112,7 +1113,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_macro_trend",
             name="Macro-Trend Implementation",
             category="shorts",
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video align with broader cultural macro-trends? Macro-trends are long-term societal movements that:
@@ -1252,7 +1253,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_traditional_ad",
             name="Traditional Ad Style",
             category=VideoFeatureCategory.SHORTS,  # Changed to Shorts category
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video feel like a traditional TV commercial rather than social video content?
@@ -1364,7 +1365,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_partial_social",
             name="Partial Social Style (25-50%)",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video show moderate social media characteristics (25-50% social feel)? Content should:
@@ -1477,7 +1478,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_mostly_social",
             name="Predominantly Social Style (75%+)",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video predominantly display social media characteristics (75% or more social feel)? Content should:
@@ -1590,7 +1591,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_transitions",
             name="Creative Transitions",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video use creative transitions between scenes or segments? Detection includes:
@@ -1713,7 +1714,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_gap_utilization",
             name="Creative Gap Utilization",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Does the video creatively utilize the top and bottom gaps created when adapting horizontal/square content
@@ -1832,7 +1833,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_product_result",
             name="Product/Service Result",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Ad demonstrates clear product/service outcomes through before/after comparisons, side-by-side
@@ -1956,7 +1957,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_creator_name_mention",
             name="Creator Name Mention",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Ad explicitly mentions the YouTube Creator's name either in visual text overlays or
@@ -2080,7 +2081,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_partnership_disclosure",
             name="Partnership Clearly Disclosed",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Video contains clear disclosure of partnership between creator and brand through explicit statements,
@@ -2221,7 +2222,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             name="Personal Character Talk",
             category=VideoFeatureCategory.SHORTS,
             evaluation_criteria="The story is driven by a single character (person, mascot etc.) that talks directly to camera, creating a personal connection with the viewer.",
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate if a single character drives the story while directly addressing the camera.
@@ -2401,7 +2402,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_native_brand_context",
             name="Native Brand Context",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Brand is positioned as a secondary element rather than the main focus of the ad, integrating naturally within
@@ -2580,7 +2581,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_personal_character_type",
             name="Personal Character Type",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     The video ad uses everyday people, influencer, or content creator as the main character
@@ -2762,7 +2763,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     The product is positioned as a secondary element rather than the main focus of the ad,
                     appearing in a natural and realistic context.
                 """,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate product positioning
@@ -2949,7 +2950,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="shorts_video_format",
             name="Video Format",
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     The ad is in a vertical format with portrait aspect ratio, specifically designed
@@ -3111,7 +3112,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="content_type_ad_style_creator",
             name="Ad Style Analysis (Creator vs. Traditional)",  # Slightly more descriptive name
             category=VideoFeatureCategory.SHORTS,
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     Distinguish whether the video's advertising approach primarily follows a creator/influencer pattern
@@ -3243,7 +3244,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
             id="content_type_ad_style",
             name="Ad Style Analysis",
             category="Content_Type",
-            sub_category="",
+            sub_category=VideoFeatureSubCategory.NONE,
             video_segment=VideoSegment.FULL_VIDEO,
             evaluation_criteria="""
                     "Analyze if content follows creator/influencer ad patterns or traditional ad format. "

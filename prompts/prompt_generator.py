@@ -53,6 +53,13 @@ class PromptGenerator:
             - No Hallucination: Your primary directive is to avoid making up information. If a feature is ambiguous, not clearly shown,
             or impossible to verify from the video, you must answer "false" and explain why it is ambiguous or unverifiable in your explanation.
             - Strict Adherence to Format: The output format is non-negotiable. Any deviation will result in failure.
+            - Assess your confidence in [SPECIFIC TASK/ASSERTION, e.g., 'the presence of the brand in a specific frame of the video'].
+            For EACH feature, calculate a confidence score from 0.0 (completely uncertain) to 1.0 (absolutely certain).
+                Base this score on:
+                - The clarity and visibility of the relevant features asked in the question. 0
+                - The absence of significant occlusions or ambiguities. Also based on the strenghts and weaknesses that you identify.
+                - The robustness of your internal analysis.
+                - Output only the numerical score as a float (e.g., 0.85)."
 
             ## STEP-BY-STEP TASK EXECUTION
 

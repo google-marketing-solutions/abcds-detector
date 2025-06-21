@@ -150,7 +150,7 @@ class VideoEvaluationService:
         return feature_evaluations
 
     def is_custom_evaluation(self, function_name):
-        return function_name is not ""
+        return function_name != ""
 
 
 video_evaluation_service = VideoEvaluationService()
