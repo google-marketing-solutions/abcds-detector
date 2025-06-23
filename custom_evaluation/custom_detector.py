@@ -26,42 +26,42 @@ from models import VideoFeature, FeatureEvaluation
 
 
 class CustomDetector:
-    """Module to evaluate features for ABCDs using annotations."""
+  """Module to evaluate features for ABCDs using annotations."""
 
-    def __init__(self):
-        pass
+  def __init__(self):
+    pass
 
-    def evaluate_features(
-        self, config: Configuration, feature_config: VideoFeature, video_uri: str
-    ) -> list[FeatureEvaluation]:
-        """Evaluates ABCD features using custom functions."""
+  def evaluate_features(
+      self, config: Configuration, feature_config: VideoFeature, video_uri: str
+  ) -> list[FeatureEvaluation]:
+    """Evaluates ABCD features using custom functions."""
 
-        print("Starting ABCD evaluation using custom functions... \n")
+    print("Starting ABCD evaluation using custom functions... \n")
 
-        feature_evaluations: list[FeatureEvaluation] = []
+    feature_evaluations: list[FeatureEvaluation] = []
 
-        print(f"Custom function evaluation for feature {feature_config.name}... \n")
-        eval_function_name = feature_config.evaluation_function
-        func = getattr(annotations_module, eval_function_name)
-        evaluation = func(config, feature_config.name, video_uri)
+    print(f"Custom function evaluation for feature {feature_config.name}... \n")
+    eval_function_name = feature_config.evaluation_function
+    func = getattr(annotations_module, eval_function_name)
+    evaluation = func(config, feature_config.name, video_uri)
 
-        if isinstance(evaluation, bool):
-            feature_evaluation = {
-                "id": feature_config.id,
-                "detected": evaluation,
-                "confidence_score": 1,  # TODO (ae) calculate this for annotations
-                "rationale": "",
-                "evidence": "",
-                "strengths": "",
-                "weaknesses": "",
-            }
-        else:
-            # TODO (ae) add details about the interface returned here
-            feature_evaluation = evaluation
+    if isinstance(evaluation, bool):
+      feature_evaluation = {
+          "id": feature_config.id,
+          "detected": evaluation,
+          "confidence_score": 1,  # TODO (ae) calculate this for annotations
+          "rationale": "",
+          "evidence": "",
+          "strengths": "",
+          "weaknesses": "",
+      }
+    else:
+      # TODO (ae) add details about the interface returned here
+      feature_evaluation = evaluation
 
-        feature_evaluations.append(feature_evaluation)
+    feature_evaluations.append(feature_evaluation)
 
-        return feature_evaluations
+    return feature_evaluations
 
 
 custom_detector = CustomDetector()

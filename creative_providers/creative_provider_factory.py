@@ -26,35 +26,35 @@ from models import CreativeProviderType
 
 
 class CreativeProviderFactory:
-    """Service factory that implements a factory class to retrieve/register
-    services for the different content generation types"""
+  """Service factory that implements a factory class to retrieve/register
+  services for the different content generation types"""
 
-    def __init__(self):
-        """Init method for CreativeProviderFactory."""
-        self._providers = {}
+  def __init__(self):
+    """Init method for CreativeProviderFactory."""
+    self._providers = {}
 
-    def register_provider(
-        self, provider_type: CreativeProviderType, provider: CreativeProviderProto
-    ) -> None:
-        """Register creative provider
+  def register_provider(
+      self, provider_type: CreativeProviderType, provider: CreativeProviderProto
+  ) -> None:
+    """Register creative provider
 
-        Args:
-            provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
-            provider: an instance (concrete implementation) of the provider
-        """
-        self._providers[provider_type] = provider
+    Args:
+        provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
+        provider: an instance (concrete implementation) of the provider
+    """
+    self._providers[provider_type] = provider
 
-    def get_provider(
-        self, provider_type: CreativeProviderType
-    ) -> CreativeProviderProto:
-        """Get content generation service by type
+  def get_provider(
+      self, provider_type: CreativeProviderType
+  ) -> CreativeProviderProto:
+    """Get content generation service by type
 
-        Args:
-            provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
-        Returns:
-            provider: an instance (concrete implementation) of the service
-        """
-        provider = self._providers.get(provider_type)
-        if not provider:
-            raise ValueError(provider_type)
-        return provider()
+    Args:
+        provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
+    Returns:
+        provider: an instance (concrete implementation) of the service
+    """
+    provider = self._providers.get(provider_type)
+    if not provider:
+      raise ValueError(provider_type)
+    return provider()

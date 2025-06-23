@@ -18,14 +18,16 @@
 #
 ###########################################################################
 
-""" Module to test ABCD parameters """
+"""Module to test ABCD parameters"""
 
 from utils import build_abcd_params_config
 from dataclasses import dataclass
 
+
 @dataclass
-class ArgsMock():
+class ArgsMock:
   """Mock class to define params"""
+
   project_id: str
   project_zone: str
   bucket_name: str
@@ -64,19 +66,36 @@ class ArgsMock():
 def test_not_empty_abcd_params():
   """Tests that all brand parameters are provided"""
 
-  args = ArgsMock(project_id="tighlock-test", project_zone="us-central1",
-    bucket_name="abcd-detector-input", knowledge_graph_api_key="asdfds",
-    bigquery_dataset="abcd_detector_ds", bigquery_table="my_table",
-    assessment_file="", use_annotations=True, use_llms=True, verbose=True,
-    annotation_path="",video_uris="gs://abcd-detector-input/Google/videos/",
-    brand_name="Google", brand_variations="Google,google",
-    branded_products="Google pixel, Google pixel buds, Google pixel watch",
-    branded_products_categories="phone, watch, buds",
-    branded_call_to_actions="buy it!, buy",
-    early_time_seconds=5, confidence_threshold=0.5, face_surface_threshold=0.5,
-    logo_size_threshold=0.5, avg_shot_duration_seconds=3, dynamic_cutoff_ms=3000,
-    llm_name="gemini-1.5-pro-002", top_p=0.1, video_size_limit_mb=50,
-    max_output_tokens=8000, temperature=1, top_k=0.1,
+  args = ArgsMock(
+      project_id="tighlock-test",
+      project_zone="us-central1",
+      bucket_name="abcd-detector-input",
+      knowledge_graph_api_key="asdfds",
+      bigquery_dataset="abcd_detector_ds",
+      bigquery_table="my_table",
+      assessment_file="",
+      use_annotations=True,
+      use_llms=True,
+      verbose=True,
+      annotation_path="",
+      video_uris="gs://abcd-detector-input/Google/videos/",
+      brand_name="Google",
+      brand_variations="Google,google",
+      branded_products="Google pixel, Google pixel buds, Google pixel watch",
+      branded_products_categories="phone, watch, buds",
+      branded_call_to_actions="buy it!, buy",
+      early_time_seconds=5,
+      confidence_threshold=0.5,
+      face_surface_threshold=0.5,
+      logo_size_threshold=0.5,
+      avg_shot_duration_seconds=3,
+      dynamic_cutoff_ms=3000,
+      llm_name="gemini-1.5-pro-002",
+      top_p=0.1,
+      video_size_limit_mb=50,
+      max_output_tokens=8000,
+      temperature=1,
+      top_k=0.1,
   )
 
   config = build_abcd_params_config(args)
@@ -96,10 +115,14 @@ def test_not_empty_abcd_params():
   # set videos
   assert config.video_uris is not None
 
-    # set brand
+  # set brand
   assert config.brand_name is not None
-  assert config.brand_variations is not None and len(config.brand_variations) > 0
-  assert config.branded_products is not None and len(config.branded_products) > 0
+  assert (
+      config.brand_variations is not None and len(config.brand_variations) > 0
+  )
+  assert (
+      config.branded_products is not None and len(config.branded_products) > 0
+  )
   assert (
       config.branded_products_categories is not None
       and len(config.branded_products_categories) > 0
@@ -109,7 +132,7 @@ def test_not_empty_abcd_params():
       and len(config.branded_call_to_actions) > 0
   )
 
-    # set thresholds
+  # set thresholds
   assert config.early_time_seconds is not None
   assert config.confidence_threshold is not None
   assert config.face_surface_threshold is not None
@@ -117,7 +140,7 @@ def test_not_empty_abcd_params():
   assert config.avg_shot_duration_seconds is not None
   assert config.dynamic_cutoff_ms is not None
 
-    # set model
+  # set model
   assert config.llm_name is not None
   assert config.video_size_limit_mb is not None
   assert config.max_output_tokens is not None

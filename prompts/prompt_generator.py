@@ -26,22 +26,22 @@ from models import VideoFeature, PromptConfig
 
 
 class PromptGenerator:
-    """Class to generate the prompts that will contain the ABCD features."""
+  """Class to generate the prompts that will contain the ABCD features."""
 
-    def __init__(self):
-        pass
+  def __init__(self):
+    pass
 
-    def get_abcds_prompt_config(
-        self, features: list[VideoFeature], config: Configuration
-    ) -> PromptConfig:
-        """Gets the prompt with required ABCD features
-        for full videos and first 5 secs videos
-        Returns:
-            prompt: string prompt template
-        """
-        features_questions = self.get_features_prompt_template(features, config)
+  def get_abcds_prompt_config(
+      self, features: list[VideoFeature], config: Configuration
+  ) -> PromptConfig:
+    """Gets the prompt with required ABCD features
+    for full videos and first 5 secs videos
+    Returns:
+        prompt: string prompt template
+    """
+    features_questions = self.get_features_prompt_template(features, config)
 
-        system_instructions = """
+    system_instructions = """
             You are an AI Video Analysis Engine. Your primary function is to act as a meticulous and objective creative expert.
             Your goal is to analyze video ad content and answer a series of questions about specific features within the video.
             Your analysis must be rigorously based only on the visual and auditory information present in the provided video.
@@ -80,26 +80,26 @@ class PromptGenerator:
             Preserve the original data type (e.g., string, etc).
         """
 
-        prompt = """These are the questions that you have to answer for each feature:
+    prompt = """These are the questions that you have to answer for each feature:
         {features_questions}""".replace(
-            "{features_questions}", features_questions
-        )
+        "{features_questions}", features_questions
+    )
 
-        prompt_config = PromptConfig(
-            prompt=prompt, system_instructions=system_instructions
-        )
+    prompt_config = PromptConfig(
+        prompt=prompt, system_instructions=system_instructions
+    )
 
-        return prompt_config
+    return prompt_config
 
-    def get_features_prompt_template(
-        self, features: list[VideoFeature], config: Configuration
-    ) -> str:
-        """Gets features prompt template"""
-        features_prompt = ""
-        for feature in features:
-            # Replace input parameters in instructions
-            instructions = self.augment_instructions(feature, config)
-            features_prompt += f"""
+  def get_features_prompt_template(
+      self, features: list[VideoFeature], config: Configuration
+  ) -> str:
+    """Gets features prompt template"""
+    features_prompt = ""
+    for feature in features:
+      # Replace input parameters in instructions
+      instructions = self.augment_instructions(feature, config)
+      features_prompt += f"""
             Feature ID: {feature.id}
             Feature Name: {feature.name}
             Feature Category: {feature.category}
@@ -110,46 +110,48 @@ class PromptGenerator:
             {instructions} \n\n
         """
 
-        # This is specific to the Shorts features
-        video_metadata = f"""
+    # This is specific to the Shorts features
+    video_metadata = f"""
             Brand Name: {config.brand_name}
             Brand Variations: {config.brand_variations}
             Branded Products: {config.branded_products}
             Branded Product Categories: {config.branded_products_categories}
         """
 
-        features_prompt = (
-            features_prompt.replace("{brand_name}", config.brand_name)
-            .replace("{brand_variations}", ", ".join(config.brand_variations))
-            .replace("{branded_products}", ", ".join(config.branded_products))
-            .replace(
-                "{branded_products_categories}",
-                ", ".join(config.branded_products_categories),
-            )
-            .replace(
-                "{branded_call_to_actions_str}",
-                ", ".join(config.branded_call_to_actions),
-            )
-            .replace("{metadata_summary}", video_metadata)
+    features_prompt = (
+        features_prompt.replace("{brand_name}", config.brand_name)
+        .replace("{brand_variations}", ", ".join(config.brand_variations))
+        .replace("{branded_products}", ", ".join(config.branded_products))
+        .replace(
+            "{branded_products_categories}",
+            ", ".join(config.branded_products_categories),
         )
-        return features_prompt
-
-    def augment_instructions(self, feature: VideoFeature, config: Configuration) -> str:
-        """Augment LLM instructions in the prompt"""
-        call_to_actions = ", ".join(get_call_to_action_api_list()) + ", ".join(
-            config.branded_call_to_actions
+        .replace(
+            "{branded_call_to_actions_str}",
+            ", ".join(config.branded_call_to_actions),
         )
-        instructions = (
-            "\n".join(feature.extra_instructions)
-            .replace("{criteria}", feature.evaluation_criteria)  # TODO fix this
-            .replace("{call_to_actions}", ", ".join(call_to_actions))
-        )
-        return instructions
+        .replace("{metadata_summary}", video_metadata)
+    )
+    return features_prompt
 
-    def get_metadata_prompt_config(self):
-        """Get metadata from a video to identify key brand elements"""
+  def augment_instructions(
+      self, feature: VideoFeature, config: Configuration
+  ) -> str:
+    """Augment LLM instructions in the prompt"""
+    call_to_actions = ", ".join(get_call_to_action_api_list()) + ", ".join(
+        config.branded_call_to_actions
+    )
+    instructions = (
+        "\n".join(feature.extra_instructions)
+        .replace("{criteria}", feature.evaluation_criteria)  # TODO fix this
+        .replace("{call_to_actions}", ", ".join(call_to_actions))
+    )
+    return instructions
 
-        system_instructions = """
+  def get_metadata_prompt_config(self):
+    """Get metadata from a video to identify key brand elements"""
+
+    system_instructions = """
             You are BrandVision AI, a world-class expert in brand strategy, digital marketing, and multimedia content analysis.
             Your primary function is to meticulously analyze video content to identify and extract key brand elements with unparalleled accuracy and detail.
             You operate under the following core principles:
@@ -169,15 +171,15 @@ class PromptGenerator:
                 **Destination:** Where does the CTA direct the user? (e.g., a website URL, the comments section, a social media handle).
         """
 
-        prompt = """
+    prompt = """
             Analyze the provided video to extract key brand elements such as brand name, branded products, branded categories and branded call to actions.
         """
 
-        prompt_config = PromptConfig(
-            prompt=prompt, system_instructions=system_instructions
-        )
+    prompt_config = PromptConfig(
+        prompt=prompt, system_instructions=system_instructions
+    )
 
-        return prompt_config
+    return prompt_config
 
 
 prompt_generator = PromptGenerator()

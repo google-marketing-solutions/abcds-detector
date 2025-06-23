@@ -32,40 +32,43 @@ from configuration import Configuration
 def detect_overall_pacing(
     config: Configuration, feature_name: str, video_uri: str
 ) -> dict:
-    """Detect Overall Pacing
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        overall_pacing: overall pacing evaluation
-    """
+  """Detect Overall Pacing
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      overall_pacing: overall pacing evaluation
+  """
 
-    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
+  annotation_uri = (
+      f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+  )
+  shot_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
-    # Feature Overall Pacing
-    overall_pacing = False
-    total_time_all_shots = 0
-    total_shots = 0
+  # Feature Overall Pacing
+  overall_pacing = False
+  total_time_all_shots = 0
+  total_shots = 0
 
+  # Video API: Evaluate overall_pacing_feature
+  if "shot_annotations" in shot_annotation_results:
     # Video API: Evaluate overall_pacing_feature
-    if "shot_annotations" in shot_annotation_results:
-        # Video API: Evaluate overall_pacing_feature
-        for shot in shot_annotation_results.get("shot_annotations"):
-            start_time_secs = calculate_time_seconds(shot, "start_time_offset")
-            end_time_secs = calculate_time_seconds(shot, "end_time_offset")
-            total_shot_time = end_time_secs - start_time_secs
-            total_time_all_shots += total_shot_time
-            total_shots += 1
-        avg_pacing = total_time_all_shots / total_shots
-        if avg_pacing <= config.avg_shot_duration_seconds:
-            overall_pacing = True
-    else:
-        print(
-            f"No Shot annotations found. Skipping {feature_name} evaluation with Video Intelligence API."
-        )
+    for shot in shot_annotation_results.get("shot_annotations"):
+      start_time_secs = calculate_time_seconds(shot, "start_time_offset")
+      end_time_secs = calculate_time_seconds(shot, "end_time_offset")
+      total_shot_time = end_time_secs - start_time_secs
+      total_time_all_shots += total_shot_time
+      total_shots += 1
+    avg_pacing = total_time_all_shots / total_shots
+    if avg_pacing <= config.avg_shot_duration_seconds:
+      overall_pacing = True
+  else:
+    print(
+        f"No Shot annotations found. Skipping {feature_name} evaluation with"
+        " Video Intelligence API."
+    )
 
-    print(f"{feature_name}: {overall_pacing} \n")
+  print(f"{feature_name}: {overall_pacing} \n")
 
-    return overall_pacing
+  return overall_pacing

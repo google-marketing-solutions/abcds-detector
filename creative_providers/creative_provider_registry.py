@@ -36,14 +36,15 @@ provider_factory = creative_provider_factory.CreativeProviderFactory()
 
 
 def register_content_generation_services():
-    """Register the different creative providers"""
-    provider_factory.register_provider(
-        models.CreativeProviderType.GCS.value, gcs_creative_provider.GCSCreativeProvider
-    )
-    provider_factory.register_provider(
-        models.CreativeProviderType.YOUTUBE.value,
-        youtube_creative_provider.YoutubeCreativeProvider,
-    )
+  """Register the different creative providers"""
+  provider_factory.register_provider(
+      models.CreativeProviderType.GCS.value,
+      gcs_creative_provider.GCSCreativeProvider,
+  )
+  provider_factory.register_provider(
+      models.CreativeProviderType.YOUTUBE.value,
+      youtube_creative_provider.YoutubeCreativeProvider,
+  )
 
 
 register_content_generation_services()

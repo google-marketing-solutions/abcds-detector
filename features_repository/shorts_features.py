@@ -31,24 +31,24 @@ from models import (
 
 
 def get_shorts_feature_configs() -> list[VideoFeature]:
-    """Gets all the supported ABCD/Shorts features
-    Returns:
-    feature_configs: list of feature configurations
-    """
-    feature_configs = [
-        VideoFeature(
-            id="shorts_production_style",
-            name="Shorts Production Style",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+  """Gets all the supported ABCD/Shorts features
+  Returns:
+  feature_configs: list of feature configurations
+  """
+  feature_configs = [
+      VideoFeature(
+          id="shorts_production_style",
+          name="Shorts Production Style",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Analyze whether the video uses full studio production or user-generated studio style.
                     Full studio production involves professional equipment, controlled environments, and skilled crews.
                     User-generated studio style mimics authenticity while maintaining some production value,
                     featuring more relaxed and personal presentation despite being filmed in controlled settings.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Analyze the production style of this short-form video.
 
                     VIDEO METADATA:
@@ -184,26 +184,26 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Look for intentional "casualness" in user-gen studio
                         5. Note mixed elements that may appear in either style
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,  # confirm
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_tv_ad_style",
-            name="Shorts TV Ad Style",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,  # confirm
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_tv_ad_style",
+          name="Shorts TV Ad Style",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Analyze if the short-form video matches traditional TV advertisement style.
                     Consider production quality, editing patterns, and overall composition.
                     TV ad style typically shows professional studio lighting, clean editing,
                     perfect framing, and polished transitions, while natural short-form content
                     often features dynamic editing, casual framing, and trend-based styles.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Analyze if this short-form video matches traditional TV advertisement style.
 
                     VIDEO METADATA:
@@ -334,19 +334,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Confidence assessment
                         5. Overall style evaluation
             """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,  # confirm
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_sfv_adaptation_low",
-            name="Native Content Style_LOW",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,  # confirm
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_sfv_adaptation_low",
+          name="Native Content Style_LOW",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Evaluate if the video emulates native, organic shortform video content vs appearing commercial/polished.
                     Videos should feel like authentic social media content with:
                         1. Raw/authentic visual style (natural lighting, minimal editing)
@@ -361,7 +361,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Formal presentation
                         - TV commercial-style execution
                 """,
-            prompt_template="""
+          prompt_template="""
             Using both the provided metadata AND your understanding of social media content styles, evaluate how well this video emulates native shortform content.
 
             BRAND/PRODUCT CONTEXT:
@@ -478,19 +478,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
             Remember: Focus on distinguishing between authentic native-style content and professionally produced content attempting to appear native.
             """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,  # confirm
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_sfv_adaptation_medium",
-            name="SFV Adaptation Balance",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,  # confirm
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_sfv_adaptation_medium",
+          name="SFV Adaptation Balance",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Evaluate if the video achieves an effective balance between professional production and native social content style.
                     Videos should blend polished elements with authentic feel through:
                         1. Production Quality: Well-produced but not overly polished (good lighting/sound while maintaining natural feel)
@@ -499,7 +499,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Authenticity: Strategic inclusion of native content elements (direct address, personal stories)
                     The goal is finding middle ground between high production value and relatable social content.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both the provided metadata AND your understanding of balanced content style, evaluate how well
                     this video combines professional and native elements.
 
@@ -607,25 +607,25 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
                     Remember: Look for strategic combination of professional quality and authentic elements that creates relatable yet polished content.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,  # confirm
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_sfv_adaptation_high",
-            name="Short Form Video Adaptation_high",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,  # confirm
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_sfv_adaptation_high",
+          name="Short Form Video Adaptation_high",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Analyze how well the video adapts to native short form video style versus maintaining
                     traditional commercial production. Low adaptation videos maintain professional and polished
                     commercial style without incorporating platform-native elements, while high adaptation
                     successfully emulates organic social media content.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Analyze whether this video maintains traditional commercial production or successfully adapts to short form style.
 
                     VIDEO METADATA:
@@ -761,19 +761,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Note authenticity markers
                         5. Evaluate overall effectiveness
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,  # confirm
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_emoji_usage",
-            name="Emoji Usage",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,  # confirm
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_emoji_usage",
+          name="Emoji Usage",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video use emojis as visual elements? Detection includes:
                     1. Standard emoji characters in text overlays
                     2. Animated emoji effects
@@ -781,7 +781,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     4. Platform-specific emoji features
                     Emojis must be intentionally added as creative elements, not incidentally captured in screenshots or user content.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, analyze for intentional emoji usage in the video.
 
                     BRAND/PRODUCT CONTEXT:
@@ -866,19 +866,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
                     Remember: Focus on intentionally added emoji elements used for creative or communicative purposes.
             """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_micro_trend",
-            name="Micro-Trend Usage",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_micro_trend",
+          name="Micro-Trend Usage",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video incorporate a micro-trend? Micro-trends are short-lived content patterns that:
                     1. Capture attention briefly (days to weeks)
                     2. Often stem from relatable human behaviors
@@ -892,7 +892,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Detection focuses on identifying elements that match known micro-trend characteristics,
                     even if the specific trend is no longer current."
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your understanding of social media trends, analyze for micro-trend implementation.
 
                     BRAND/PRODUCT CONTEXT:
@@ -985,19 +985,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     is no longer current.
                     Consider both obvious trend elements (audio, visuals) and subtle patterns (behavior, structure).
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_meso_trend",
-            name="Meso-Trend Usage",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_meso_trend",
+          name="Meso-Trend Usage",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video utilize a meso-trend? Meso-trends are established content patterns that:
                     1. Have longer lifespans than micro-trends
                     2. Are integrated into platform culture
@@ -1010,7 +1010,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Established content templates
                     Detection focuses on identifying elements that match established platform-specific content patterns and formats.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your understanding of platform content patterns, analyze for meso-trend implementation.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1103,19 +1103,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Remember: Focus on identifying established, longer-lasting content formats and platform-specific patterns.
                     Consider both structural elements (format, pacing) and cultural elements (conventions, expectations).
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_macro_trend",
-            name="Macro-Trend Implementation",
-            category="shorts",
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_macro_trend",
+          name="Macro-Trend Implementation",
+          category="shorts",
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video align with broader cultural macro-trends? Macro-trends are long-term societal movements that:
                         1. Reflect major cultural shifts (up to a decade in duration)
                         2. Address significant societal values or movements such as:
@@ -1128,7 +1128,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                             - Generational values
                     Detection focuses on identifying authentic alignment with and contribution to these broader cultural conversations.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your understanding of societal trends, analyze for macro-trend implementation.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1243,19 +1243,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Consider both explicit statements and implicit demonstrations of macro-trend alignment.
                     Evaluate authenticity and depth of engagement versus superficial trend adoption.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_traditional_ad",
-            name="Traditional Ad Style",
-            category=VideoFeatureCategory.SHORTS,  # Changed to Shorts category
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_traditional_ad",
+          name="Traditional Ad Style",
+          category=VideoFeatureCategory.SHORTS,  # Changed to Shorts category
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video feel like a traditional TV commercial rather than social video content?
                     Traditional ad indicators include:
                         1. Professional production quality matching TV standards
@@ -1265,7 +1265,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         5. Studio-quality lighting and sound
                         6. Standard advertising format execution
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, evaluate if this content matches traditional TV commercial style rather than social media content.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1355,19 +1355,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
                     Remember: Focus on identifying clear markers of traditional TV commercial style versus social media content approaches.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_partial_social",
-            name="Partial Social Style (25-50%)",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_partial_social",
+          name="Partial Social Style (25-50%)",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video show moderate social media characteristics (25-50% social feel)? Content should:
                     1. Maintain primarily professional/commercial style
                     2. Include some social media elements
@@ -1376,7 +1376,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Detection focuses on identifying clear but limited social media content characteristics while
                     maintaining primarily traditional production values.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, evaluate if this content shows partial (25-50%) social media characteristics.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1468,19 +1468,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Remember: Focus on identifying clear but limited (25-50%) social media characteristics while maintaining
                     primarily traditional production elements.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_mostly_social",
-            name="Predominantly Social Style (75%+)",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_mostly_social",
+          name="Predominantly Social Style (75%+)",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video predominantly display social media characteristics (75% or more social feel)? Content should:
                         1. Strongly align with platform-native content style
                         2. Show minimal traditional commercial elements
@@ -1489,7 +1489,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         5. Follow social media content conventions
                     Detection focuses on identifying strong social media characteristics that comprise at least 75% of the content's
                     style and approach.""",
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, evaluate if this content shows predominant (75%+) social media characteristics.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1581,19 +1581,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Remember: Focus on identifying strong social media characteristics that clearly dominate (75%+) the content style and approach.
                     Look for authentic, platform-native elements while noting limited commercial aspects.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_transitions",
-            name="Creative Transitions",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_transitions",
+          name="Creative Transitions",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video use creative transitions between scenes or segments? Detection includes:
                         1. Stylized editing transitions
                         2. Dramatic scene changes
@@ -1602,7 +1602,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         5. Visual transformation effects
                     Transitions must be intentionally creative or dramatic, not just standard cuts between scenes.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, analyze for creative transition usage.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1704,19 +1704,19 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Remember: Focus on identifying intentionally creative or dramatic transitions, not just standard cuts between scenes.
                     Consider both technical execution and creative impact of transitions.
             """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_gap_utilization",
-            name="Creative Gap Utilization",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_gap_utilization",
+          name="Creative Gap Utilization",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Does the video creatively utilize the top and bottom gaps created when adapting horizontal/square content
                     to vertical format? Creative usage includes:
                         1. Product imagery in gaps
@@ -1727,7 +1727,7 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Detection focuses on intentional use of letterbox spaces to enhance the viewing experience and deliver
                     additional content.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using the provided metadata, analyze how effectively vertical gaps are utilized for additional content.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1823,23 +1823,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                     Consider both static and animated content in these areas.
                     Evaluate effectiveness of content integration with main video.
             """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_product_result",
-            name="Product/Service Result",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_product_result",
+          name="Product/Service Result",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Ad demonstrates clear product/service outcomes through before/after comparisons, side-by-side
                     demonstrations, or effectiveness proof. Must show tangible or visible results of using the product/service.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate for clear product/service results.
 
                     BRAND/PRODUCT CONTEXT:
@@ -1947,23 +1947,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
                     Remember: Focus on clear, demonstrable outcomes that prove product/service effectiveness in short-form context.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_creator_name_mention",
-            name="Creator Name Mention",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_creator_name_mention",
+          name="Creator Name Mention",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Ad explicitly mentions the YouTube Creator's name either in visual text overlays or
                     spoken audio. Must be clear, direct mention of creator's name to qualify.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate for explicit creator name mentions.
 
                     BRAND/PRODUCT CONTEXT:
@@ -2071,23 +2071,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Medium (0.5-0.7): Identifiable mentions with some uncertainty
                         - Low (0.2-0.4): Possible mentions but limited/unclear evidence
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_partnership_disclosure",
-            name="Partnership Clearly Disclosed",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_partnership_disclosure",
+          name="Partnership Clearly Disclosed",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Video contains clear disclosure of partnership between creator and brand through explicit statements,
                     text overlays, or other unmistakable indicators of sponsored/paid content or brand collaboration.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate for clear partnership disclosure.
 
                     BRAND/PRODUCT CONTEXT:
@@ -2211,20 +2211,24 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
 
                     Remember: Focus on explicit, unmistakable partnership disclosures that meet legal and ethical standards for sponsored content identification.
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_personal_character_talk",
-            name="Personal Character Talk",
-            category=VideoFeatureCategory.SHORTS,
-            evaluation_criteria="The story is driven by a single character (person, mascot etc.) that talks directly to camera, creating a personal connection with the viewer.",
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            prompt_template="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_personal_character_talk",
+          name="Personal Character Talk",
+          category=VideoFeatureCategory.SHORTS,
+          evaluation_criteria=(
+              "The story is driven by a single character (person, mascot etc.)"
+              " that talks directly to camera, creating a personal connection"
+              " with the viewer."
+          ),
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate if a single character drives the story while directly addressing the camera.
 
                     BRAND/PRODUCT CONTEXT:
@@ -2392,23 +2396,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Divided screen time
                         - Ensemble-driven narrative
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_native_brand_context",
-            name="Native Brand Context",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_native_brand_context",
+          name="Native Brand Context",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Brand is positioned as a secondary element rather than the main focus of the ad, integrating naturally within
                     the content.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate native brand integration.
 
                     BRAND/PRODUCT CONTEXT:
@@ -2571,23 +2575,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Brand dominates screen time
                         - Promotional language overshadows content
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_personal_character_type",
-            name="Personal Character Type",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_personal_character_type",
+          name="Personal Character Type",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     The video ad uses everyday people, influencer, or content creator as the main character
                     rather than actors, celebrities, or fictional characters.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate the type of main character
                     featured in the video.
 
@@ -2749,23 +2753,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Fictional or animated character
                         - Highly aspirational presentation
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_product_context",
-            name="Product Context",
-            category=VideoFeatureCategory.SHORTS,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_product_context",
+          name="Product Context",
+          category=VideoFeatureCategory.SHORTS,
+          evaluation_criteria="""
                     The product is positioned as a secondary element rather than the main focus of the ad,
                     appearing in a natural and realistic context.
                 """,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            prompt_template="""
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate product positioning
                     within the video content.
 
@@ -2940,23 +2944,23 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Content interrupted for product focus
                         - Excessive feature highlighting
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="shorts_video_format",
-            name="Video Format",
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="shorts_video_format",
+          name="Video Format",
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     The ad is in a vertical format with portrait aspect ratio, specifically designed
                     for mobile device viewing.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Using both provided metadata AND your analytical capabilities, evaluate if the video uses vertical (portrait) format.
 
                     BRAND/PRODUCT CONTEXT:
@@ -3102,25 +3106,25 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         - Medium (0.5-0.7): Vertical orientation but less optimal for mobile
                         - Low (0.2-0.4): Some vertical elements but not fully optimized
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="content_type_ad_style_creator",
-            name="Ad Style Analysis (Creator vs. Traditional)",  # Slightly more descriptive name
-            category=VideoFeatureCategory.SHORTS,
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="content_type_ad_style_creator",
+          name="Ad Style Analysis (Creator vs. Traditional)",  # Slightly more descriptive name
+          category=VideoFeatureCategory.SHORTS,
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     Distinguish whether the video's advertising approach primarily follows a creator/influencer pattern
                     (personality-driven, authentic integration, direct audience connection) or a traditional brand advertisement format
                     (brand-centric messaging, formal presentation, standardized commercial structure), irrespective of production quality.
                     # Sharpened criteria focus
                 """,
-            prompt_template="""
+          prompt_template="""
                     Analyze this video's advertising style to determine if it aligns more closely with Creator/Influencer
                     style or Traditional Ad style. Focus on the core narrative approach, presenter's role, tone, and method
                     of brand integration.
@@ -3234,25 +3238,25 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Look for *signals of authenticity* (even subtle ones) in creator content, regardless of budget.
                         5. Assess *how* production choices *serve the core message*: Is it enhancing a personal story or creating a brand showcase?
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-        VideoFeature(
-            id="content_type_ad_style",
-            name="Ad Style Analysis",
-            category="Content_Type",
-            sub_category=VideoFeatureSubCategory.NONE,
-            video_segment=VideoSegment.FULL_VIDEO,
-            evaluation_criteria="""
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+      VideoFeature(
+          id="content_type_ad_style",
+          name="Ad Style Analysis",
+          category="Content_Type",
+          sub_category=VideoFeatureSubCategory.NONE,
+          video_segment=VideoSegment.FULL_VIDEO,
+          evaluation_criteria="""
                     "Analyze if content follows creator/influencer ad patterns or traditional ad format. "
                     "Creator ads typically feature personal narrative, direct audience engagement, and authentic style "
                     "even with high production value. Traditional ads follow standard commercial formats with "
                     "formal presentation and brand-first messaging.
                 """,
-            prompt_template="""
+          prompt_template="""
                     Analyze this video's advertising style and production approach.
 
                     BRAND/PRODUCT CONTEXT:
@@ -3370,12 +3374,12 @@ def get_shorts_feature_configs() -> list[VideoFeature]:
                         4. Look for authentic elements even in polished content
                         5. Evaluate how production serves the content style
                 """,
-            extra_instructions=[],
-            evaluation_method=EvaluationMethod.LLMS,
-            evaluation_function="",
-            include_in_evaluation=True,
-            group_by=VideoSegment.FULL_VIDEO,
-        ),
-    ]
+          extra_instructions=[],
+          evaluation_method=EvaluationMethod.LLMS,
+          evaluation_function="",
+          include_in_evaluation=True,
+          group_by=VideoSegment.FULL_VIDEO,
+      ),
+  ]
 
-    return feature_configs
+  return feature_configs

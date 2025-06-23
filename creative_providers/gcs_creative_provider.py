@@ -27,25 +27,25 @@ import configuration
 
 
 class GCSCreativeProvider:
-    """Class that implements the creative provider to
-    retrieve creative uris from GCS
-    """
+  """Class that implements the creative provider to
+  retrieve creative uris from GCS
+  """
 
-    def __init__(self):
-        pass
+  def __init__(self):
+    pass
 
-    def get_creative_uris(self, config: configuration.Configuration) -> any:
-        """Expands any GCS URI entry that is a folder path into its files."""
-        for uri in config.video_uris:
-            if uri.endswith("/"):
-                print(f"EXPANDING URI: {uri} \n")
-                bucket, prefix = uri.replace("gs://", "").split("/", 1)
-                for blob in (
-                    gcs_api_service.gcs_api_service.get_client()
-                    .get_bucket(bucket)
-                    .list_blobs(prefix=prefix, delimiter="/")
-                ):
-                    if not blob.name.endswith("/"):
-                        yield f"gs://{bucket}/{blob.name}"
-            else:
-                yield uri
+  def get_creative_uris(self, config: configuration.Configuration) -> any:
+    """Expands any GCS URI entry that is a folder path into its files."""
+    for uri in config.video_uris:
+      if uri.endswith("/"):
+        print(f"EXPANDING URI: {uri} \n")
+        bucket, prefix = uri.replace("gs://", "").split("/", 1)
+        for blob in (
+            gcs_api_service.gcs_api_service.get_client()
+            .get_bucket(bucket)
+            .list_blobs(prefix=prefix, delimiter="/")
+        ):
+          if not blob.name.endswith("/"):
+            yield f"gs://{bucket}/{blob.name}"
+      else:
+        yield uri

@@ -32,90 +32,95 @@ from configuration import Configuration
 def detect_product_mention_text(
     config: Configuration, feature_name: str, video_uri: str
 ) -> bool:
-    """Detect Product Mention (Text)
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        product_mention_text: product mention text evaluation
-    """
-    product_mention_text, na = detect(config, feature_name, video_uri)
+  """Detect Product Mention (Text)
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      product_mention_text: product mention text evaluation
+  """
+  product_mention_text, na = detect(config, feature_name, video_uri)
 
-    print(f"{feature_name}: {product_mention_text} \n")
+  print(f"{feature_name}: {product_mention_text} \n")
 
-    return product_mention_text
+  return product_mention_text
 
 
 def detect_product_mention_text_1st_5_secs(
     config: Configuration, feature_name: str, video_uri: str
 ) -> bool:
-    """Product Mention (Text) (First 5 seconds)
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        product_mention_text_1st_5_secs: product mention text evaluation
-    """
-    na, product_mention_text_1st_5_secs = detect(config, feature_name, video_uri)
+  """Product Mention (Text) (First 5 seconds)
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      product_mention_text_1st_5_secs: product mention text evaluation
+  """
+  na, product_mention_text_1st_5_secs = detect(config, feature_name, video_uri)
 
-    print(f"{feature_name}: {product_mention_text_1st_5_secs} \n")
+  print(f"{feature_name}: {product_mention_text_1st_5_secs} \n")
 
-    return product_mention_text_1st_5_secs
+  return product_mention_text_1st_5_secs
 
 
 def detect(
     config: Configuration, feature_name: str, video_uri: str
 ) -> tuple[bool, bool]:
-    """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        product_mention_text,
-        product_mention_text_1st_5_secs: product mention text evaluation
-    """
+  """Detect Product Mention (Text) & Product Mention (Text) (First 5 seconds)
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      product_mention_text,
+      product_mention_text_1st_5_secs: product mention text evaluation
+  """
 
-    annotation_uri = f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
-    text_annotation_results = gcs_api_service.load_blob(annotation_uri)
+  annotation_uri = (
+      f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+  )
+  text_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
-    # Feature Product Mention (Text)
-    product_mention_text = False
+  # Feature Product Mention (Text)
+  product_mention_text = False
 
-    # Feature Product Mention (Text) (First 5 seconds)
-    product_mention_text_1st_5_secs = False
+  # Feature Product Mention (Text) (First 5 seconds)
+  product_mention_text_1st_5_secs = False
 
+  # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
+  if "text_annotations" in text_annotation_results:
     # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
-    if "text_annotations" in text_annotation_results:
-        # Video API: Evaluate product_mention_text_feature and product_mention_text_1st_5_secs_feature
-        for text_annotation in text_annotation_results.get("text_annotations"):
-            text = text_annotation.get("text")
-            found_branded_products = [
-                prod for prod in config.branded_products if prod.lower() in text.lower()
-            ]
-            found_branded_products_categories = [
-                prod
-                for prod in config.branded_products_categories
-                if prod.lower() in text.lower()
-            ]
-            if (
-                len(found_branded_products) > 0
-                or len(found_branded_products_categories) > 0
-            ):
-                product_mention_text = True
-                pmt_1st_5_secs, frame = detected_text_in_first_5_seconds(
-                    config, text_annotation
-                )
-                if pmt_1st_5_secs:
-                    product_mention_text_1st_5_secs = True
-    else:
-        print(
-            f"No Text annotations found. Skipping {feature_name} evaluation with Video Intelligence API."
+    for text_annotation in text_annotation_results.get("text_annotations"):
+      text = text_annotation.get("text")
+      found_branded_products = [
+          prod
+          for prod in config.branded_products
+          if prod.lower() in text.lower()
+      ]
+      found_branded_products_categories = [
+          prod
+          for prod in config.branded_products_categories
+          if prod.lower() in text.lower()
+      ]
+      if (
+          len(found_branded_products) > 0
+          or len(found_branded_products_categories) > 0
+      ):
+        product_mention_text = True
+        pmt_1st_5_secs, frame = detected_text_in_first_5_seconds(
+            config, text_annotation
         )
-
-    return (
-        product_mention_text,
-        product_mention_text_1st_5_secs,
+        if pmt_1st_5_secs:
+          product_mention_text_1st_5_secs = True
+  else:
+    print(
+        f"No Text annotations found. Skipping {feature_name} evaluation with"
+        " Video Intelligence API."
     )
+
+  return (
+      product_mention_text,
+      product_mention_text_1st_5_secs,
+  )
