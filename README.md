@@ -22,7 +22,7 @@ We're excited to announce major enhancements to the ABCDs Detector, significantl
 
 ### What's New:
 
-1.  **Full ABCD and YouTube Shorts Evaluation:**
+1.  **YouTube Shorts Evaluation:**
     *   Introducing **SHORTS evaluation**, specifically tailored for YouTube Shorts. This includes support for a dedicated set of features designed to evaluate the unique characteristics of short-form video content.
 
     **New YouTube Shorts Evaluation Features**
@@ -68,8 +68,8 @@ We're excited to announce major enhancements to the ABCDs Detector, significantl
         *   **Combination of LLMs and Annotations:** For features requiring both structured data and nuanced understanding, especially those involving reasoning and calculations.
     *   The specific evaluation method for each feature is determined by extensive research and testing during pipeline implementation.
 
-5.  **Custom Evaluation Functions for Full ABCD:**
-    *   For **Full ABCD evaluation**, users can now implement their own custom evaluation functions for individual features. This is particularly useful for scenarios requiring a unique combination of LLMs and Annotations.
+5.  **Custom Evaluation Functions for Core ABCDs:**
+    *   For **Core ABCDs evaluation**, users can now implement their own custom evaluation functions for individual features. This is particularly useful for scenarios requiring a unique combination of LLMs and Annotations.
     *   Simply ensure your custom function complies with the defined interface and returns the expected standard evaluation response. You can return either True/False or an object with the evaluation details, please see the `VIDEO_RESPONSE_SCHEMA` object in `models.py` for more details.
 
 6.  **Dynamic and Configurable Features:**
@@ -228,7 +228,7 @@ Please follow the steps below before executing the ABCDs Detector solution. Ever
 * Add or remove ABCDs signals.
 * Specify your own logic for calculating ABCDs score per video.
 * ABCD features are dynamically added to a JSON list. If you want to add/remove features, please do that directly in the features_config/features.py file.
-* To optimize LLM execution, features support grouping by 'full_video' and 'first_5_secs_video'. If you want to execute the features separately, please specify 'no_grouping' in the "group_by" field. 
+* To optimize LLM execution, features support grouping by 'full_video' and 'first_5_secs_video'. If you want to execute the features separately, please specify 'no_grouping' in the "group_by" field.
 
 **Note:**
 
