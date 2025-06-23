@@ -16,6 +16,69 @@ limitations under the License.
 
 ABCDs Detector is NOT an official Google product.
 
+
+## June 21, 2024 Update: Enhanced Capabilities and Flexibility
+
+We're excited to announce major enhancements to the ABCDs Detector, significantly expanding its capabilities and offering greater flexibility in how you analyze your video creatives.
+
+### What's New:
+
+1.  **Full ABCD and YouTube Shorts Evaluation:**
+    *   Introducing **SHORTS evaluation**, specifically tailored for YouTube Shorts. This includes support for a dedicated set of features designed to evaluate the unique characteristics of short-form video content.
+
+    **New YouTube Shorts Evaluation Features**
+    *   **Shorts Production Style**
+    *   **Shorts TV Ad Style**
+    *   **Native Content Style (Low Adaptation)**
+    *   **SFV Adaptation Balance (Medium Adaptation)**
+    *   **Short Form Video Adaptation (High Adaptation)**
+    *   **Emoji Usage**
+    *   **Micro-Trend Usage**
+    *   **Meso-Trend Usage**
+    *   **Macro-Trend Implementation**
+    *   **Traditional Ad Style**
+    *   **Partial Social Style (25-50%)**
+    *   **Predominantly Social Style (75%+)**
+    *   **Creative Transitions**
+    *   **Creative Gap Utilization**
+    *   **Product/Service Result**
+    *   **Creator Name Mention**
+    *   **Partnership Clearly Disclosed**
+    *   **Personal Character Talk**
+    *   **Native Brand Context**
+    *   **Personal Character Type**
+    *   **Product Context**
+    *   **Video Format**
+    *   **Ad Style Analysis (Creator vs. Traditional)**
+
+2.  **Direct YouTube URL Support:**
+    *   You can now directly provide **YouTube URLs** for evaluation. This is applicable for public YouTube videos or videos from channels where the user is the owner.
+    *   **Important Note:** Currently, YouTube URLs are evaluated using **LLMs only**. Annotation-based evaluation for YouTube URLs is not supported.
+
+3.  **Flexible Creative Provisioning with Factory Pattern:**
+    *   A new **Creative Provider** architecture, built on a factory pattern, allows developers to easily integrate and pull creatives from various data sources.
+    *   **Supported Providers:**
+        *   **Google Cloud Storage Creative Provider:** Retrieve individual videos or folders of videos from a GCS bucket.
+        *   **YouTube Creative Provider:** Designed to retrieve a list of YouTube URLs. This can be adapted to integrate with the YouTube API for automated retrieval.
+    *   **Custom Providers:** Implement your own creative providers by registering them in the `creative_provider_registry.py` file. Ensure your custom provider class implements the `get_creative_uris` method as specified in the `creative_provider_proto.py` file to return a list of creative URIs. Configuration in the system's `configuration.py` file is required to specify the provider type, please see the `set_parameters` function.
+
+4.  **Feature Evaluation Methods:**
+    *   Features are now evaluated using one of three methods:
+        *   **LLMs Only:** Ideal for abstract concepts or when annotations are not available.
+        *   **Annotations Only:** For features that can be reliably extracted or calculated from video metadata and vision models.
+        *   **Combination of LLMs and Annotations:** For features requiring both structured data and nuanced understanding, especially those involving reasoning and calculations.
+    *   The specific evaluation method for each feature is determined by extensive research and testing during pipeline implementation.
+
+5.  **Custom Evaluation Functions for Full ABCD:**
+    *   For **Full ABCD evaluation**, users can now implement their own custom evaluation functions for individual features. This is particularly useful for scenarios requiring a unique combination of LLMs and Annotations.
+    *   Simply ensure your custom function complies with the defined interface and returns the expected standard evaluation response. You can return either True/False or an object with the evaluation details, please see the `VIDEO_RESPONSE_SCHEMA` object in `models.py` for more details.
+
+6.  **Dynamic and Configurable Features:**
+    *   All features are now **dynamic and configurable** via the `features_repository.py` file.
+    *   To introduce a new feature, simply add it to the feature array within `features_repository.py` and configure its parameters; ABCD Detector will automatically evaluate it.
+    *   Features can be **grouped** to be evaluated in a single prompt for efficiency, or configured with `NO_GROUPING` for individual evaluation (One API request per feature). Users should consider the potential cost implications when opting for individual evaluation.
+
+
 # ABCDs Detector
 
 The ABCDs Detector solution streamlines the assessment of your video ads against YouTube's ABCD framework. Powered by Google AI, this tool automates the evaluation process, providing detailed reports on how well your ads align with key attention-driving metrics. Simplify your YouTube ad analysis and gain valuable insights for optimization with the ABCDs Detector.
