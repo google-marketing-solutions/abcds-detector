@@ -21,11 +21,19 @@
 """Module to evaluate features for ABCDs using annotations."""
 
 import annotations_evaluation.feature_modules as annotations_module
-from feature_configs.features import get_feature_configs
+from features_repository.full_abcd_features import get_feature_configs
 from configuration import Configuration
 
 
-def evaluate_abcd_features_using_annotations(config: Configuration, video_uri: str) -> list[dict]:
+class AnnotationsDectector:
+  """Module to evaluate features for ABCDs using annotations."""
+
+  def __init__(self):
+    pass
+
+  def evaluate_abcd_features_using_annotations(
+      self, config: Configuration, video_uri: str
+  ) -> list[dict]:
     """Evaluates ABCD features using annotations."""
 
     feature_configs = get_feature_configs()
@@ -35,19 +43,19 @@ def evaluate_abcd_features_using_annotations(config: Configuration, video_uri: s
 
     # Process annotations for all features
     for feature_config in feature_configs:
-        print(f"Annotation evaluation for feature {feature_config.get('name')}...")
-        function_name = feature_config.get("annotations_function")
-        detected = False
-        if function_name:
-            func = getattr(annotations_module, function_name)
-            detected = func(config, feature_config.get("name"), video_uri)
-            feature_evaluations.append(
-                {
-                    "id": feature_config.get("id"),
-                    "name": feature_config.get("name"),
-                    "category": feature_config.get("category"),
-                    "criteria": feature_config.get("criteria"),
-                    "detected": detected,
-                }
-            )
+      print(
+          f"Annotation evaluation for feature {feature_config.get('name')}..."
+      )
+      function_name = feature_config.get("annotations_function")
+      detected = False
+      if function_name:
+        func = getattr(annotations_module, function_name)
+        detected = func(config, feature_config.get("name"), video_uri)
+        feature_evaluations.append({
+            "id": feature_config.get("id"),
+            "name": feature_config.get("name"),
+            "category": feature_config.get("category"),
+            "criteria": feature_config.get("criteria"),
+            "detected": detected,
+        })
     return feature_evaluations

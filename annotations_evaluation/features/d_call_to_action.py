@@ -25,95 +25,102 @@ Annotations used:
 """
 
 from annotations_evaluation.annotations_generation import Annotations
+from gcp_api_services.gcs_api_service import gcs_api_service
 from helpers.annotations_helpers import find_elements_in_transcript
-from helpers.generic_helpers import load_blob, get_annotation_uri, get_call_to_action_api_list
+from helpers.generic_helpers import get_call_to_action_api_list
 from configuration import Configuration
 
 
-def detect_call_to_action_speech(config: Configuration, feature_name: str, video_uri: str) -> bool:
-    """Detect Call To Action (Speech)
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        call_to_action_speech: call to action speech evaluation
-    """
+def detect_call_to_action_speech(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
+  """Detect Call To Action (Speech)
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      call_to_action_speech: call to action speech evaluation
+  """
 
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
-    )
-    speech_annotation_results = load_blob(annotation_uri)
+  annotation_uri = (
+      f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.SPEECH_ANNOTATIONS.value}.json"
+  )
+  speech_annotation_results = gcs_api_service.load_blob(annotation_uri)
 
-    # Feature Call To Action (Speech)
-    call_to_action_speech = False
+  # Feature Call To Action (Speech)
+  call_to_action_speech = False
 
-    call_to_action_examples = get_call_to_action_api_list()
-    all_call_to_actions = [cta for cta in call_to_action_examples]
-    all_call_to_actions.extend(config.branded_call_to_actions)
+  call_to_action_examples = get_call_to_action_api_list()
+  all_call_to_actions = [cta for cta in call_to_action_examples]
+  all_call_to_actions.extend(config.branded_call_to_actions)
 
+  # Video API: Evaluate call_to_action_speech_feature
+  if "speech_transcriptions" in speech_annotation_results:
     # Video API: Evaluate call_to_action_speech_feature
-    if "speech_transcriptions" in speech_annotation_results:
-        # Video API: Evaluate call_to_action_speech_feature
-        (
-            call_to_action_speech,
-            na,
-        ) = find_elements_in_transcript(
-            config,
-            speech_transcriptions=speech_annotation_results.get(
-                "speech_transcriptions"
-            ),
-            elements=all_call_to_actions,
-            elements_categories=[],
-            apply_condition=False,
-        )
-    else:
-        print(
-            f"No Speech annotations found. Skipping {call_to_action_speech} evaluation with Video Intelligence API."
-        )
-
-    print(f"{feature_name}: {call_to_action_speech} \n")
-
-    return call_to_action_speech
-
-
-def detect_call_to_action_text(config: Configuration, feature_name: str, video_uri: str) -> bool:
-    """Detect Call To Action (Text)
-    Args:
-        config: all the parameters
-        feature_name: the name of the feature
-        video_uri: video location in gcs
-    Returns:
-        call_to_action_text: call to action text evaluation
-    """
-
-    annotation_uri = (
-        f"{get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+    (
+        call_to_action_speech,
+        na,
+    ) = find_elements_in_transcript(
+        config,
+        speech_transcriptions=speech_annotation_results.get(
+            "speech_transcriptions"
+        ),
+        elements=all_call_to_actions,
+        elements_categories=[],
+        apply_condition=False,
     )
-    text_annotation_results = load_blob(annotation_uri)
+  else:
+    print(
+        "No Speech annotations found. Skipping"
+        f" {call_to_action_speech} evaluation with Video Intelligence API."
+    )
 
-    # Feature Call To Action (Text)
-    call_to_action_text = False
+  print(f"{feature_name}: {call_to_action_speech} \n")
 
-    call_to_action_examples = get_call_to_action_api_list()
-    all_call_to_actions = [cta for cta in call_to_action_examples]
-    all_call_to_actions.extend(config.branded_call_to_actions)
+  return call_to_action_speech
 
+
+def detect_call_to_action_text(
+    config: Configuration, feature_name: str, video_uri: str
+) -> bool:
+  """Detect Call To Action (Text)
+  Args:
+      config: all the parameters
+      feature_name: the name of the feature
+      video_uri: video location in gcs
+  Returns:
+      call_to_action_text: call to action text evaluation
+  """
+
+  annotation_uri = (
+      f"{gcs_api_service.get_annotation_uri(config, video_uri)}{Annotations.GENERIC_ANNOTATIONS.value}.json"
+  )
+  text_annotation_results = gcs_api_service.load_blob(annotation_uri)
+
+  # Feature Call To Action (Text)
+  call_to_action_text = False
+
+  call_to_action_examples = get_call_to_action_api_list()
+  all_call_to_actions = [cta for cta in call_to_action_examples]
+  all_call_to_actions.extend(config.branded_call_to_actions)
+
+  # Video API: Evaluate call_to_action_text_feature
+  if "text_annotations" in text_annotation_results:
     # Video API: Evaluate call_to_action_text_feature
-    if "text_annotations" in text_annotation_results:
-        # Video API: Evaluate call_to_action_text_feature
-        for text_annotation in text_annotation_results.get("text_annotations"):
-            text = text_annotation.get("text")
-            found_call_to_actions = [
-                cta for cta in all_call_to_actions if cta.lower() in text.lower()
-            ]
-            if len(found_call_to_actions) > 0:
-                call_to_action_text = True
-    else:
-        print(
-            f"No Text annotations found. Skipping {feature_name} evaluation with Video Intelligence API."
-        )
+    for text_annotation in text_annotation_results.get("text_annotations"):
+      text = text_annotation.get("text")
+      found_call_to_actions = [
+          cta for cta in all_call_to_actions if cta.lower() in text.lower()
+      ]
+      if len(found_call_to_actions) > 0:
+        call_to_action_text = True
+  else:
+    print(
+        f"No Text annotations found. Skipping {feature_name} evaluation with"
+        " Video Intelligence API."
+    )
 
-    print(f"{feature_name}: {call_to_action_text} \n")
+  print(f"{feature_name}: {call_to_action_text} \n")
 
-    return call_to_action_text
+  return call_to_action_text

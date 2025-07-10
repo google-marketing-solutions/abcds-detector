@@ -20,124 +20,102 @@
 
 """Module to execute the ABCD Detector Assessment"""
 
-import json
 import time
 import traceback
 import logging
-from annotations_evaluation.annotations_generation import generate_video_annotations
-from annotations_evaluation.evaluation import evaluate_abcd_features_using_annotations
-from llms_evaluation.evaluation import evaluate_abcd_features_using_llms
-from feature_configs.features import get_feature_configs
-from prompts.prompts_generator import PromptParams
-from helpers.generic_helpers import (
-    expand_uris,
-    get_blob,
-    print_abcd_assessment,
-    trim_video,
-    store_in_bq,
-    remove_local_video_files
-)
-from helpers.vertex_ai_service import LLMParameters
-from helpers.bq_service import BigQueryService
+import models
+import utils
+from annotations_evaluation import annotations_generation
+from helpers import generic_helpers
 from configuration import Configuration
-from utils import parse_args, build_abcd_params_config
+from creative_providers import creative_provider_proto
+from creative_providers import creative_provider_registry
+from evaluation_services import video_evaluation_service
 
 
 def execute_abcd_assessment_for_videos(config: Configuration):
-  """Execute ABCD Assessment for all brand videos in GCS"""
+  """Execute ABCD Assessment for all brand videos retrieved by the Creative Provider"""
 
-  prompt_params = PromptParams(
-      config.brand_name,
-      config.brand_variations,
-      config.branded_products,
-      config.branded_products_categories,
-      config.branded_call_to_actions,
+  creative_provider: creative_provider_proto.CreativeProviderProto = (
+      creative_provider_registry.provider_factory.get_provider(
+          config.creative_provider_type.value
+      )
   )
 
-  llm_params = LLMParameters(
-      model_name=config.llm_name,
-      location=config.project_zone,
-      generation_config={
-          "max_output_tokens": config.max_output_tokens,
-          "temperature": config.temperature,
-          "top_p": config.top_p,
-          "top_k": config.top_k,
-      }
-  )
-
-  brand_assessment = {
-      "brand_name": config.brand_name,
-      "video_assessments": [],
-      "prompt_params": prompt_params.__dict__,
-      "llm_params": llm_params.__dict__,
-  }
-
-  video_uris = expand_uris(config.video_uris)
+  video_uris = creative_provider.get_creative_uris(config)
 
   for video_uri in video_uris:
+
     print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
 
-      # 1) Prepare video
-    trim_video(config, video_uri)
+    # Generate video annotations for custom features. Annotations are supported only for GCS providers
+    if config.creative_provider_type == models.CreativeProviderType.GCS:
+      annotations_generation.generate_video_annotations(config, video_uri)
 
-    # Check size of video to avoid processing videos > 7MB
-    video_metadata = get_blob(video_uri)
-    size_mb = video_metadata.size / 1e6
-    if config.use_llms and size_mb > config.video_size_limit_mb:
-      print(
-          f"The size of video {video_uri} is greater than {config.video_size_limit_mb} MB. Skipping execution."
-      )
-      continue
+    # Full ABCD features require 1st_5_secs videos only for GCS providers
+    if (
+        config.run_full_abcd
+        and config.creative_provider_type == models.CreativeProviderType.GCS
+    ):
+      generic_helpers.trim_video(config, video_uri)
 
-    # 3) Execute ABCD Assessment
-    video_assessment = {
-        "video_uri": video_uri,
-    }
+    # Execute ABCD Assessment
+    full_abcd_evaluated_features: models.FeatureEvaluation = []
+    shorts_evaluated_features: models.FeatureEvaluation = []
 
-    if config.use_annotations:
-      generate_video_annotations(config, video_uri)
-      annotations_evaluated_features = evaluate_abcd_features_using_annotations(
-          config,
-          video_uri
-      )
-      video_assessment["annotations_evaluation"] = {
-          "evaluated_features": annotations_evaluated_features,
-      }
-
-    if config.use_llms:
-      llm_evaluated_features = evaluate_abcd_features_using_llms(
-        config, video_uri, prompt_params, llm_params
-      )
-      video_assessment["llms_evaluation"] = {
-        "evaluated_features": llm_evaluated_features,
-      }
-
-      if config.verbose:
-        if len(llm_evaluated_features) < len(get_feature_configs()):
-          print(
-            f"WARNING: ABCD Detector was not able to process all the features for video {video_uri}. Please check and execute again. \n"
+    if config.run_full_abcd:
+      full_abcd_evaluated_features = (
+          video_evaluation_service.video_evaluation_service.evaluate_features(
+              config=config,
+              video_uri=video_uri,
+              features_category=models.VideoFeatureCategory.FULL_ABCD,
           )
-        if len(llm_evaluated_features) > len(get_feature_configs()):
-          print(
-            f"WARNING: ABCD Detector processed more features than the original number features. \
-            Processed features: {len(llm_evaluated_features)} - Original features: {len(get_feature_configs())}"
-          )
+      )
 
-    print_abcd_assessment(config.brand_name, video_assessment)
-    brand_assessment.get("video_assessments").append(video_assessment)
+    if config.run_shorts:
+      shorts_evaluated_features = (
+          video_evaluation_service.video_evaluation_service.evaluate_features(
+              config=config,
+              video_uri=video_uri,
+              features_category=models.VideoFeatureCategory.SHORTS,
+          )
+      )
+
+    video_assessment: models.VideoAssessment = models.VideoAssessment(
+        brand_name=config.brand_name,
+        video_uri=video_uri,
+        full_abcd_evaluated_features=full_abcd_evaluated_features,
+        shorts_evaluated_features=shorts_evaluated_features,
+        config=config,
+    )
+
+    # Print assessments for Full ABCD and Shorts and store results
+    if len(full_abcd_evaluated_features) > 0:
+      generic_helpers.print_abcd_assessment(
+          video_assessment.brand_name,
+          video_assessment.video_uri,
+          full_abcd_evaluated_features,
+      )
+    else:
+      logging.info(
+          "There are not Full ABCD evaluated features results to display."
+      )
+    if len(shorts_evaluated_features) > 0:
+      generic_helpers.print_abcd_assessment(
+          video_assessment.brand_name,
+          video_assessment.video_uri,
+          shorts_evaluated_features,
+      )
+    else:
+      logging.info(
+          "There are not Shorts evaluated features results to display."
+      )
 
     if config.bq_table_name:
-      bq_service = BigQueryService(config.project_id)
-      store_in_bq(config, bq_service, video_assessment, prompt_params, llm_params)
+      generic_helpers.store_in_bq(config, video_assessment)
 
     # Remove local version of video files
-    remove_local_video_files()
-
-  if config.assessment_file:
-    with open(config.assessment_file, "w", encoding="utf-8") as f:
-      json.dump(brand_assessment, f, ensure_ascii=False, indent=4)
-
-  return brand_assessment
+    generic_helpers.remove_local_video_files()
 
 
 def main(arg_list: list[str] | None = None) -> None:
@@ -149,9 +127,17 @@ def main(arg_list: list[str] | None = None) -> None:
   """
 
   try:
-    args = parse_args(arg_list)
+    args = utils.parse_args(arg_list)
 
-    config = build_abcd_params_config(args)
+    config = utils.build_abcd_params_config(args)
+
+    if utils.invalid_brand_metadata(config):
+      logging.error(
+          "The Extract Brand Metadata option is disabled and no brand details"
+          " were defined. \n"
+      )
+      logging.error("Please enable the option or define brand details. \n")
+      return
 
     start_time = time.time()
     logging.info("Starting ABCD assessment... \n")
@@ -162,7 +148,9 @@ def main(arg_list: list[str] | None = None) -> None:
     else:
       logging.info("There are no videos to process. \n")
 
-    logging.info("ABCD assessment took - %s mins. - \n", (time.time() - start_time) / 60)
+    logging.info(
+        "ABCD assessment took - %s mins. - \n", (time.time() - start_time) / 60
+    )
   except Exception as ex:
     logging.error("ERROR: %s", ex)
     traceback.print_exc()
@@ -170,4 +158,3 @@ def main(arg_list: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
   main()
-
