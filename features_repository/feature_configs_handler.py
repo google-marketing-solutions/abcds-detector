@@ -33,64 +33,68 @@ import models
 
 
 class FeaturesConfigsHandler:
-    """Service that handles video evaluations using AI (LLMs + Annotations)"""
+  """Service that handles video evaluations using AI (LLMs + Annotations)"""
 
-    def get_feature_configs_by_category(
-        self, category: VideoFeatureCategory
-    ) -> list[VideoFeature]:
-        """Gets all the supported features by category
-        Full ABCD, Shorts.
-        Returns:
-        feature_configs: list of feature configurations
-        """
-        if category.value == VideoFeatureCategory.SHORTS.value:
-            shorts_features = get_shorts_feature_configs()
+  def get_feature_configs_by_category(
+      self, category: VideoFeatureCategory
+  ) -> list[VideoFeature]:
+    """Gets all the supported features by category
+    Full ABCD, Shorts.
+    Returns:
+    feature_configs: list of feature configurations
+    """
+    if category.value == VideoFeatureCategory.SHORTS.value:
+      shorts_features = get_shorts_feature_configs()
 
-            return shorts_features
-        elif category.value == VideoFeatureCategory.LONG_FORM_ABCD.value:
-            long_form_abcd_features = get_long_form_abcd_feature_configs()
+      return shorts_features
+    elif category.value == VideoFeatureCategory.LONG_FORM_ABCD.value:
+      long_form_abcd_features = get_long_form_abcd_feature_configs()
 
-            return long_form_abcd_features
-        else:
-            logging.log("Category %s not supported. Please check", category)
+      return long_form_abcd_features
+    else:
+      logging.log("Category %s not supported. Please check", category)
 
-    def change_evaluation_method_to_llms_only(self, features: list[VideoFeature]):
-        """Change features evaluation method to use LLMs"""
-        for feature in features:
-            feature.evaluation_method = models.EvaluationMethod.LLMS
+  def change_evaluation_method_to_llms_only(self, features: list[VideoFeature]):
+    """Change features evaluation method to use LLMs"""
+    for feature in features:
+      feature.evaluation_method = models.EvaluationMethod.LLMS
 
-    def get_features_by_category_by_group_config(
-        self, category: VideoFeatureCategory
-    ) -> list[VideoFeature]:
-        """Groups features by video_segment in feature_configs"""
-        feature_configs = self.get_feature_configs_by_category(category)
-        grouped_features = {}
-        for d in feature_configs:
-            grouped_features.setdefault(d.group_by.value, []).append(
-                d
-            )  # Check this video_segment!
-        return grouped_features
+  def get_features_by_category_by_group_config(
+      self, category: VideoFeatureCategory
+  ) -> list[VideoFeature]:
+    """Groups features by video_segment in feature_configs"""
+    feature_configs = self.get_feature_configs_by_category(category)
+    grouped_features = {}
+    for d in feature_configs:
+      grouped_features.setdefault(d.group_by.value, []).append(
+          d
+      )  # Check this video_segment!
+    return grouped_features
 
-    def get_all_features(self):
-        """Gets all feature configs for Full ABCD and Shorts"""
-        feature_configs = []
-        feature_configs.extend(
-            self.get_feature_configs_by_category(VideoFeatureCategory.LONG_FORM_ABCD)
+  def get_all_features(self):
+    """Gets all feature configs for Full ABCD and Shorts"""
+    feature_configs = []
+    feature_configs.extend(
+        self.get_feature_configs_by_category(
+            VideoFeatureCategory.LONG_FORM_ABCD
         )
-        feature_configs.extend(
-            self.get_feature_configs_by_category(VideoFeatureCategory.SHORTS)
-        )
+    )
+    feature_configs.extend(
+        self.get_feature_configs_by_category(VideoFeatureCategory.SHORTS)
+    )
 
-        return feature_configs
+    return feature_configs
 
-    def get_feature_by_id(self, feature_id: str):
-        """Gets a feature by id"""
-        feature_configs = self.get_all_features()
-        feature = [feature for feature in feature_configs if feature.id == feature_id]
-        if len(feature) > 0:
-            return feature[0]
+  def get_feature_by_id(self, feature_id: str):
+    """Gets a feature by id"""
+    feature_configs = self.get_all_features()
+    feature = [
+        feature for feature in feature_configs if feature.id == feature_id
+    ]
+    if len(feature) > 0:
+      return feature[0]
 
-        return None
+    return None
 
 
 features_configs_handler = FeaturesConfigsHandler()

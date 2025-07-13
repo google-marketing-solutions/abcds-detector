@@ -493,7 +493,7 @@ def build_features_for_bq(
                 config.branded_products_categories
             ),
         }),
-        "config": str(config.__dict__)
+        "config": str(config.__dict__),
     })
   return assessment_bq
 
