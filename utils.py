@@ -226,6 +226,12 @@ def parse_args(arg_list: list[str] | None = None) -> None:
       action="store_true",
       default=False,
   )
+  parser.add_argument(
+      "-config_file",
+      "-cf",
+      help="Path to a JSON file with the script parameters.",
+      default=None,
+  )
 
   args = parser.parse_args(arg_list)
 

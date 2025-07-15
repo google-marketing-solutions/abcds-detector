@@ -1,0 +1,40 @@
+{
+  "project_details": {
+    "project_id": "",
+    "project_zone": "us-central1",
+    "bucket_name": "",
+    "knowledge_graph_api_key": "",
+    "bigquery_dataset": "abcd_detector_ds",
+    "bigquery_table": "abcd_assessments",
+    "assessment_file": "",
+    "use_annotations": true,
+    "use_llms": true,
+    "verbose": true
+  },
+  "brand_details": {
+    "brand_name": "Google",
+    "brand_variations": "google",
+    "products": "Google pixel, Google pixel buds, Google pixel watch",
+    "products_categories": "phone, watch, buds",
+    "call_to_actions": "buy it!"
+  },
+  "abcd_framework_details": {
+    "early_time_seconds": 5,
+    "confidence_threshold": 0.5,
+    "face_surface_threshold": 0.15,
+    "logo_size_threshold": 3.5,
+    "avg_shot_duration_seconds": 2,
+    "dynamic_cutoff_ms": 3000
+  },
+  "llm_configuration": {
+    "llm_name": "gemini-2.0-flash-001",
+    "video_size_limit_mb": 50,
+    "max_output_tokens": 8192,
+    "temperature": 1,
+    "top_p": 0.95,
+    "top_k": 32
+  },
+  "videos": [
+    "gs://abcd-detector-input/Google/videos/"
+  ]
+}
