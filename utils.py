@@ -78,7 +78,7 @@ def validate_config(config: Configuration) -> str | None:
       or len(config.branded_products) == 0
       or len(config.branded_products_categories) == 0
   ):
-    return "The Extract Brand Metadata option is disabled and no brand details were defined. Please enable the option or define brand details."
+    return "The Extract Brand Metadata option is disabled and not all brand details(name, variations, products, categories) were defined. Please enable the option or define brand details."
   if not config.video_uris:
     return "There are no videos to process."
   return None

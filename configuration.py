@@ -43,7 +43,7 @@ def build_config_from_file(config_file: str) -> 'Configuration':
         bigquery_dataset=config_data['project_details']['bigquery_dataset'],
         bigquery_table=config_data['project_details']['bigquery_table'],
         assessment_file=config_data['project_details']['assessment_file'],
-        extract_brand_metadata=False,
+        extract_brand_metadata=config_data['project_details']['extract_brand_metadata'],
         run_full_abcd=True,
         run_shorts=True,
         features_to_evaluate=[],

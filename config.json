@@ -7,6 +7,7 @@
     "bigquery_dataset": "abcd_detector_ds",
     "bigquery_table": "abcd_assessments",
     "assessment_file": "",
+    "extract_brand_metadata": true,
     "use_annotations": true,
     "use_llms": true,
     "verbose": true
