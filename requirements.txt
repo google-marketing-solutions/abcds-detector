@@ -5,3 +5,5 @@ moviepy==1.0.3
 google-api-python-client==2.172.0
 pandas==2.3.0
 pyarrow==20.0.0
+fastapi==0.111.0
+uvicorn==0.29.0

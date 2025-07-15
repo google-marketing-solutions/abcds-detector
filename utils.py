@@ -70,13 +70,18 @@ def build_abcd_params_config(args: any) -> Configuration:
   return config
 
 
-def invalid_brand_metadata(config: Configuration):
-  return not config.extract_brand_metadata and (
+def validate_config(config: Configuration) -> str | None:
+  """Validates the configuration and returns an error message if invalid."""
+  if not config.extract_brand_metadata and (
       not config.brand_name
       or len(config.brand_variations) == 0
       or len(config.branded_products) == 0
       or len(config.branded_products_categories) == 0
-  )
+  ):
+    return "The Extract Brand Metadata option is disabled and no brand details were defined. Please enable the option or define brand details."
+  if not config.video_uris:
+    return "There are no videos to process."
+  return None
 
 
 def parse_args(arg_list: list[str] | None = None) -> None:

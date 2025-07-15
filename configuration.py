@@ -21,6 +21,7 @@
 """Module that defines global parameters"""
 
 import os
+import json
 from models import CreativeProviderType, LLMParameters
 
 FFMPEG_BUFFER = "reduced/buffer.mp4"
@@ -28,6 +29,51 @@ FFMPEG_BUFFER_REDUCED = "reduced/buffer_reduced.mp4"
 
 if not os.path.exists("reduced"):
   os.makedirs("reduced")
+
+def build_config_from_file(config_file: str) -> 'Configuration':
+    with open(config_file, 'r') as f:
+        config_data = json.load(f)
+
+    config = Configuration()
+    config.set_parameters(
+        project_id=config_data['project_details']['project_id'],
+        project_zone=config_data['project_details']['project_zone'],
+        bucket_name=config_data['project_details']['bucket_name'],
+        knowledge_graph_api_key=config_data['project_details']['knowledge_graph_api_key'],
+        bigquery_dataset=config_data['project_details']['bigquery_dataset'],
+        bigquery_table=config_data['project_details']['bigquery_table'],
+        assessment_file=config_data['project_details']['assessment_file'],
+        extract_brand_metadata=False,
+        run_full_abcd=True,
+        run_shorts=True,
+        features_to_evaluate=[],
+        creative_provider_type=CreativeProviderType.GCS,
+        verbose=config_data['project_details']['verbose']
+    )
+    config.set_brand_details(
+        brand_name=config_data['brand_details']['brand_name'],
+        brand_variations=config_data['brand_details']['brand_variations'],
+        products=config_data['brand_details']['products'],
+        products_categories=config_data['brand_details']['products_categories'],
+        call_to_actions=config_data['brand_details']['call_to_actions']
+    )
+    config.set_annotations_params(
+        early_time_seconds=config_data['abcd_framework_details']['early_time_seconds'],
+        confidence_threshold=config_data['abcd_framework_details']['confidence_threshold'],
+        face_surface_threshold=config_data['abcd_framework_details']['face_surface_threshold'],
+        logo_size_threshold=config_data['abcd_framework_details']['logo_size_threshold'],
+        avg_shot_duration_seconds=config_data['abcd_framework_details']['avg_shot_duration_seconds'],
+        dynamic_cutoff_ms=config_data['abcd_framework_details']['dynamic_cutoff_ms']
+    )
+    config.set_llm_params(
+        llm_name=config_data['llm_configuration']['llm_name'],
+        location="us-central1",
+        max_output_tokens=config_data['llm_configuration']['max_output_tokens'],
+        temperature=config_data['llm_configuration']['temperature'],
+        top_p=config_data['llm_configuration']['top_p']
+    )
+    config.set_videos(config_data['videos'])
+    return config
 
 
 class Configuration:
