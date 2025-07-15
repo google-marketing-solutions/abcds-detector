@@ -35,13 +35,13 @@ async def abcd_assessment(request: Request):
     config = build_config_from_file("config.json")
 
     config.set_brand_details(
-        brand_name=body.get('brand_details', {}).get('brand_name'),
-        brand_variations=body.get('brand_details', {}).get('brand_variations'),
-        products=body.get('brand_details', {}).get('products'),
-        products_categories=body.get('brand_details', {}).get('products_categories'),
-        call_to_actions=body.get('brand_details', {}).get('call_to_actions')
+        brand_name=body.get('brand_name'),
+        brand_variations=body.get('brand_variations'),
+        products=body.get('branded_products'),
+        products_categories=body.get('branded_products_categories'),
+        call_to_actions=body.get('branded_call_to_actions')
     )
-    config.set_videos(body.get('videos', []))
+    config.set_videos(body.get('video_uris', []))
 
     error_message = utils.validate_config(config)
     if error_message:
