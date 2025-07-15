@@ -27,12 +27,13 @@ from assessment_service import execute_abcd_assessment_for_videos
 
 app = FastAPI()
 
+config = build_config_from_file("config.json")
+
 @app.post("/abcd-assessment/")
 async def abcd_assessment(request: Request):
     """Runs the ABCD assessment for the given brand details and videos."""
     body = await request.json()
 
-    config = build_config_from_file("config.json")
 
     config.set_brand_details(
         brand_name=body.get('brand_name'),

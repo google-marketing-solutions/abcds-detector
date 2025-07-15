@@ -234,6 +234,66 @@ Please follow the steps below before executing the ABCDs Detector solution. Ever
 
 * This notebook is a starting point and can be further customized to fit your specific needs.
 
+## API Usage
+
+The ABCDs Detector includes a FastAPI-based API to allow for programmatic assessment of videos.
+
+### Running the API
+
+To run the API server locally, use the following command:
+
+```bash
+uvicorn api:app --reload
+```
+
+This will start a local development server, typically on `http://127.0.0.1:8000`.
+
+### Endpoint: `/abcd-assessment/`
+
+*   **Method:** `POST`
+*   **Description:** Runs the ABCD assessment for the given brand details and a list of video URIs.
+*   **Request Body:** A JSON object with the following structure:
+
+    ```json
+    {
+      "brand_name": "YourBrand",
+      "brand_variations": "YourBrand, yourbrand",
+      "branded_products": "Product A, Product B",
+      "branded_products_categories": "Category X, Category Y",
+      "branded_call_to_actions": "Learn More, Shop Now",
+      "video_uris": [
+        "gs://your-bucket/videos/video1.mp4",
+        "https://www.youtube.com/watch?v=your_video_id"
+      ]
+    }
+    ```
+
+*   **`video_uris`**: This can be a list of GCS URIs or YouTube URLs.
+
+### Example Request
+
+You can use a tool like `curl` to send a request to the API:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/abcd-assessment/" \
+-H "Content-Type: application/json" \
+-d '{
+  "brand_name": "YourBrand",
+  "brand_variations": "YourBrand, yourbrand",
+  "branded_products": "Product A, Product B",
+  "branded_products_categories": "Category X, Category Y",
+  "branded_call_to_actions": "Learn More, Shop Now",
+  "video_uris": [
+    "gs://your-bucket/videos/video1.mp4",
+    "https://www.youtube.com/watch?v=your_video_id"
+  ]
+}'
+```
+
+### Response
+
+The API will return a JSON array of `VideoAssessment` objects, one for each video URI provided in the request.
+
 ## Roadmap
 
 1. Improvement: cut the video in shorter segments to improve LLM accuracy.
