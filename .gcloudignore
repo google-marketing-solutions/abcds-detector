@@ -1,0 +1,7 @@
+.github/*
+.venv/*
+.gcloudignore
+.git
+.gitignore
+.terraform/*
+terraform.tfstate*

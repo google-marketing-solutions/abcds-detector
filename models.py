@@ -86,6 +86,14 @@ class VideoAssessment:
   shorts_evaluated_features: list[FeatureEvaluation]
   config: any  # TODO (ae) change this later
 
+  def to_dict(self):
+    return {
+        "brand_name": self.brand_name,
+        "video_uri": self.video_uri,
+        "full_abcd_evaluated_features": [x.__dict__ for x in self.full_abcd_evaluated_features],
+        "shorts_evaluated_features": [x.__dict__ for x in self.shorts_evaluated_features],
+    }
+
 
 @dataclass
 class LLMParameters:
