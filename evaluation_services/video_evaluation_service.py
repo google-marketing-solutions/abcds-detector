@@ -46,12 +46,20 @@ class VideoEvaluationService:
 
     for group_key in feature_groups:
       feature_configs: list[models.VideoFeature] = feature_groups.get(group_key)
+
+      # Use LLM evaluation method only
+      if config.use_llms and not config.use_annotations:
+        feature_configs_handler.features_configs_handler.change_evaluation_method_to_llms_only(
+            feature_configs
+        )
+
       # Process the features that are not grouped individually
       # meaning, each will be a separate request to the LLM
       if (
           group_key == "NO_GROUPING"
+          and config.use_annotations
           and config.creative_provider_type == models.CreativeProviderType.GCS
-          # For now only GCS creative providers can be processed individually
+          # For now only GCS creative providers using annotations can be processed individually
       ):
         for f_config in feature_configs:
           if (
@@ -148,7 +156,7 @@ class VideoEvaluationService:
           )
 
     # Sort features by category and id for presentation
-    if features_category == models.VideoFeatureCategory.FULL_ABCD:
+    if features_category == models.VideoFeatureCategory.LONG_FORM_ABCD:
       feature_evaluations = sorted(
           feature_evaluations,
           key=lambda feature_eval: (

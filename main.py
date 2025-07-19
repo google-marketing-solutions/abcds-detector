@@ -46,29 +46,53 @@ def execute_abcd_assessment_for_videos(config: Configuration):
 
   for video_uri in video_uris:
 
+    # Validate that creative provides match the video uris
+    if (
+        config.creative_provider_type == models.CreativeProviderType.GCS
+        and "gcs://" not in video_uri
+    ):
+      logging.error(
+          "The creative provider GCS does not match with the video uri"
+          f" {video_uri}. Stopping exection. Please check."
+      )
+      break
+
+    if (
+        config.creative_provider_type == models.CreativeProviderType.YOUTUBE
+        and "https://www.youtube.com" not in video_uri
+    ):
+      logging.error(
+          "The creative provider YOUTUBE does not match with the video uri"
+          f" {video_uri}. Stopping exection. Please check."
+      )
+      break
+
     print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
 
     # Generate video annotations for custom features. Annotations are supported only for GCS providers
-    if config.creative_provider_type == models.CreativeProviderType.GCS:
+    if (
+        config.use_annotations
+        and config.creative_provider_type == models.CreativeProviderType.GCS
+    ):
       annotations_generation.generate_video_annotations(config, video_uri)
 
     # Full ABCD features require 1st_5_secs videos only for GCS providers
     if (
-        config.run_full_abcd
+        config.run_long_form_abcd
         and config.creative_provider_type == models.CreativeProviderType.GCS
     ):
       generic_helpers.trim_video(config, video_uri)
 
     # Execute ABCD Assessment
-    full_abcd_evaluated_features: models.FeatureEvaluation = []
+    long_form_abcd_evaluated_features: models.FeatureEvaluation = []
     shorts_evaluated_features: models.FeatureEvaluation = []
 
-    if config.run_full_abcd:
-      full_abcd_evaluated_features = (
+    if config.run_long_form_abcd:
+      long_form_abcd_evaluated_features = (
           video_evaluation_service.video_evaluation_service.evaluate_features(
               config=config,
               video_uri=video_uri,
-              features_category=models.VideoFeatureCategory.FULL_ABCD,
+              features_category=models.VideoFeatureCategory.LONG_FORM_ABCD,
           )
       )
 
@@ -84,17 +108,17 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     video_assessment: models.VideoAssessment = models.VideoAssessment(
         brand_name=config.brand_name,
         video_uri=video_uri,
-        full_abcd_evaluated_features=full_abcd_evaluated_features,
+        long_form_abcd_evaluated_features=long_form_abcd_evaluated_features,
         shorts_evaluated_features=shorts_evaluated_features,
         config=config,
     )
 
     # Print assessments for Full ABCD and Shorts and store results
-    if len(full_abcd_evaluated_features) > 0:
+    if len(long_form_abcd_evaluated_features) > 0:
       generic_helpers.print_abcd_assessment(
           video_assessment.brand_name,
           video_assessment.video_uri,
-          full_abcd_evaluated_features,
+          long_form_abcd_evaluated_features,
       )
     else:
       logging.info(

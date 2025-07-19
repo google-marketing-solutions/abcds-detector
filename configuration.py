@@ -50,9 +50,10 @@ class Configuration:
     self.assessment_file: str = ""
     self.verbose: bool = True
     self.annotation_path: str = ""
-
     self.extract_brand_metadata = True
-    self.run_full_abcd: bool = True
+    self.use_annotations = False
+    self.use_llms = True
+    self.run_long_form_abcd: bool = True
     self.run_shorts: bool = True
     self.features_to_evaluate: list[str]  # list of feature ids to run
     self.creative_provider_type = CreativeProviderType.GCS  # GCS by default
@@ -87,8 +88,10 @@ class Configuration:
       bigquery_dataset: str,
       bigquery_table: str,
       assessment_file: str,
+      use_annotations: bool,
+      use_llms: bool,
       extract_brand_metadata: bool,
-      run_full_abcd: bool,
+      run_long_form_abcd: bool,
       run_shorts: bool,
       features_to_evaluate: list[str],
       creative_provider_type: CreativeProviderType,
@@ -118,7 +121,9 @@ class Configuration:
     self.bq_table_name = bigquery_table
     self.assessment_file = assessment_file
     self.extract_brand_metadata = extract_brand_metadata
-    self.run_full_abcd = run_full_abcd
+    self.use_annotations = use_annotations
+    self.use_llms = use_llms
+    self.run_long_form_abcd = run_long_form_abcd
     self.run_shorts = run_shorts
     self.verbose = verbose
     self.features_to_evaluate = features_to_evaluate

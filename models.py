@@ -7,7 +7,7 @@ from enum import Enum
 class VideoFeatureCategory(Enum):
   """Enum that represents video feature categories"""
 
-  FULL_ABCD = "FULL_ABCD"
+  LONG_FORM_ABCD = "LONG_FORM_ABCD"
   SHORTS = "SHORTS"
 
 
@@ -82,7 +82,7 @@ class VideoAssessment:
 
   brand_name: str
   video_uri: str
-  full_abcd_evaluated_features: list[FeatureEvaluation]
+  long_form_abcd_evaluated_features: list[FeatureEvaluation]
   shorts_evaluated_features: list[FeatureEvaluation]
   config: any  # TODO (ae) change this later
 

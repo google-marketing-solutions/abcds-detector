@@ -25,8 +25,11 @@ from models import (
     VideoFeature,
     VideoFeatureCategory,
 )
-from features_repository.full_abcd_features import get_full_abcd_feature_configs
+from features_repository.long_form_abcd_features import (
+    get_long_form_abcd_feature_configs,
+)
 from features_repository.shorts_features import get_shorts_feature_configs
+import models
 
 
 class FeaturesConfigsHandler:
@@ -42,12 +45,19 @@ class FeaturesConfigsHandler:
     """
     if category.value == VideoFeatureCategory.SHORTS.value:
       shorts_features = get_shorts_feature_configs()
+
       return shorts_features
-    elif category.value == VideoFeatureCategory.FULL_ABCD.value:
-      full_abcd_features = get_full_abcd_feature_configs()
-      return full_abcd_features
+    elif category.value == VideoFeatureCategory.LONG_FORM_ABCD.value:
+      long_form_abcd_features = get_long_form_abcd_feature_configs()
+
+      return long_form_abcd_features
     else:
       logging.log("Category %s not supported. Please check", category)
+
+  def change_evaluation_method_to_llms_only(self, features: list[VideoFeature]):
+    """Change features evaluation method to use LLMs"""
+    for feature in features:
+      feature.evaluation_method = models.EvaluationMethod.LLMS
 
   def get_features_by_category_by_group_config(
       self, category: VideoFeatureCategory
@@ -65,7 +75,9 @@ class FeaturesConfigsHandler:
     """Gets all feature configs for Full ABCD and Shorts"""
     feature_configs = []
     feature_configs.extend(
-        self.get_feature_configs_by_category(VideoFeatureCategory.FULL_ABCD)
+        self.get_feature_configs_by_category(
+            VideoFeatureCategory.LONG_FORM_ABCD
+        )
     )
     feature_configs.extend(
         self.get_feature_configs_by_category(VideoFeatureCategory.SHORTS)

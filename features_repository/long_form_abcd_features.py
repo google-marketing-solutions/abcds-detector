@@ -29,7 +29,7 @@ from models import (
 )
 
 
-def get_full_abcd_feature_configs() -> list[VideoFeature]:
+def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
   """Gets all the supported ABCD features
   Returns:
   feature_configs: list of feature configurations
@@ -38,7 +38,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="a_dynamic_start",
           name="Dynamic Start",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.ATTRACT,
           video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
           evaluation_criteria="""
@@ -70,7 +70,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="a_quick_pacing",
           name="Quick Pacing",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.ATTRACT,
           video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
           evaluation_criteria="""
@@ -108,7 +108,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="a_quick_pacing_1st_secs",
           name="Quick Pacing (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.ATTRACT,
           video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
           evaluation_criteria="""
@@ -143,7 +143,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="a_supers",
           name="Supers",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.ATTRACT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -171,7 +171,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="a_supers_with_audio",
           name="Supers with Audio",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.ATTRACT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -199,7 +199,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_brand_mention_speech",
           name="Brand Mention (Speech)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -223,7 +223,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_brand_mention_speech_1st_5_secs",
           name="Brand Mention (Speech) (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -251,7 +251,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_brand_visuals",
           name="Brand Visuals",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -279,7 +279,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_brand_visuals_1st_5_secs",
           name="Brand Visuals (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -307,7 +307,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_mention_speech",
           name="Product Mention (Speech)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -339,7 +339,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_mention_speech_1st_5_secs",
           name="Product Mention (Speech) (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -371,7 +371,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_mention_text",
           name="Product Mention (Text)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -395,7 +395,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_mention_text_1st_5_secs",
           name="Product Mention (Text) (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -422,7 +422,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_visuals",
           name="Product Visuals",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -450,7 +450,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="b_product_visuals_1st_5_secs",
           name="Product Visuals (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.BRAND,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -478,14 +478,14 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="c_overall_pacing",
           name="Overall Pacing",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.CONNECT,
           video_segment=VideoSegment.FULL_VIDEO,  # Use full video for annotations
           evaluation_criteria="""
-                The pace of the video is greater than 2 seconds per shot/frame.
+                The pace of the video is less than 2 seconds per shot/frame.
             """,
           prompt_template="""
-               Is the pace of video greater than 2 seconds per shot/frame?
+               Is the pace of video less than 2 seconds per shot/frame?
             """,
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}",
@@ -494,7 +494,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
                   " the question."
               ),
               (
-                  "Return True if and only if the pace of video greater than 2"
+                  "Return True if and only if the pace of video less than 2"
                   " seconds per shot/frame."
               ),
           ],
@@ -506,7 +506,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="c_presence_of_people",
           name="Presence of People",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.CONNECT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -535,7 +535,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="c_presence_of_people_1st_5_secs",
           name="Presence of People (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.CONNECT,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -564,7 +564,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="c_visible_face",
           name="Visible Face (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.CONNECT,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -590,7 +590,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="c_visible_face_close_up",
           name="Visible Face (Close Up)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.CONNECT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -618,7 +618,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="d_audio_speech_early_1st_5_secs",
           name="Audio Early (First 5 seconds)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.DIRECT,
           video_segment=VideoSegment.FIRST_5_SECS_VIDEO,
           evaluation_criteria="""
@@ -639,7 +639,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="d_call_to_action_speech",
           name="Call To Action (Speech)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.DIRECT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -664,7 +664,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="d_call_to_action_speech",
           name="Call To Action (Speech)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.DIRECT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
@@ -689,7 +689,7 @@ def get_full_abcd_feature_configs() -> list[VideoFeature]:
       VideoFeature(
           id="d_call_to_action_text",
           name="Call To Action (Text)",
-          category=VideoFeatureCategory.FULL_ABCD,
+          category=VideoFeatureCategory.LONG_FORM_ABCD,
           sub_category=VideoFeatureSubCategory.DIRECT,
           video_segment=VideoSegment.FULL_VIDEO,
           evaluation_criteria="""

@@ -444,7 +444,7 @@ def build_features_for_bq(
   """Builds features schema with values and default values for table in BQ"""
   assessment_bq = []
   evaluated_features = []
-  evaluated_features.extend(video_assessment.full_abcd_evaluated_features)
+  evaluated_features.extend(video_assessment.long_form_abcd_evaluated_features)
   evaluated_features.extend(video_assessment.shorts_evaluated_features)
   # Insert all feature configs first
   for eval_feature in evaluated_features:
@@ -493,7 +493,7 @@ def build_features_for_bq(
                 config.branded_products_categories
             ),
         }),
-        "config": str(config.__dict__)
+        "config": str(config.__dict__),
     })
   return assessment_bq
 

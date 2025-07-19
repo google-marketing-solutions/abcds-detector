@@ -44,7 +44,9 @@ def build_abcd_params_config(args: any) -> Configuration:
       bigquery_table=args.bigquery_table,
       assessment_file=args.assessment_file,
       extract_brand_metadata=args.extract_brand_metadata,
-      run_full_abcd=args.run_full_abcd,
+      use_annotations=args.use_annotations,
+      use_llms=args.use_llms,
+      run_long_form_abcd=args.run_long_form_abcd,
       run_shorts=args.run_shorts,
       features_to_evaluate=args.features_to_evaluate.split(","),
       creative_provider_type=args.creative_provider_type,
@@ -206,7 +208,21 @@ def parse_args(arg_list: list[str] | None = None) -> None:
       default=False,
   )
   parser.add_argument(
-      "-run_full_abcd",
+      "-use_annotations",
+      "-uan",
+      help="Use Annotations for the evaluation",
+      action="store_true",
+      default=False,
+  )
+  parser.add_argument(
+      "-use_llms",
+      "-ull",
+      help="Use LLMs for the evaluation",
+      action="store_true",
+      default=False,
+  )
+  parser.add_argument(
+      "-run_long_form_abcd",
       "-rfa",
       help="Run evaluation for Full ABCD features",
       action="store_true",
