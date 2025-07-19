@@ -49,7 +49,7 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     # Validate that creative provides match the video uris
     if (
         config.creative_provider_type == models.CreativeProviderType.GCS
-        and "gcs://" not in video_uri
+        and "gs://" not in video_uri
     ):
       logging.error(
           "The creative provider GCS does not match with the video uri"
