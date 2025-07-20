@@ -53,7 +53,7 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     ):
       logging.error(
           "The creative provider GCS does not match with the video uri"
-          f" {video_uri}. Stopping exection. Please check."
+          f" {video_uri}. Stopping execution. Please check."
       )
       break
 
@@ -63,7 +63,7 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     ):
       logging.error(
           "The creative provider YOUTUBE does not match with the video uri"
-          f" {video_uri}. Stopping exection. Please check."
+          f" {video_uri}. Stopping execution. Please check."
       )
       break
 

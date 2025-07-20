@@ -91,7 +91,7 @@ class VideoAssessment:
 class LLMParameters:
   """Class that represents the required params to make a prediction to the LLM"""
 
-  model_name: str = "gemini-2.5-pro-preview-05-06"
+  model_name: str = "gemini-2.5-pro"
   location: str = "us-central1"
   modality: dict = field(default_factory=lambda: {"type": "TEXT"})
   generation_config: dict = field(
