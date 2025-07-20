@@ -22,7 +22,7 @@
 
 
 from configuration import Configuration
-from gcp_api_services.gemini_api_service import get_gemini_api_service
+from gcp_api_services.gemini_api_service import get_gemini_api_service, LLMParameters
 from prompts.prompt_generator import prompt_generator
 from models import VIDEO_RESPONSE_SCHEMA, VIDEO_METADATA_RESPONSE_SCHEMA
 
@@ -48,8 +48,13 @@ class LLMDetector:
         evaluation_details.get("feature_configs"),
         config,
     )
+    # Create new object here to avoid race condition when executing in parallel
+    llm_params = LLMParameters()
+    llm_params.model_name = config.llm_params.model_name
+    llm_params.location = config.llm_params.location
+    llm_params.generation_config = config.llm_params.generation_config
     # Set modality for API
-    config.llm_params.set_modality(
+    llm_params.set_modality(
         {"type": "video", "video_uri": evaluation_details.get("video_uri")}
     )
     # Set the required schema for the LLM response
@@ -58,7 +63,7 @@ class LLMDetector:
     )
     evaluated_features = get_gemini_api_service(
         config
-    ).execute_gemini_with_genai(prompt_config, config.llm_params)
+    ).execute_gemini_with_genai(prompt_config, llm_params)
 
     if config.verbose:
       if len(evaluated_features) == 0:

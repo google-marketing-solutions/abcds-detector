@@ -114,7 +114,7 @@ class VideoEvaluationService:
             config,
             {
                 "category": features_category,
-                "group_by": f"{group_key}",
+                "group_by": f"{group_key} for video {uri}",
                 "video_uri": uri,
                 "feature_configs": (
                     feature_configs
