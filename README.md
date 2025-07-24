@@ -135,7 +135,7 @@ ABCDs Detector MVP supports a single video evaluation for the following features
   - Call To Action (Text)
   - Call To Action (Speech)
 
-For a definition for each of these signals please take a look at the [features.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/feature_configs/features.py) file.
+For a definition for each of these signals please take a look at the [long_form_abc_features.py](https://github.com/donaldseaton/abcds-detector/blob/main/features_repository/long_form_abcd_features.py) and [shorts_features.py](https://github.com/donaldseaton/abcds-detector/blob/main/features_repository/shorts_features.py) files.
 
 The final result of the assessment (Excellent, Might Improve or Needs Review) is defined in the [generics_helpers.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/helpers/generic_helpers.py?plain=1#L186) and can be customized based on preferences.
 
