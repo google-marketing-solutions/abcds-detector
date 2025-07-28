@@ -25,7 +25,7 @@ We're excited to announce major enhancements to the ABCDs Detector, significantl
 1.  **YouTube Shorts Evaluation:**
     *   Introducing **SHORTS evaluation**, specifically tailored for YouTube Shorts. This includes support for a dedicated set of features designed to evaluate the unique characteristics of short-form video content.
 
-    **New YouTube Shorts Evaluation Features**
+    **New YouTube Shorts Evaluation Features** (The availability and functionality of these features may be updated based on ongoing Google research.)
     *   **Shorts Production Style**
     *   **Shorts TV Ad Style**
     *   **Native Content Style (Low Adaptation)**
