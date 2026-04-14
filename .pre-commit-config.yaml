@@ -1,0 +1,112 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+repos:
+  # Google
+  - repo: https://github.com/google/pre-commit-tool-hooks
+    rev: v1.2.5
+    hooks:
+      - id: check-copyright
+        args:
+          - --custom_format
+          - '\.py$'
+          - ""
+          - "# "
+          - ""
+          - --custom_format
+          - '\.sql$'
+          - ""
+          - "-- "
+          - ""
+          - --skip_pattern
+          - .*\.md|.*\.config\.js|\.pylintrc|LICENSE|.*\.toml|\.gitignore|\.git|requirements\.txt
+      - id: check-google-doc-style
+      - id: check-links
+
+  # Miscellaneous
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+
+  # Python
+  - repo: https://github.com/google/pyink
+    rev: 24.10.0
+    hooks:
+      - id: pyink
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v3.3.1
+    hooks:
+      - id: pylint
+  - repo: https://github.com/google/pytype
+    rev: 2024.10.11
+    hooks:
+      - id: pytype
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.1
+    hooks:
+      - id: ruff
+      # - id: ruff-format
+  - repo: local
+    hooks:
+      - id: python-testing
+        name: Running Python tests
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Markdown
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.18
+    hooks:
+      - id: mdformat
+        args:
+          - --wrap=80
+        additional_dependencies:
+          - mdformat-ruff
+          - mdformat-gfm
+
+  # SQL
+  # - repo: https://github.com/sql-formatter-org/sql-formatter
+  #   rev: v15.4.5
+  #   hooks:
+  #     - id: sql-formatter
+
+  # Conventional Commits
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.30.0
+    hooks:
+      - id: commitizen
+
+  # TypeScript or JavaScript
+  # - repo: https://github.com/google/gts
+  #   rev: v6.0.0
+  #   hooks:
+  #     - id: gts
+  # - repo: local
+  #   hooks:
+  #     - id: typescript-testing
+  #       name: Running TypeScript tests
+  #       entry: npm run test
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true

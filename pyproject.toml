@@ -1,0 +1,134 @@
+[project]
+name = "<YOUR_PROJECT_NAME>"
+description = "<YOUR_PROJECT_DESCRIPTION>"
+version = "0.0.0"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "<YOUR_NAME>", email = "<YOUR_EMAIL>" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "commitizen",
+  "mdformat",
+  "mdformat-footnote",
+  "mdformat-frontmatter",
+  "mdformat-gfm",
+  "mdformat-gfm-alerts",
+  "mdformat-ruff",
+  "pre-commit",
+  "pyink",
+  "pylint",
+  "pytest",
+  "pytype",
+  "ruff",
+]
+
+[tool.pyink]
+line-length = 80
+pyink-indentation = 2
+pyink-use-majority-quotes = true
+unstable = true
+
+[tool.ruff]
+fix = true
+line-length = 80
+preview = true
+indent-width = 2
+target-version = "py311"
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+
+[tool.ruff.lint]
+preview = true
+extend-select = [
+  # "I001",    # isort
+  "D419",    # empty-docstring
+  "E501",    # line-too-long
+  "W291",    # trailing-whitespace
+  "PLC0414", # useless-import-alias
+  "PLC2401", # non-ascii-name
+  "PLC2801", # unnecessary-dunder-call
+  "PLC3002", # unnecessary-direct-lambda-call
+  # "E999",    # syntax-error
+  "PLE0101", # return-in-init
+  "F706",    # return-outside-function
+  "F704",    # yield-outside-function
+  "PLE0115", # nonlocal-and-global
+  "PLE0116", # continue-in-finally
+  "PLE0117", # nonlocal-without-binding
+  "PLE0241", # duplicate-bases
+  "PLE0302", # unexpected-special-method-signature
+  "PLE0604", # invalid-all-object
+  "PLE0605", # invalid-all-format
+  "PLE0643", # potential-index-error
+  "PLE0704", # misplaced-bare-raise
+  "PLE1141", # dict-iter-missing-items
+  "PLE1142", # await-outside-async
+  "PLE1205", # logging-too-many-args
+  "PLE1206", # logging-too-few-args
+  "PLE1307", # bad-string-format-type
+  "PLE1310", # bad-str-strip-call
+  "PLE1507", # invalid-envvar-value
+  "PLE1519", # singledispatch-method
+  "PLE1520", # singledispatchmethod-function
+  "PLE2502", # bidirectional-unicode
+  "PLE2510", # invalid-character-backspace
+  "PLE2512", # invalid-character-sub
+  "PLE2513", # invalid-character-esc
+  "PLE2514", # invalid-character-nul
+  "PLE2515", # invalid-character-zero-width-space
+  "PLE4703", # modified-iterating-set
+  "PLW0108", # unnecessary-lambda
+  "PLW0127", # self-assigning-variable
+  "PLW0128", # redeclared-assigned-name
+  "PLW0129", # assert-on-string-literal
+  "B033",    # duplicate-value
+  "PLW0131", # named-expr-without-context
+  "PLW0177", # nan-comparison
+  "PLW0211", # bad-staticmethod-argument
+  "PLW0245", # super-without-brackets
+  "PLW0602", # global-variable-not-assigned
+  "PLW0604", # global-at-module-level
+  "F401",    # unused-import
+  "F841",    # unused-variable
+  "E722",    # bare-except
+  "PLW0711", # binary-op-exception
+  "PLW1501", # bad-open-mode
+  "PLW1508", # invalid-envvar-default
+  "PLW1509", # subprocess-popen-preexec-fn
+  "PLW1514", # unspecified-encoding
+  "PLW2101", # useless-with-lock
+  "PLW3301", # nested-min-max
+]
+
+ignore = [
+  "PLR0124", # comparison-with-itself
+  "PLR0202", # no-classmethod-decorator
+  "PLR0203", # no-staticmethod-decorator
+  "UP004",   # useless-object-inheritance
+  "PLR0206", # property-with-parameters
+  "PLR0904", # too-many-public-methods
+  "PLR0911", # too-many-return-statements
+  "PLR0912", # too-many-branches
+  "PLR0913", # too-many-arguments
+  "PLR0914", # too-many-locals
+  "PLR0915", # too-many-statements
+  "PLR0916", # too-many-boolean-expressions
+  "PLR0917", # too-many-positional-arguments
+  "PLR1702", # too-many-nested-blocks
+  "PLR1704", # redefined-argument-from-local
+  "PLR1711", # useless-return
+  "C416",    # unnecessary-comprehension
+  "PLR1733", # unnecessary-dict-index-lookup
+  "PLR1736", # unnecessary-list-index-lookup
+  "PLW0120", # useless-else-on-loop
+  "PLW0406", # import-self
+  "PLW0603", # global-statement
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
