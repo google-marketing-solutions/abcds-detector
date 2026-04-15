@@ -23,33 +23,29 @@ We're excited to announce major enhancements to the ABCDs Detector, significantl
 ### What's New:
 
 1.  **YouTube Shorts Evaluation with Research-Backed Top 20 Features:**
-    *   Introducing SHORTS evaluation, specifically tailored for YouTube Shorts. Advanced research has identified the top 20 creative attributes that explain 80% of video performance variation, enabling more efficient creative optimization.
+    *  Introducing SHORTS evaluation, specifically tailored for YouTube Shorts. Advanced research has identified the top 20 creative attributes that explain video performance variation, enabling more efficient creative optimization.
 
-    *   Research Foundation: Based on extensive analysis of YouTube video performance, the framework has been distilled to focus on the top 20 features by average percentage point impact. By implementing at least eight of these top practices (each representing 40% of attributes), marketers can achieve up to 2.2x increase in creative execution efficiency.
-
-    ![Figure 4: Top 20 Features by average percentage point impact on YouTube Video Performance](./features_repository/shorts_feature.png)
-
-    **Top 20 YouTube Shorts Evaluation Features (by effectiveness):**
-    1. **Product Context (2.65)** - Shows product in realistic use
-    2. **Relevant Call-to-Action (2.58)** - Clear CTA in audio/speech
-    3. **Call to Action (Text) (2.55)** - CTA displayed as on-screen text
-    4. **Sound Effects (2.27)** - Strategic audio enhancements
-    5. **Heartbeat Story Arc (2.25)** - Compelling moments that capture attention early
-    6. **Delight (2.20)** - Creates surprising moments of joy/humor
-    7. **Large Supers (1.92)** - Text overlays matching/supporting audio
-    8. **Emotions (1.67)** - Evokes emotional connection
-    9. **Path to Purchase (1.53)** - Shows how/where to buy
-    10. **Purchase Incentive (1.44)** - Limited time/quantity offers
-    11. **Character-Driven (1.31)** - Relatable character journey
-    12. **Special Offer (Speech) (1.11)** - Discount announced in audio
-    13. **Supers (Audio See & Say) (1.10)** - Synchronized text/audio captions
-    14. **Supers (Audio Augmenting) (0.89)** - Text adds information not in audio
-    15. **Focused Messaging (0.84)** - Single clear core message
-    16. **Jingle (0.77)** - Memorable brand sonic signature
-    17. **Special Offer (Text) (0.75)** - Discount displayed as text
-    18. **Direct to Camera (0.74)** - Direct eye contact with viewer
-    19. **High Contrast Visuals (0.71)** - Strong visual contrast
-    20. **Product Mention (Speech) (0.68)** - Product/brand name verbal mention
+    **Top 20 YouTube Shorts Evaluation Features:**
+    1. **Tight Framing & Visual Dominance** - Quantifies spatial dominance of the primary subject (≥60% of frame).
+    2. **Human Voice Presence** - Quantifies the presence, duration, and quality of human speech.
+    3. **Direct to Camera** - Quantifies the duration and intensity of direct eye contact with the lens.
+    4. **Supers & Text-Audio Synchronicity** - Quantifies presence and synchronization of text overlays with spoken audio.
+    5. **Product Close-Up** - Quantifies segments where the product occupies at least 30% of the frame.
+    6. **Product Extreme Close-Up** - Quantifies segments where the product occupies 60% or more of the frame.
+    7. **Product Context & Usage Quality** - Evaluates physical interaction and authentic utility demonstration.
+    8. **Casual Language** - Quantifies script informality, everyday language, and conversational filler.
+    9. **Humor & Comedic Timing** - Detects attempts at humor, physical comedy, satire, or comedic timing.
+    10. **Character-Driven** - Evaluates a relatable character whose journey resonates with the audience.
+    11. **Call to Action (Audio)** - Detects spoken instructions that direct the viewer to take action.
+    12. **Special Offer (Speech)** - Detects audio announcements of a special offer, discount, or deal.
+    13. **Production Style** - Quantifies 'Lo-Fi' aesthetics and User Generated Content (UGC) authenticity.
+    14. **SFV Native Adaptation** - Measures how effectively the video mimics organic social content.
+    15. **Emoji Usage** - Detects intentional, creative use of emojis, stickers, and animated effects.
+    16. **Direct to Camera Character Talk** - Evaluates the intimacy and continuity of direct lens address.
+    17. **Brand Secondary Element** - Evaluates if the brand feels like a natural, secondary part of the environment.
+    18. **Everyday Persona Validation** - Verifies the video is led by an authentic, relatable 'everyday person'.
+    19. **Secondary Product Context** - Evaluates if the product appears naturally as a secondary element.
+    20. **Vertical Format Designed For Mobile** - Verifies 9:16 portrait optimization and detects letter/pillarboxing.
 
 2.  **Direct YouTube URL Support:**
     *   You can now directly provide **YouTube URLs** for evaluation. This is applicable for public YouTube videos or videos from channels where the user is the owner.
