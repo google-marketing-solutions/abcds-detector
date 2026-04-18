@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -134,6 +136,8 @@ class GeminiAPIService:
           )
           # Raise exception for non-retriable errors
           raise
+    # All retries exhausted — return empty result instead of None
+    return []
 
   def execute_gemini_pro(
       self, config: Configuration, prompt: str, params: LLMParameters
@@ -234,9 +238,10 @@ class GeminiAPIService:
         modality_params: list of modality params based on the model capability to use
     """
     if params.modality["type"] == "video":
-      mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
+      video_uri = params.modality["video_uri"]
+      mime_type = self._resolve_video_mime_type(video_uri)
       video = types.Part.from_uri(
-          file_uri=params.modality["video_uri"], mime_type=mime_type
+          file_uri=video_uri, mime_type=mime_type
       )
       return [
           types.Content(
@@ -250,6 +255,25 @@ class GeminiAPIService:
 
     return []
 
+  @staticmethod
+  def _resolve_video_mime_type(video_uri: str) -> str:
+    """Derive MIME type from a video URI.
+
+    YouTube URLs have no file extension, so default to video/mp4.
+    For GCS / file URIs, extract the extension from the path.
+    """
+    if "youtube.com" in video_uri or "youtu.be" in video_uri:
+      return "video/mp4"
+    ext = video_uri.rsplit(".", 1)[-1].lower().split("?")[0]
+    mime_map = {
+        "mp4": "video/mp4",
+        "mov": "video/quicktime",
+        "avi": "video/x-msvideo",
+        "webm": "video/webm",
+        "mkv": "video/x-matroska",
+    }
+    return mime_map.get(ext, f"video/{ext}")
+
   def _get_modality_params(
       self, prompt: str, params: LLMParameters
   ) -> list[any]:
@@ -261,9 +285,10 @@ class GeminiAPIService:
         modality_params: list of modality params based on the model capability to use
     """
     if params.modality["type"] == "video":
-      mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
+      video_uri = params.modality["video_uri"]
+      mime_type = self._resolve_video_mime_type(video_uri)
       video = Part.from_uri(
-          uri=params.modality["video_uri"], mime_type=mime_type
+          uri=video_uri, mime_type=mime_type
       )
       return [video, prompt]
     elif params.modality["type"] == "text":

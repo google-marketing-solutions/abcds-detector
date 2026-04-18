@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -31,6 +33,7 @@ from configuration import Configuration
 from creative_providers import creative_provider_proto
 from creative_providers import creative_provider_registry
 from evaluation_services import video_evaluation_service
+from evaluation_services import confidence_calibration_service
 
 
 def execute_abcd_assessment_for_videos(config: Configuration):
@@ -86,6 +89,7 @@ def execute_abcd_assessment_for_videos(config: Configuration):
     # Execute ABCD Assessment
     long_form_abcd_evaluated_features: models.FeatureEvaluation = []
     shorts_evaluated_features: models.FeatureEvaluation = []
+    creative_intelligence_evaluated_features: models.FeatureEvaluation = []
 
     if config.run_long_form_abcd:
       long_form_abcd_evaluated_features = (
@@ -105,11 +109,21 @@ def execute_abcd_assessment_for_videos(config: Configuration):
           )
       )
 
+    if config.run_creative_intelligence:
+      creative_intelligence_evaluated_features = (
+          video_evaluation_service.video_evaluation_service.evaluate_features(
+              config=config,
+              video_uri=video_uri,
+              features_category=models.VideoFeatureCategory.CREATIVE_INTELLIGENCE,
+          )
+      )
+
     video_assessment: models.VideoAssessment = models.VideoAssessment(
         brand_name=config.brand_name,
         video_uri=video_uri,
         long_form_abcd_evaluated_features=long_form_abcd_evaluated_features,
         shorts_evaluated_features=shorts_evaluated_features,
+        creative_intelligence_evaluated_features=creative_intelligence_evaluated_features,
         config=config,
     )
 
@@ -134,9 +148,33 @@ def execute_abcd_assessment_for_videos(config: Configuration):
       logging.info(
           "There are not Shorts evaluated features results to display."
       )
+    if len(creative_intelligence_evaluated_features) > 0:
+      generic_helpers.print_creative_intelligence_assessment(
+          video_assessment.brand_name,
+          video_assessment.video_uri,
+          creative_intelligence_evaluated_features,
+      )
+    else:
+      logging.info(
+          "There are not Creative Intelligence evaluated features results to display."
+      )
 
     if config.bq_table_name:
       generic_helpers.store_in_bq(config, video_assessment)
+
+    # Log confidence calibration data for Feature J
+    if config.bq_dataset_name:
+      all_evaluated = (
+          long_form_abcd_evaluated_features
+          + shorts_evaluated_features
+          + creative_intelligence_evaluated_features
+      )
+      confidence_calibration_service.log_evaluation_confidence(
+          config.project_id,
+          config.bq_dataset_name,
+          video_uri,
+          all_evaluated,
+      )
 
     # Remove local version of video files
     generic_helpers.remove_local_video_files()

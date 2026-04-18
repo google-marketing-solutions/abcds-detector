@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+tests/
+uploads/
+data/
+*.ipynb
+*.md
+LICENSE
+pyproject.toml
+.ruff_cache/
+.pytest_cache/
+.env
+.env.example

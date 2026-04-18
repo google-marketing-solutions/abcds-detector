@@ -23,11 +23,14 @@
 import os
 from models import CreativeProviderType, LLMParameters
 
-FFMPEG_BUFFER = "reduced/buffer.mp4"
-FFMPEG_BUFFER_REDUCED = "reduced/buffer_reduced.mp4"
+# Use /tmp for temporary video files (Cloud Run ephemeral filesystem)
+_TMP_DIR = os.environ.get("TMPDIR", "/tmp")
+_REDUCED_DIR = os.path.join(_TMP_DIR, "cr_reduced")
 
-if not os.path.exists("reduced"):
-  os.makedirs("reduced")
+FFMPEG_BUFFER = os.path.join(_REDUCED_DIR, "buffer.mp4")
+FFMPEG_BUFFER_REDUCED = os.path.join(_REDUCED_DIR, "buffer_reduced.mp4")
+
+os.makedirs(_REDUCED_DIR, exist_ok=True)
 
 
 class Configuration:
@@ -55,6 +58,7 @@ class Configuration:
     self.use_llms = True
     self.run_long_form_abcd: bool = True
     self.run_shorts: bool = True
+    self.run_creative_intelligence: bool = True
     self.features_to_evaluate: list[str]  # list of feature ids to run
     self.creative_provider_type = CreativeProviderType.GCS  # GCS by default
 
@@ -93,6 +97,7 @@ class Configuration:
       extract_brand_metadata: bool,
       run_long_form_abcd: bool,
       run_shorts: bool,
+      run_creative_intelligence: bool,
       features_to_evaluate: list[str],
       creative_provider_type: CreativeProviderType,
       verbose: bool,
@@ -125,6 +130,7 @@ class Configuration:
     self.use_llms = use_llms
     self.run_long_form_abcd = run_long_form_abcd
     self.run_shorts = run_shorts
+    self.run_creative_intelligence = run_creative_intelligence
     self.verbose = verbose
     self.features_to_evaluate = features_to_evaluate
 

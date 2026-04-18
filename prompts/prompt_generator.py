@@ -73,6 +73,21 @@ class PromptGenerator:
             Your explanation must cite specific visual or auditory evidence from the video.
             Use timestamps (e.g., "from 0:15 to 0:22," "at 0:08") whenever possible to support your claims.
             The explanation should be a simple string, without any special characters or formatting beyond standard punctuation.
+            - Structured Timestamps: For each feature, provide a `timestamps` array listing every time range
+            where the feature is observed or relevant. Each entry must have:
+              - `start` (string, M:SS format, e.g., "0:03")
+              - `end` (string, M:SS format, e.g., "0:08")
+              - `label` (string, brief description of what occurs in that range)
+            If a feature is detected, include at least one timestamp entry showing where it appears.
+            If a feature is not detected, the timestamps array may be empty or include ranges where it was expected but absent.
+            - Actionable Recommendation: For each feature, provide a specific, actionable recommendation:
+              - `recommendation` (string, 1-2 sentences): If the feature is NOT detected (fail), describe the
+                exact change needed in the creative to pass this feature. Be specific — reference timestamps,
+                elements, or techniques. If the feature IS detected (pass), suggest a concrete optimization
+                to make it even stronger.
+              - `recommendation_priority` (string, one of: "high", "medium", "low"): Estimate the performance
+                impact of implementing this recommendation. Use "high" for features that directly affect
+                conversion or retention, "medium" for brand/trust features, "low" for nice-to-haves.
             - Construct Final Output: Assemble all answers and explanations into the specified JSON format.
             - Feature ID Handling: CRITICAL REQUIREMENT
             The value for the feature id "id" key MUST be an exact, case-sensitive copy of the Feature ID provided in the input prompt.

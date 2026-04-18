@@ -1,0 +1,80 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: abcds-detector-488021
+  REGION: us-central1
+  SERVICE_NAME: creative-reviewer
+  REPOSITORY: creative-reviewer
+  IMAGE: us-central1-docker.pkg.dev/abcds-detector-488021/creative-reviewer/app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag "${{ env.IMAGE }}:${{ github.sha }}" \
+            --tag "${{ env.IMAGE }}:latest" \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ env.IMAGE }}:${{ github.sha }}"
+          docker push "${{ env.IMAGE }}:latest"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "${{ env.IMAGE }}:${{ github.sha }}" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --cpu 4 \
+            --memory 4Gi \
+            --concurrency 4 \
+            --min-instances 1 \
+            --max-instances 10 \
+            --timeout 300 \
+            --set-env-vars "ENVIRONMENT=production,PUBLIC_BASE_URL=${{ secrets.PUBLIC_BASE_URL }}" \
+            --set-secrets "\
+              SESSION_SECRET=SESSION_SECRET:latest,\
+              GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,\
+              GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,\
+              STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,\
+              STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,\
+              STRIPE_PRICE_1000=STRIPE_PRICE_1000:latest,\
+              STRIPE_PRICE_3000=STRIPE_PRICE_3000:latest,\
+              DATABASE_URL=DATABASE_URL:latest,\
+              ABCD_KG_API_KEY=ABCD_KG_API_KEY:latest,\
+              SLACK_WEBHOOK_URL=SLACK_WEBHOOK_URL:latest" \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Show deployment URL
+        run: |
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)'

@@ -1,0 +1,20 @@
+# Ignore files when deploying to Cloud Run / GCP
+.env
+.env.example
+.git/
+.gitignore
+.gcloudignore
+.venv/
+__pycache__/
+*.pyc
+tests/
+data/
+uploads/
+*.ipynb
+*.md
+LICENSE
+pyproject.toml
+.ruff_cache/
+.pytest_cache/
+.pre-commit-config.yaml
+seed_renders.py
