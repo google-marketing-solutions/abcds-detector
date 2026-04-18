@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Creative Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #021A20; --surface: #04272F; --surface2: #083640; --border: #0D4A55;
+    --text: #e0e0e0; --text2: #8aa8b0; --accent: #831F80; --green: #34d399;
+    --yellow: #fbbf24; --red: #f87171; --purple: #0A6D86;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header span { color: var(--text2); font-size: 14px; }
+
+  /* Layout */
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+  /* Upload area */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 48px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface); margin-bottom: 24px;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--surface2); }
+  .upload-zone h2 { font-size: 18px; margin-bottom: 8px; }
+  .upload-zone p { color: var(--text2); font-size: 14px; }
+  .upload-zone input { display: none; }
+
+  /* Options */
+  .options { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+  .toggle { display: flex; align-items: center; gap: 8px; background: var(--surface); padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-size: 14px; }
+  .toggle input { accent-color: var(--accent); }
+  .btn {
+    padding: 10px 24px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status */
+  .status { padding: 16px; border-radius: 8px; margin-bottom: 24px; font-size: 14px; display: none; }
+  .status.info { display: block; background: #1e293b; border: 1px solid #334155; color: var(--accent); }
+  .status.success { display: block; background: #052e16; border: 1px solid #166534; color: var(--green); }
+  .status.error { display: block; background: #2a0a0a; border: 1px solid #7f1d1d; color: var(--red); }
+  .status .step-label { font-weight: 500; }
+  .status .step-detail { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-top: 10px; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; background: var(--accent); border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* Results */
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  /* Score cards */
+  .score-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .score-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; text-align: center;
+  }
+  .score-card .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 8px; }
+  .score-card .value { font-size: 36px; font-weight: 700; }
+  .score-card .sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .score-excellent { color: var(--green); }
+  .score-improve { color: var(--yellow); }
+  .score-review { color: var(--red); }
+
+  /* Feature sections */
+  .section { margin-bottom: 32px; }
+  .section h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* Feature list */
+  .feature {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .feature:hover { border-color: #444; }
+  .feature-header { display: flex; align-items: center; gap: 10px; }
+  .feature-icon { font-size: 16px; flex-shrink: 0; }
+  .feature-name { font-size: 14px; font-weight: 500; flex: 1; }
+  .feature-confidence { font-size: 12px; color: var(--text2); }
+  .feature-details { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.6; }
+  .feature-details.open { display: block; }
+  .detail-label { color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-text { color: var(--text2); margin-bottom: 8px; }
+
+  /* Structure card */
+  .structure-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px;
+  }
+  .archetype-tag {
+    display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 20px; font-size: 13px; margin: 4px;
+    color: var(--purple);
+  }
+
+  /* Scene cards */
+  .scene-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .scene-card {
+    flex: 1 1 260px; max-width: 320px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; transition: border-color 0.2s;
+  }
+  .scene-card:hover { border-color: #444; }
+  .scene-card img { width: 100%; max-height: 160px; object-fit: cover; display: block; }
+  .scene-card .scene-body { padding: 14px; }
+  .scene-card .scene-ts { font-size: 11px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .scene-card .scene-desc { font-size: 13px; line-height: 1.5; color: var(--text); }
+  .scene-card .scene-transcript { margin-top: 8px; font-size: 12px; color: var(--text2); font-style: italic; }
+
+  /* Volume chart */
+  .vol-chart { display: flex; align-items: flex-end; gap: 3px; height: 140px; padding: 12px 0; }
+  .vol-bar-wrap { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 24px; max-width: 52px; }
+  .vol-bar {
+    width: 100%; border-radius: 4px 4px 0 0; min-height: 2px;
+    background: var(--accent); transition: height 0.3s;
+  }
+  .vol-bar.flagged { background: var(--red); box-shadow: 0 0 0 2px rgba(248,113,113,0.3); }
+  .vol-label { font-size: 10px; color: var(--text2); margin-top: 4px; }
+  .vol-value { font-size: 9px; color: var(--text2); margin-bottom: 2px; }
+  .vol-value.flagged { color: var(--red); font-weight: 700; }
+  .vol-alert {
+    margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12px;
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red);
+  }
+
+  /* Executive Summary */
+  .exec-summary {
+    background: var(--surface); border-left: 4px solid var(--purple); border-radius: 8px;
+    padding: 20px 24px; margin-bottom: 24px;
+  }
+  .exec-summary h3 { font-size: 15px; font-weight: 700; color: var(--purple); margin-bottom: 10px; border: none; padding: 0; }
+  .exec-summary ul { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.7; color: var(--text); }
+  .exec-summary li { margin-bottom: 6px; }
+
+  /* Action Plan */
+  .action-item {
+    padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: start;
+  }
+  .action-item:last-child { border-bottom: none; }
+  .action-icon { font-size: 14px; flex-shrink: 0; }
+  .action-body { flex: 1; }
+  .action-name { font-weight: 600; font-size: 12px; color: var(--text); }
+  .action-priority { font-size: 10px; font-weight: 700; text-transform: uppercase; margin-left: 6px; }
+  .action-rec { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+
+  /* Emotion / music pills */
+  .emotion-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 600; margin-top: 6px;
+  }
+  .music-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 10px; font-weight: 600; margin-left: 4px;
+  }
+
+  /* Platform cards */
+  .platform-grid { display: flex; gap: 14px; flex-wrap: wrap; }
+  .platform-card {
+    flex: 1; min-width: 160px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; border-top: 3px solid var(--accent);
+  }
+  .platform-card .plat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 6px; }
+  .platform-card .plat-score { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .platform-card .plat-sub { font-size: 11px; color: var(--text2); }
+  .platform-card ul { padding-left: 16px; margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--text2); }
+
+  /* Reference Ads */
+  .ref-ad-card {
+    flex: 1; min-width: 240px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .ref-ad-name { font-size: 14px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+  .ref-ad-meta { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .ref-ad-why { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
+  .ref-ad-badges { display: flex; gap: 8px; font-size: 11px; }
+  .ref-ad-badge { padding: 2px 8px; border-radius: 8px; }
+
+  /* Accessibility */
+  .acc-feature-row {
+    display: flex; align-items: start; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .acc-feature-row:last-child { border-bottom: none; }
+  .acc-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
+  .acc-body { flex: 1; }
+  .acc-remediation {
+    margin-top: 8px; padding: 8px 12px; border-left: 3px solid var(--yellow);
+    border-radius: 4px; font-size: 12px; color: var(--text); background: var(--surface2);
+  }
+
+  /* Percentile badge */
+  .pct-badge { font-size: 10px; margin-top: 4px; }
+
+  /* Example gallery */
+  .examples-section { margin-top: 48px; text-align: center; }
+  .examples-section h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .examples-section .examples-sub { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+  .examples-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;
+    text-align: left; max-width: 1100px; margin: 0 auto;
+  }
+  .example-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; transition: border-color 0.2s, transform 0.2s; cursor: pointer;
+  }
+  .example-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .example-card .thumb-wrap {
+    position: relative; width: 100%; padding-bottom: 56.25%; background: #000; overflow: hidden;
+  }
+  .example-card .thumb-wrap img {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .example-card .play-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.2s;
+  }
+  .example-card:hover .play-overlay { opacity: 1; }
+  .play-overlay svg { width: 48px; height: 48px; fill: #fff; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+  .example-card .card-body { padding: 14px; }
+  .example-card .card-brand { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .example-card .card-scores {
+    display: flex; gap: 12px; font-size: 12px; color: var(--text2); margin-top: 8px;
+  }
+  .example-card .card-scores .score-chip {
+    padding: 2px 8px; border-radius: 8px; font-weight: 600;
+  }
+  .example-card .card-link {
+    display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600;
+    color: var(--accent); text-decoration: none;
+  }
+  .example-card .card-link:hover { text-decoration: underline; }
+
+  /* Emotional Arc chart */
+  .emo-arc-chart { overflow-x: auto; }
+
+  /* Loading spinner */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* File info */
+  .file-info { display: flex; align-items: center; gap: 12px; background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+  .file-info .name { flex: 1; }
+  .file-info .size { color: var(--text2); }
+  .file-info .remove { color: var(--red); cursor: pointer; font-size: 18px; }
+
+  /* Divider */
+  .divider { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; color: var(--text2); font-size: 13px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* URL input */
+  .url-input-row { display: flex; gap: 8px; margin-bottom: 24px; }
+  .url-input {
+    flex: 1; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 14px; outline: none;
+  }
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: #555; }
+
+  /* Action bar */
+  .action-bar {
+    display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;
+  }
+  .btn-secondary {
+    padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-secondary .icon { font-size: 15px; }
+  .copied-toast {
+    padding: 4px 12px; border-radius: 6px; background: var(--green); color: #000;
+    font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.3s;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  /* Login screen */
+  .login-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 60vh; text-align: center;
+  }
+  .login-screen h2 { font-size: 28px; margin-bottom: 8px; }
+  .login-screen p { color: var(--text2); font-size: 15px; margin-bottom: 32px; }
+  .login-screen .login-error { color: var(--red); font-size: 13px; margin-bottom: 16px; }
+  .login-screen .login-success { color: var(--green); font-size: 13px; margin-bottom: 16px; }
+  .btn-google {
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 14px 32px; border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; color: #333; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  .btn-google:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+  .btn-google svg { width: 20px; height: 20px; }
+
+  /* Email/password form */
+  .login-divider {
+    display: flex; align-items: center; gap: 12px; margin: 24px 0;
+    color: var(--text2); font-size: 13px; width: 100%; max-width: 360px;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .email-form {
+    display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px;
+  }
+  .email-form input {
+    padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 14px; outline: none;
+    width: 100%; box-sizing: border-box;
+  }
+  .email-form input:focus { border-color: var(--accent); }
+  .email-form input::placeholder { color: #555; }
+  .btn-email {
+    padding: 14px 32px; border-radius: 8px; border: none;
+    background: var(--accent); color: #000; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; width: 100%;
+  }
+  .btn-email:hover { opacity: 0.9; }
+  .btn-email:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-toggle {
+    font-size: 13px; color: var(--text2); margin-top: 8px;
+  }
+  .login-toggle a {
+    color: var(--accent); cursor: pointer; text-decoration: underline;
+  }
+
+  /* User bar */
+  .user-bar {
+    display: flex; align-items: center; gap: 12px; margin-left: auto;
+  }
+  .user-bar .user-email { font-size: 13px; color: var(--text2); transition: color 0.2s; }
+  .user-bar .user-email:hover { color: var(--accent); }
+  .user-bar .user-credits {
+    font-size: 13px; font-weight: 600; color: var(--green);
+    background: rgba(52,211,153,0.1); padding: 4px 12px; border-radius: 20px;
+  }
+  .user-bar .btn-logout {
+    font-size: 12px; color: var(--text2); background: none; border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .user-bar .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* Paywall modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 32px; max-width: 440px; width: 90%; text-align: center;
+  }
+  .modal h3 { font-size: 20px; margin-bottom: 8px; }
+  .modal p { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+  .pack-options { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .pack-card {
+    flex: 1; min-width: 160px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s;
+  }
+  .pack-card:hover { border-color: var(--accent); }
+  .pack-card .pack-tokens { font-size: 24px; font-weight: 700; color: var(--green); }
+  .pack-card .pack-price { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .modal-close {
+    margin-top: 16px; font-size: 13px; color: var(--text2); cursor: pointer;
+    background: none; border: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI Creative Review</h1>
+  <span>Creative Intelligence Platform</span>
+  <div class="user-bar" id="userBar" style="display:none">
+    <a href="/billing" class="user-email" id="userEmail" style="text-decoration:none;cursor:pointer"></a>
+    <a href="/billing" class="user-credits" id="userCredits" style="text-decoration:none;cursor:pointer"></a>
+    <button class="btn-logout" id="btnLogout">Logout</button>
+  </div>
+</div>
+
+<!-- Login screen -->
+<div class="container login-screen" id="loginScreen" style="display:none">
+  <h2>Welcome to AI Creative Review</h2>
+  <p>Sign in to get started with creative analysis.</p>
+  <div class="login-error" id="loginError" style="display:none"></div>
+  <div class="login-success" id="loginSuccess" style="display:none"></div>
+  <a href="/auth/login" class="btn-google" id="btnGoogle" style="display:none">
+    <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+    Continue with Google
+  </a>
+  <div class="login-divider" id="loginDivider" style="display:none">or</div>
+  <form class="email-form" id="emailForm" onsubmit="return false" style="margin-bottom:0">
+    <input type="email" id="loginEmail" placeholder="Email address" required>
+    <input type="password" id="loginPassword" placeholder="Password (min 8 characters)" required minlength="8">
+    <button type="submit" class="btn-email" id="btnEmailSubmit">Sign In</button>
+    <div class="login-toggle" id="loginToggle">
+      Don't have an account? <a onclick="toggleAuthMode()">Create one</a>
+    </div>
+    <div class="login-toggle"><a onclick="showForgotPassword()">Forgot password?</a></div>
+  </form>
+  <!-- Forgot password view -->
+  <form class="email-form" id="forgotForm" style="display:none" onsubmit="return false">
+    <p style="color: var(--text2); font-size: 14px; margin: 0 0 8px;">Enter your email and we'll send a reset link.</p>
+    <input type="email" id="forgotEmail" placeholder="Email address" required>
+    <button type="submit" class="btn-email" id="btnForgotSubmit">Send Reset Link</button>
+    <div class="login-toggle"><a onclick="hideForgotPassword()">Back to sign in</a></div>
+  </form>
+
+  <!-- Example Videos Gallery -->
+  <div class="examples-section" id="examplesGallery">
+    <h3>Example Reports</h3>
+    <p class="examples-sub">See how AI Creative Review analyzes real video ads</p>
+    <div class="examples-grid" id="examplesGrid"></div>
+  </div>
+</div>
+
+<!-- Paywall modal -->
+<div class="modal-overlay" id="paywallModal">
+  <div class="modal">
+    <h3>Insufficient Credits</h3>
+    <p id="paywallMsg">You need more tokens to process this video.</p>
+    <div class="pack-options" id="packOptions"></div>
+    <button class="modal-close" id="paywallClose">Cancel</button>
+  </div>
+</div>
+
+<div class="container" id="appContainer" style="display:none">
+  <!-- Upload -->
+  <div class="upload-zone" id="dropZone">
+    <h2>Drop video here or click to upload</h2>
+    <p>Supports .mp4 files up to 32MB, max 60 seconds (10 tokens/sec)</p>
+    <input type="file" id="fileInput" accept="video/mp4,.mp4">
+  </div>
+
+  <!-- File info -->
+  <div class="file-info" id="fileInfo" style="display:none">
+    <span class="name" id="fileName"></span>
+    <span class="size" id="fileSize"></span>
+    <span class="remove" id="fileRemove">&times;</span>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider">or paste a video URL</div>
+
+  <!-- URL input -->
+  <div class="url-input-row">
+    <input type="text" class="url-input" id="urlInput" placeholder="gs://bucket/video.mp4 or https://www.youtube.com/watch?v=...">
+    <button class="btn btn-primary" id="btnUseUrl" style="white-space:nowrap">Use URL</button>
+  </div>
+
+  <!-- A/B Comparison: additional variant URL -->
+  <div id="compareSection" style="display:none;margin-top:8px">
+    <div class="url-input-row">
+      <input type="text" class="url-input" id="urlInputB" placeholder="Variant B URL (gs:// or YouTube)">
+      <button class="btn" id="btnRemoveVariant" style="white-space:nowrap;background:#dc2626;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer" title="Remove variant">&times;</button>
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="btn" id="btnAddVariant" style="background:none;color:var(--accent);border:1px dashed var(--accent);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px">+ Add variant for A/B comparison</button>
+  </div>
+
+  <!-- Options -->
+  <div class="options">
+    <label class="toggle"><input type="checkbox" id="optAbcd" checked> ABCD Framework</label>
+    <label class="toggle"><input type="checkbox" id="optCI" checked> Creative Intelligence</label>
+    <label class="toggle"><input type="checkbox" id="optShorts"> YouTube Shorts</label>
+    <button class="btn btn-primary" id="btnEvaluate" disabled>Evaluate</button>
+    <button class="btn btn-primary" id="btnCompare" style="display:none;background:#7c3aed">Compare Variants</button>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Action bar (shown after evaluation) -->
+  <div class="action-bar" id="actionBar" style="display:none">
+    <button class="btn-secondary" id="btnViewReport"><span class="icon">&#128196;</span> View Report</button>
+    <button class="btn-secondary" id="btnDownloadPdf"><span class="icon">&#128228;</span> Download PDF</button>
+    <button class="btn-secondary" id="btnCopyLink"><span class="icon">&#128279;</span> Copy Link</button>
+    <button class="btn-secondary" id="btnShareTwitter"><span class="icon">&#120143;</span> Share on X</button>
+    <button class="btn-secondary" id="btnShareLinkedIn"><span class="icon">in</span> Share on LinkedIn</button>
+    <span class="copied-toast" id="copiedToast">Copied!</span>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <!-- Video player -->
+    <div id="videoPlayer" style="margin-bottom:24px"></div>
+
+    <!-- Score cards -->
+    <div class="score-row" id="scoreCards"></div>
+
+    <!-- Executive Summary -->
+    <div id="execSummarySection" style="display:none"></div>
+
+    <!-- Action Plan -->
+    <div class="section" id="actionPlanSection" style="display:none">
+      <h3>Action Plan</h3>
+      <div id="actionPlanContent"></div>
+    </div>
+
+    <!-- Creative Concept / Brief -->
+    <div class="section" id="conceptSection" style="display:none">
+      <h3 id="conceptHeading">Creative Concept</h3>
+      <div id="conceptContent"></div>
+    </div>
+
+    <!-- Creative Metadata -->
+    <div class="section" id="metadataSection" style="display:none">
+      <h3>Creative Metadata</h3>
+      <div id="metadataContent"></div>
+    </div>
+
+    <!-- Video tags -->
+    <div id="videoTags" style="margin-bottom:16px"></div>
+
+    <!-- Scenes -->
+    <div class="section" id="scenesSection" style="display:none">
+      <h3>Scene Timeline</h3>
+      <div class="scene-grid" id="scenesGrid"></div>
+    </div>
+
+    <!-- Audio Analysis (Volume + Richness) -->
+    <div class="section" id="volumeSection" style="display:none">
+      <h3>Audio Analysis</h3>
+      <div id="audioRichnessContent"></div>
+      <div class="vol-chart" id="volumeChart"></div>
+      <div id="volumeAlert"></div>
+    </div>
+
+    <!-- Emotional Arc -->
+    <div class="section" id="emotionalArcSection" style="display:none">
+      <h3>Emotional Arc</h3>
+      <div class="emo-arc-chart" id="emotionalArcContent"></div>
+      <div id="emotionalArcAlert"></div>
+    </div>
+
+    <!-- Feature Timeline -->
+    <div class="section" id="featureTimelineSection" style="display:none">
+      <h3>Feature Timeline</h3>
+      <div id="featureTimelineContent"></div>
+    </div>
+
+    <!-- Performance Score -->
+    <div class="section" id="perfSection" style="display:none">
+      <h3>Performance Score</h3>
+      <div id="perfContent"></div>
+    </div>
+
+    <!-- Platform Compatibility -->
+    <div class="section" id="platformSection" style="display:none">
+      <h3>Platform Compatibility</h3>
+      <div id="platformContent"></div>
+    </div>
+
+    <!-- Reference Ads -->
+    <div class="section" id="referenceAdsSection" style="display:none">
+      <h3>Reference Ads</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Top-performing ads with similar creative profiles</p>
+      <div id="referenceAdsContent"></div>
+    </div>
+
+    <!-- Accessibility -->
+    <div class="section" id="accessibilitySection" style="display:none">
+      <h3>Accessibility</h3>
+      <div id="accessibilityContent"></div>
+    </div>
+
+    <!-- ABCD Features -->
+    <div class="section" id="abcdSection" style="display:none">
+      <h3>ABCD Feature Results</h3>
+      <div id="abcdFeatures"></div>
+    </div>
+
+    <!-- Persuasion -->
+    <div class="section" id="persuasionSection" style="display:none">
+      <h3>Persuasion Tactics</h3>
+      <div id="persuasionFeatures"></div>
+    </div>
+
+    <!-- Structure -->
+    <div class="section" id="structureSection" style="display:none">
+      <h3>Creative Structure</h3>
+      <div id="structureContent"></div>
+    </div>
+
+    <!-- Brand Intelligence -->
+    <div class="section" id="brandIntelSection" style="display:none">
+      <h3>Brand Intelligence Brief</h3>
+      <div id="brandIntelContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let uploadedUri = null;
+let selectedFile = null;
+let isUrlMode = false;
+let currentUser = null;
+
+// ---------- Auth ----------
+async function checkAuth() {
+  try {
+    const res = await fetch('/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      $('loginScreen').style.display = 'none';
+      $('appContainer').style.display = 'block';
+      $('userBar').style.display = 'flex';
+      $('userEmail').textContent = currentUser.email;
+      updateCreditsDisplay();
+    } else {
+      showLoginScreen();
+    }
+  } catch {
+    showLoginScreen();
+  }
+}
+
+let isRegisterMode = false;
+
+function showLoginScreen() {
+  $('loginScreen').style.display = 'flex';
+  $('appContainer').style.display = 'none';
+  $('userBar').style.display = 'none';
+  // Check for auth errors / success in URL
+  const params = new URLSearchParams(window.location.search);
+  const authError = params.get('auth_error');
+  if (authError) {
+    const msgs = {
+      token_exchange_failed: 'Authentication failed. Please try again.',
+      invalid_token: 'Invalid authentication token. Please try again.',
+      email_not_verified: 'Your email is not verified with Google.',
+      invalid_verification_token: 'Invalid or expired verification link.',
+      token_expired: 'This link has expired. Please request a new one.',
+      google_not_configured: 'Google sign-in is not available. Please use email/password.',
+    };
+    $('loginError').textContent = msgs[authError] || `Authentication error: ${authError}`;
+    $('loginError').style.display = 'block';
+    window.history.replaceState({}, '', '/');
+  }
+  if (params.get('email_verified') === 'true') {
+    $('loginSuccess').textContent = 'Email verified successfully!';
+    $('loginSuccess').style.display = 'block';
+    window.history.replaceState({}, '', '/');
+  }
+}
+
+function toggleAuthMode() {
+  isRegisterMode = !isRegisterMode;
+  $('btnEmailSubmit').textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+  $('loginToggle').innerHTML = isRegisterMode
+    ? 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>'
+    : 'Don\'t have an account? <a onclick="toggleAuthMode()">Create one</a>';
+  $('loginError').style.display = 'none';
+  $('loginSuccess').style.display = 'none';
+}
+
+function showForgotPassword() {
+  $('emailForm').style.display = 'none';
+  $('forgotForm').style.display = 'flex';
+  $('loginError').style.display = 'none';
+  $('loginSuccess').style.display = 'none';
+  $('forgotEmail').value = $('loginEmail').value;
+}
+
+function hideForgotPassword() {
+  $('forgotForm').style.display = 'none';
+  $('emailForm').style.display = 'flex';
+  $('loginError').style.display = 'none';
+  $('loginSuccess').style.display = 'none';
+}
+
+$('forgotForm').addEventListener('submit', async () => {
+  const email = $('forgotEmail').value.trim();
+  if (!email) return;
+  const btn = $('btnForgotSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  $('loginError').style.display = 'none';
+  try {
+    const res = await fetch('/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    $('loginSuccess').textContent = data.message || 'If that email exists, a reset link has been sent.';
+    $('loginSuccess').style.display = 'block';
+  } catch (e) {
+    $('loginError').textContent = 'Network error. Please try again.';
+    $('loginError').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Reset Link';
+  }
+});
+
+$('emailForm').addEventListener('submit', async () => {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPassword').value;
+  $('loginError').style.display = 'none';
+  $('loginSuccess').style.display = 'none';
+
+  if (!email || !password) return;
+  if (password.length < 8) {
+    $('loginError').textContent = 'Password must be at least 8 characters.';
+    $('loginError').style.display = 'block';
+    return;
+  }
+
+  const btn = $('btnEmailSubmit');
+  btn.disabled = true;
+  btn.textContent = isRegisterMode ? 'Creating account...' : 'Signing in...';
+
+  try {
+    const url = isRegisterMode ? '/auth/register' : '/auth/login/email';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (res.ok) {
+      // Session cookie is set by the server — reload to enter the app
+      window.location.href = '/';
+      return;
+    }
+    const data = await res.json();
+    $('loginError').textContent = data.detail || 'Authentication failed.';
+    $('loginError').style.display = 'block';
+  } catch (e) {
+    $('loginError').textContent = 'Network error. Please try again.';
+    $('loginError').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+  }
+});
+
+function updateCreditsDisplay() {
+  if (currentUser) {
+    $('userCredits').textContent = `${currentUser.credits_balance.toLocaleString()} credits`;
+  }
+}
+
+$('btnLogout').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method: 'POST' });
+  currentUser = null;
+  showLoginScreen();
+});
+
+// Paywall
+function showPaywall(data) {
+  $('paywallMsg').textContent = data.message || 'You need more tokens to process this video.';
+  const opts = $('packOptions');
+  opts.innerHTML = '';
+  (data.offers || []).forEach(o => {
+    const card = document.createElement('div');
+    card.className = 'pack-card';
+    card.innerHTML = `<div class="pack-tokens">${o.tokens.toLocaleString()} tokens</div><div class="pack-price">$${o.usd}</div>`;
+    card.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/billing/checkout-session', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ pack: o.pack }),
+        });
+        const d = await res.json();
+        if (d.checkout_url) window.location.href = d.checkout_url;
+      } catch (e) { alert('Failed to start checkout'); }
+    });
+    opts.appendChild(card);
+  });
+  $('paywallModal').classList.add('visible');
+}
+
+$('paywallClose').addEventListener('click', () => $('paywallModal').classList.remove('visible'));
+
+// Load auth config (show/hide Google button)
+async function loadAuthConfig() {
+  try {
+    const res = await fetch('/auth/config');
+    if (res.ok) {
+      const cfg = await res.json();
+      if (cfg.google_enabled) {
+        $('btnGoogle').style.display = 'inline-flex';
+        $('loginDivider').style.display = 'flex';
+      }
+    }
+  } catch { /* email/password always available */ }
+}
+loadAuthConfig();
+
+// Init auth check
+checkAuth();
+
+// ---------- Example Gallery ----------
+(function renderExampleGallery() {
+  const examples = [
+    {brand:'Expedia',score:82.6,result:'Excellent',perf:65.3,scenes:16,vid:'VqB98tCClPQ',rid:'00f9a905'},
+    {brand:'Video Ad',score:95.7,result:'Excellent',perf:63.3,scenes:0,vid:'kLdaIxDM-_Y',rid:'0b97d21b'},
+    {brand:'Pepsi',score:50.0,result:'Needs Review',perf:38.5,scenes:11,vid:'7vKCq52wWUY',rid:'79473bd8'},
+    {brand:'Wix',score:87.0,result:'Excellent',perf:61.0,scenes:24,vid:'rRo5spaBfbo',rid:'12a8046e'},
+    {brand:'Ramp',score:69.6,result:'Might Improve',perf:59.3,scenes:17,vid:'1-mgrFS00B0',rid:'a155589b'},
+    {brand:"Kellogg's",score:87.0,result:'Excellent',perf:56.1,scenes:22,vid:'xf64Okfdc6Y',rid:'cb015165'},
+    {brand:'Video Ad',score:52.2,result:'Needs Review',perf:42.2,scenes:0,vid:'SRxEiXiMIXk',rid:'afa51107'},
+    {brand:'Oikos',score:73.9,result:'Might Improve',perf:55.5,scenes:22,vid:'sf2Ry_deVN0',rid:'5c5c27ef'},
+    {brand:'Video Ad',score:73.9,result:'Might Improve',perf:49.0,scenes:0,vid:'g-6nRs4BqXQ',rid:'9bff7a6e'},
+    {brand:'Claude',score:52.2,result:'Needs Review',perf:47.9,scenes:12,vid:'kQRu7DdTTVA',rid:'85cf1a01'},
+    {brand:'Dove',score:43.5,result:'Needs Review',perf:34.6,scenes:20,vid:'84MCtvXCt9E',rid:'6cb758af'},
+    {brand:'Google Gemini',score:47.8,result:'Needs Review',perf:37.5,scenes:17,vid:'Z1yGy9fELtE',rid:'8750d107'},
+    {brand:'Novartis',score:56.5,result:'Needs Review',perf:54.0,scenes:21,vid:'lMTcZb48aVU',rid:'3245f214'},
+  ];
+  const grid = $('examplesGrid');
+  if (!grid) return;
+  const playSvg = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  examples.forEach(ex => {
+    const reportUrl = 'https://app.aicreativereview.com/report/' + ex.rid;
+    const thumbUrl = 'https://img.youtube.com/vi/' + ex.vid + '/hqdefault.jpg';
+    const abcdColor = ex.score >= 80 ? 'rgba(52,211,153,0.15);color:#34d399'
+                    : ex.score >= 65 ? 'rgba(251,191,36,0.15);color:#fbbf24'
+                    : 'rgba(248,113,113,0.15);color:#f87171';
+    const resultColor = ex.result === 'Excellent' ? '#34d399'
+                      : ex.result === 'Might Improve' ? '#fbbf24' : '#f87171';
+    const card = document.createElement('a');
+    card.className = 'example-card';
+    card.href = reportUrl;
+    card.target = '_blank';
+    card.rel = 'noopener';
+    card.innerHTML = `
+      <div class="thumb-wrap">
+        <img src="${thumbUrl}" alt="${ex.brand}" loading="lazy">
+        <div class="play-overlay">${playSvg}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-brand">${ex.brand}</div>
+        <div style="font-size:11px;font-weight:600;color:${resultColor};margin-bottom:6px">${ex.result}</div>
+        <div class="card-scores">
+          <span class="score-chip" style="background:${abcdColor}">ABCD ${ex.score}%</span>
+          <span class="score-chip" style="background:rgba(10,109,134,0.15);color:#0A6D86">Perf ${ex.perf}</span>
+          ${ex.scenes ? `<span style="color:var(--text2)">${ex.scenes} scenes</span>` : ''}
+        </div>
+        <span class="card-link">View Full Report &rarr;</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+})();
+
+// Handle billing return
+const billingParam = new URLSearchParams(window.location.search).get('billing');
+if (billingParam === 'success') {
+  // Re-fetch user to get updated credits
+  setTimeout(async () => {
+    try {
+      const res = await fetch('/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user;
+        updateCreditsDisplay();
+      }
+    } catch {}
+    window.history.replaceState({}, '', '/');
+  }, 500);
+} else if (billingParam === 'cancel') {
+  window.history.replaceState({}, '', '/');
+}
+
+// Drag & drop
+const zone = $('dropZone');
+zone.addEventListener('click', () => $('fileInput').click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+$('fileInput').addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+$('fileRemove').addEventListener('click', () => { clearInput(); });
+
+// URL input
+$('btnUseUrl').addEventListener('click', () => {
+  const url = $('urlInput').value.trim();
+  if (!url) return;
+  if (!url.startsWith('gs://') && !url.includes('youtube.com') && !url.includes('youtu.be')) {
+    setStatus('error', 'Please enter a valid GCS URI (gs://...) or YouTube URL');
+    return;
+  }
+  isUrlMode = true;
+  selectedFile = null;
+  uploadedUri = url;
+  $('fileName').textContent = url;
+  $('fileSize').textContent = url.startsWith('gs://') ? 'GCS' : 'YouTube';
+  $('fileInfo').style.display = 'flex';
+  $('btnEvaluate').disabled = false;
+  $('status').className = 'status';
+});
+
+function clearInput() {
+  selectedFile = null;
+  uploadedUri = null;
+  isUrlMode = false;
+  $('fileInfo').style.display = 'none';
+  $('btnEvaluate').disabled = true;
+  $('results').classList.remove('visible');
+  $('urlInput').value = '';
+}
+
+const MAX_FILE_SIZE_MB = 32;
+const MAX_VIDEO_SECONDS = 60;
+const ALLOWED_EXTENSIONS = ['.mp4'];
+const ALLOWED_MIME_TYPES = ['video/mp4'];
+
+function handleFile(file) {
+  isUrlMode = false;
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  const ext = (file.name || '').toLowerCase().split('.').pop();
+  const isAllowedExt = ALLOWED_EXTENSIONS.some(e => file.name.toLowerCase().endsWith(e));
+  const isAllowedMime = ALLOWED_MIME_TYPES.includes(file.type);
+  if (!isAllowedExt && !isAllowedMime) {
+    const friendlyExt = ext ? `.${ext}` : 'this format';
+    let hint = `❌ Unsupported file format (${friendlyExt}). Only .mp4 files are supported.`;
+    if (ext === 'mov') {
+      hint = `❌ .mov files are not supported. Please convert to .mp4 first — you can use FFmpeg: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">ffmpeg -i video.mov -c:v libx264 -c:a aac output.mp4</code>`;
+    } else if (ext === 'avi') {
+      hint = `❌ .avi files are not supported. Please convert to .mp4 first using FFmpeg or a free online converter.`;
+    } else if (ext === 'webm' || ext === 'mkv') {
+      hint = `❌ .${ext} files are not supported. Please convert to .mp4 first using FFmpeg or a free online converter.`;
+    }
+    setStatus('error', hint);
+    clearInput();
+    return;
+  }
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    setStatus('error', `\u274c File size ${sizeMB} MB exceeds the ${MAX_FILE_SIZE_MB} MB limit. Please use a shorter or lower-resolution video.`);
+    clearInput();
+    return;
+  }
+  selectedFile = file;
+  $('fileName').textContent = file.name;
+  $('fileSize').textContent = sizeMB + ' MB';
+  $('fileInfo').style.display = 'flex';
+  $('btnEvaluate').disabled = false;
+  uploadedUri = null;
+  $('urlInput').value = '';
+
+  // Estimate token cost from video duration and check max length
+  if (file.type.startsWith('video/')) {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      const dur = Math.ceil(video.duration);
+      const cost = dur * 10;
+      URL.revokeObjectURL(video.src);
+      if (dur > MAX_VIDEO_SECONDS) {
+        setStatus('error', `\u274c Video is ${dur} seconds long, which exceeds the ${MAX_VIDEO_SECONDS}-second limit. Please trim your video to ${MAX_VIDEO_SECONDS} seconds or less before uploading.`);
+        clearInput();
+        return;
+      }
+      $('fileSize').textContent = `${sizeMB} MB \u00b7 ${dur}s \u00b7 ~${cost} tokens`;
+    };
+    video.src = URL.createObjectURL(file);
+  }
+}
+
+// Evaluate
+$('btnEvaluate').addEventListener('click', async () => {
+  if (!selectedFile && !uploadedUri) return;
+  const btn = $('btnEvaluate');
+  btn.disabled = true;
+  setInputsDisabled(true);
+  $('results').classList.remove('visible');
+  $('actionBar').style.display = 'none';
+
+  try {
+    // Step 1: Upload (skip if URL mode)
+    if (!isUrlMode) {
+      setProgress('info', 'Uploading to cloud storage...', `${selectedFile.name} (${(selectedFile.size/1024/1024).toFixed(1)} MB)`, 0);
+      const gcsUri = await uploadWithProgress(selectedFile);
+      uploadedUri = gcsUri;
+    }
+
+    // Step 2: Evaluate with SSE streaming
+    setProgress('info', 'Starting evaluation...', 'Connecting to server...', 2);
+    const evalForm = new FormData();
+    evalForm.append('gcs_uri', uploadedUri);
+    evalForm.append('use_abcd', $('optAbcd').checked);
+    evalForm.append('use_shorts', $('optShorts').checked);
+    evalForm.append('use_ci', $('optCI').checked);
+
+    const evalRes = await fetch('/api/evaluate', { method: 'POST', body: evalForm });
+    if (!evalRes.ok) {
+      const err = await evalRes.json().catch(() => ({}));
+      if (evalRes.status === 402 && err.error === 'insufficient_credits') {
+        showPaywall(err);
+        return;
+      }
+      if (evalRes.status === 429) {
+        throw new Error(err.message || 'You already have a video being processed. Please wait.');
+      }
+      if (evalRes.status === 401) {
+        showLoginScreen();
+        return;
+      }
+      throw new Error(err.error || `Evaluation failed (${evalRes.status})`);
+    }
+
+    const reader = evalRes.body.getReader();
+    const decoder = new TextDecoder();
+    let finalData = null;
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const msg = JSON.parse(line.slice(6));
+          if (msg.step === 'complete') {
+            finalData = msg.data;
+          } else if (msg.step === 'error') {
+            throw new Error(msg.message);
+          } else {
+            setProgress('info', msg.message, `Step: ${msg.step}`, msg.pct || 0);
+            if (msg.partial) renderPartial(msg.partial);
+          }
+        } catch (e) {
+          if (e.message && !e.message.includes('JSON')) throw e;
+        }
+      }
+    }
+
+    if (!finalData) throw new Error('Evaluation did not return results');
+    setStatus('success', `\u2705 Evaluation complete for <strong>${finalData.brand_name || finalData.video_name}</strong>`);
+    renderResults(finalData);
+    lastEvalData = finalData;
+    showActionBar(finalData);
+    // Update credits display after evaluation
+    if (finalData.credits_remaining !== undefined && currentUser) {
+      currentUser.credits_balance = finalData.credits_remaining;
+      updateCreditsDisplay();
+    }
+  } catch (err) {
+    const msg = err.message || 'Unknown error';
+    setStatus('error', '\u274c Error: ' + msg);
+  } finally {
+    btn.disabled = false;
+    setInputsDisabled(false);
+  }
+});
+
+function setInputsDisabled(disabled) {
+  $('dropZone').style.pointerEvents = disabled ? 'none' : '';
+  $('dropZone').style.opacity = disabled ? '0.4' : '';
+  $('fileInput').disabled = disabled;
+  $('urlInput').disabled = disabled;
+  $('btnUseUrl').disabled = disabled;
+  $('fileRemove').style.pointerEvents = disabled ? 'none' : '';
+}
+
+function uploadWithProgress(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', file);
+
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded / e.total * 100);
+        const mbSent = (e.loaded / 1024 / 1024).toFixed(1);
+        const mbTotal = (e.total / 1024 / 1024).toFixed(1);
+        setProgress('info', `Uploading to cloud storage... ${pct}%`, `${mbSent} / ${mbTotal} MB`, pct);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const data = JSON.parse(xhr.responseText);
+        setProgress('info', `\u2705 Uploaded ${data.filename}`, `${data.size_mb} MB \u2192 ${data.gcs_uri}`, 100);
+        resolve(data.gcs_uri);
+      } else {
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          reject(new Error(errData.message || errData.error || `Upload failed (HTTP ${xhr.status})`));
+        } catch {
+          reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+        }
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      reject(new Error(`Upload failed (${sizeMB} MB). Check connection and try again.`));
+    });
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+    xhr.addEventListener('timeout', () => reject(new Error('Upload timed out. Please try again.')));
+    xhr.timeout = 120000;
+    xhr.open('POST', '/api/upload');
+    xhr.send(formData);
+  });
+}
+
+let currentReportId = null;
+
+function showActionBar(data) {
+  currentReportId = data.report_id;
+  $('actionBar').style.display = 'flex';
+}
+
+$('btnViewReport').addEventListener('click', async () => {
+  if (!currentReportId) return showToast('No report available', true);
+  window.open('/report/' + currentReportId, '_blank');
+});
+
+$('btnDownloadPdf').addEventListener('click', async () => {
+  if (!currentReportId) return showToast('No report available', true);
+  try {
+    const res = await fetch('/api/report/' + currentReportId + '/pdf');
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const msg = body && body.error ? body.error : `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `abcd_report_${currentReportId}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showToast('PDF download failed: ' + (err.message || 'unknown error'), true);
+  }
+});
+
+$('btnCopyLink').addEventListener('click', () => {
+  if (!currentReportId) return showToast('No report available', true);
+  const url = window.location.origin + '/report/' + currentReportId;
+  navigator.clipboard.writeText(url).then(() => showToast('Copied!'));
+});
+
+// Share buttons
+let lastEvalData = null;
+
+$('btnShareTwitter').addEventListener('click', () => {
+  if (!lastEvalData) return;
+  const score = lastEvalData.abcd ? lastEvalData.abcd.score + '%' : '';
+  const brand = lastEvalData.brand_name || 'a video ad';
+  const text = encodeURIComponent(`Just scored ${brand} with AI Creative Review — ABCD score: ${score}. AI-powered video ad analysis in minutes. #AICreativeReview #VideoAds #ABCD`);
+  const url = currentReportId ? encodeURIComponent(window.location.origin + '/report/' + currentReportId) : '';
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=550,height=420');
+});
+
+$('btnShareLinkedIn').addEventListener('click', () => {
+  if (!currentReportId) return;
+  const url = encodeURIComponent(window.location.origin + '/report/' + currentReportId);
+  window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=550,height=420');
+});
+
+function showToast(msg, isError = false) {
+  const toast = $('copiedToast');
+  toast.textContent = msg;
+  toast.style.background = isError ? 'var(--red)' : 'var(--green)';
+  toast.classList.add('show');
+  setTimeout(() => { toast.classList.remove('show'); toast.textContent = 'Copied!'; toast.style.background = ''; }, 2000);
+}
+
+function setProgress(type, message, detail, pct) {
+  const el = $('status');
+  el.className = 'status ' + type;
+  el.innerHTML = `
+    <div><span class="spinner"></span> <span class="step-label">${message}</span></div>
+    ${detail ? `<div class="step-detail">${detail}</div>` : ''}
+    <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>`;
+}
+
+function setStatus(type, html) {
+  const el = $('status');
+  el.className = 'status ' + type;
+  el.innerHTML = html;
+}
+
+function renderPartial(p) {
+  // Show results container early
+  $('results').classList.add('visible');
+  const cards = $('scoreCards');
+  // Brand name partial
+  if (p.brand_name) {
+    if (!document.getElementById('partialBrand')) {
+      cards.insertAdjacentHTML('beforeend', `
+        <div class="score-card" id="partialBrand">
+          <div class="label">Detected Brand</div>
+          <div class="value" style="font-size:24px;color:var(--purple)">${p.brand_name}</div>
+          <div class="sub">${p.scene_count || '?'} scenes detected</div>
+        </div>`);
+    }
+  }
+  // ABCD score partial
+  if (p.abcd) {
+    const a = p.abcd;
+    const cls = a.score >= 80 ? 'score-excellent' : a.score >= 65 ? 'score-improve' : 'score-review';
+    if (!document.getElementById('partialAbcd')) {
+      cards.insertAdjacentHTML('beforeend', `
+        <div class="score-card" id="partialAbcd">
+          <div class="label">ABCD Score</div>
+          <div class="value ${cls}">${a.score}%</div>
+          <div class="sub">${a.passed}/${a.total} features</div>
+        </div>`);
+    }
+  }
+  // Persuasion density partial
+  if (p.persuasion) {
+    const d = p.persuasion;
+    const cls = d.density >= 50 ? 'score-excellent' : d.density > 0 ? 'score-improve' : 'score-review';
+    if (!document.getElementById('partialPersuasion')) {
+      cards.insertAdjacentHTML('beforeend', `
+        <div class="score-card" id="partialPersuasion">
+          <div class="label">Persuasion Density</div>
+          <div class="value ${cls}">${d.density}%</div>
+          <div class="sub">${d.detected}/${d.total} tactics detected</div>
+        </div>`);
+    }
+  }
+}
+
+function _scoreClass(score) {
+  return score >= 80 ? 'score-excellent' : score >= 65 ? 'score-improve' : 'score-review';
+}
+
+function _pctBadge(pct, sample) {
+  if (!sample || sample < 5 || pct === undefined || pct === null) return '';
+  const r = Math.round(pct);
+  const c = r >= 75 ? 'var(--green)' : r >= 50 ? 'var(--yellow)' : 'var(--red)';
+  return `<div class="pct-badge" style="color:${c}">${r}th percentile (n=${sample})</div>`;
+}
+
+function renderResults(data) {
+  // Remove partial cards before full render
+  ['partialBrand', 'partialAbcd', 'partialPersuasion'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+  $('results').classList.add('visible');
+  renderVideoPlayer(data);
+  const cards = $('scoreCards');
+  cards.innerHTML = '';
+
+  const bm = data.benchmarks || {};
+  const bmSample = (bm && bm.sample_size) || 0;
+
+  // Performance Score card
+  if (data.predictions && data.predictions.overall_score !== undefined) {
+    const pScore = data.predictions.overall_score;
+    const pCls = _scoreClass(pScore);
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">Performance Score</div>
+        <div class="value ${pCls}">${pScore}</div>
+        <div class="sub">out of 100</div>
+        ${_pctBadge(bm.performance_percentile, bmSample)}
+      </div>`;
+  }
+
+  // ABCD score card
+  if (data.abcd && data.abcd.total > 0) {
+    const cls = _scoreClass(data.abcd.score);
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">ABCD Score</div>
+        <div class="value ${cls}">${data.abcd.score}%</div>
+        <div class="sub">${data.abcd.passed}/${data.abcd.total} features &middot; ${data.abcd.result}</div>
+        ${_pctBadge(bm.abcd_percentile, bmSample)}
+      </div>`;
+    renderFeatures('abcdSection', 'abcdFeatures', data.abcd.features);
+  }
+
+  // Persuasion card
+  if (data.persuasion && data.persuasion.total > 0) {
+    const pCls = data.persuasion.density >= 50 ? 'score-excellent' : data.persuasion.density > 0 ? 'score-improve' : 'score-review';
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">Persuasion Density</div>
+        <div class="value ${pCls}">${data.persuasion.density}%</div>
+        <div class="sub">${data.persuasion.detected}/${data.persuasion.total} tactics detected</div>
+        ${_pctBadge(bm.persuasion_percentile, bmSample)}
+      </div>`;
+    renderFeatures('persuasionSection', 'persuasionFeatures', data.persuasion.features);
+  }
+
+  // Emotional Coherence card
+  const ec = data.emotional_coherence || {};
+  if (ec && ec.score !== undefined && ec.score !== null) {
+    const ecCls = _scoreClass(ec.score);
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">Emotional Coherence</div>
+        <div class="value ${ecCls}">${ec.score}</div>
+        <div class="sub">out of 100</div>
+      </div>`;
+  }
+
+  // Accessibility card
+  const acc = data.accessibility || {};
+  if (acc && acc.total > 0 && acc.score !== undefined) {
+    const accCls = _scoreClass(acc.score);
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">Accessibility</div>
+        <div class="value ${accCls}">${acc.score}%</div>
+        <div class="sub">${acc.passed || 0}/${acc.total} checks passed</div>
+      </div>`;
+  }
+
+  // Brand card
+  if (data.brand_name) {
+    const reportId = data.report_id || '';
+    const videoName = data.video_name || '';
+    cards.innerHTML += `
+      <div class="score-card">
+        <div class="label">Brand</div>
+        <div class="value" style="font-size:24px;color:var(--purple)">${data.brand_name}</div>
+        <div class="sub">${reportId ? `<a href="/api/video/${reportId}" download="${videoName}" style="color:var(--purple);text-decoration:underline">download</a>` : ''}</div>
+      </div>`;
+  }
+
+  // Executive Summary
+  renderExecutiveSummary(data);
+
+  // Action Plan
+  renderActionPlan(data);
+
+  // Creative Concept / Brief
+  renderConcept(data);
+
+  // Video metadata
+  renderVideoMetadata(data);
+
+  // Video filename tags
+  const tagsEl = $('videoTags');
+  const vName = data.video_name || '';
+  const nameNoExt = vName.includes('.') ? vName.substring(0, vName.lastIndexOf('.')) : vName;
+  const tags = nameNoExt.split('_').map(t => t.trim()).filter(Boolean);
+  if (tags.length > 1) {
+    tagsEl.innerHTML = tags.map(t =>
+      `<span style="display:inline-block;background:var(--surface2);color:var(--text2);padding:4px 14px;border-radius:16px;font-size:12px;margin:3px">${t}</span>`
+    ).join('');
+  } else {
+    tagsEl.innerHTML = '';
+  }
+
+  // Scenes
+  renderScenes(data);
+
+  // Audio Analysis (volume + richness)
+  renderVolumeChart(data);
+
+  // Emotional Arc
+  renderEmotionalArc(data);
+
+  // Feature Timeline
+  renderFeatureTimeline(data);
+
+  // Performance predictions detail
+  renderPerformance(data);
+
+  // Platform Compatibility
+  renderPlatformFit(data);
+
+  // Reference Ads
+  renderReferenceAds(data);
+
+  // Accessibility
+  renderAccessibility(data);
+
+  // Structure
+  if (data.structure && data.structure.features && data.structure.features.length > 0) {
+    const s = data.structure.features[0];
+    const sec = $('structureSection');
+    sec.style.display = 'block';
+    const archetypes = (s.evidence || '').split(',').map(a => `<span class="archetype-tag">${a.trim()}</span>`).join('');
+    $('structureContent').innerHTML = `
+      <div class="structure-card">
+        <div style="margin-bottom:12px">${archetypes}</div>
+        ${s.rationale ? `<p style="margin-bottom:8px"><span class="detail-label">Rationale</span><br><span class="detail-text">${s.rationale}</span></p>` : ''}
+        ${s.strengths ? `<p style="margin-bottom:8px"><span class="detail-label">Strengths</span><br><span class="detail-text">${s.strengths}</span></p>` : ''}
+        ${s.weaknesses ? `<p><span class="detail-label">Weaknesses</span><br><span class="detail-text">${s.weaknesses}</span></p>` : ''}
+      </div>`;
+  }
+
+  // Brand Intelligence
+  renderBrandIntelligence(data);
+}
+
+function renderVolumeChart(data) {
+  const scenes = data.scenes;
+  const hasVolume = scenes && scenes.some(s => s.volume_pct !== undefined);
+  if (!hasVolume) { $('volumeSection').style.display = 'none'; return; }
+  $('volumeSection').style.display = 'block';
+
+  // Audio richness cards
+  const aa = data.audio_analysis || {};
+  const richEl = $('audioRichnessContent');
+  if (aa && (aa.congruence_score !== undefined || aa.silence_gaps || aa.avg_speech_ratio !== undefined)) {
+    const cong = aa.congruence_score || 0;
+    const congCls = _scoreClass(cong);
+    const silGaps = aa.silence_gaps || [];
+    const totalSil = aa.total_silence_s || 0;
+    const avgSp = aa.avg_speech_ratio || 0;
+    let audioHtml = `<div class="score-row" style="margin-bottom:16px">
+      <div class="score-card" style="padding:14px">
+        <div class="label">A/V Congruence</div>
+        <div class="value ${congCls}" style="font-size:22px">${cong}/100</div>
+      </div>
+      <div class="score-card" style="padding:14px">
+        <div class="label">Silence Gaps</div>
+        <div class="value" style="font-size:22px;color:${silGaps.length ? 'var(--red)' : 'var(--green)'}">${silGaps.length}</div>
+        <div class="sub">${totalSil.toFixed(1)}s total</div>
+      </div>
+      <div class="score-card" style="padding:14px">
+        <div class="label">Avg Speech</div>
+        <div class="value" style="font-size:22px;color:var(--purple)">${(avgSp * 100).toFixed(0)}%</div>
+      </div>
+    </div>`;
+    if (silGaps.length > 0) {
+      const pills = silGaps.slice(0, 8).map(g =>
+        `<span style="display:inline-block;background:rgba(248,113,113,0.15);color:var(--red);padding:3px 10px;border-radius:12px;font-size:11px;margin:3px">${g.start.toFixed(1)}s\u2013${g.end.toFixed(1)}s (${g.duration_s.toFixed(1)}s)</span>`
+      ).join('');
+      audioHtml += `<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--text2);text-transform:uppercase">Silence gaps:</span> ${pills}</div>`;
+    }
+    richEl.innerHTML = audioHtml;
+  } else {
+    richEl.innerHTML = '';
+  }
+
+  const chart = $('volumeChart');
+  chart.innerHTML = '';
+  const maxPct = Math.max(...scenes.map(s => s.volume_pct || 0), 1);
+  const flagged = [];
+  scenes.forEach((sc, i) => {
+    const pct = sc.volume_pct || 0;
+    const flag = sc.volume_flag || false;
+    const h = Math.max(2, (pct / maxPct) * 120);
+    const num = sc.scene_number || (i + 1);
+    const change = sc.volume_change_pct || 0;
+    const arrow = change > 0 ? '\u2191' : '\u2193';
+    const valText = flag ? `${pct.toFixed(0)}% ${arrow}${Math.abs(change).toFixed(0)}%` : `${pct.toFixed(0)}%`;
+    chart.innerHTML += `
+      <div class="vol-bar-wrap">
+        <div class="vol-value ${flag ? 'flagged' : ''}">${valText}</div>
+        <div class="vol-bar ${flag ? 'flagged' : ''}" style="height:${h}px" title="${sc.volume_db || '?'} dB"></div>
+        <div class="vol-label">S${num}</div>
+      </div>`;
+    if (flag) flagged.push({ num, change });
+  });
+  const alert = $('volumeAlert');
+  if (flagged.length > 0) {
+    const items = flagged.map(f => `Scene ${f.num} (${f.change > 0 ? '+' : ''}${f.change.toFixed(0)}%)`).join(', ');
+    alert.innerHTML = `<div class="vol-alert"><strong>\u26a0 Volume jump detected</strong> in ${flagged.length} scene${flagged.length !== 1 ? 's' : ''}: ${items}</div>`;
+  } else {
+    alert.innerHTML = '';
+  }
+}
+
+function renderPerformance(data) {
+  const p = data.predictions;
+  if (!p || p.overall_score === undefined) { $('perfSection').style.display = 'none'; return; }
+  $('perfSection').style.display = 'block';
+  const l = p.labels;
+  const idx = p.indices;
+  const riskColor = v => v === 'Low' ? 'var(--green)' : v === 'Medium' || v === 'Moderate' ? 'var(--yellow)' : 'var(--red)';
+
+  // Prediction cards
+  let html = `<div class="score-row" style="margin-bottom:20px">
+    <div class="score-card">
+      <div class="label">CPA Risk</div>
+      <div class="value" style="font-size:22px;color:${riskColor(l.predicted_cpa_risk)}">${l.predicted_cpa_risk}</div>
+      <div class="sub">CRI: ${(idx.conversion_readiness_index * 100).toFixed(0)}%</div>
+    </div>
+    <div class="score-card">
+      <div class="label">ROAS Potential</div>
+      <div class="value" style="font-size:22px;color:${riskColor(l.predicted_roas_tier)}">${l.predicted_roas_tier}</div>
+      <div class="sub">REI: ${(idx.revenue_efficiency_index * 100).toFixed(0)}%</div>
+    </div>
+    <div class="score-card">
+      <div class="label">Fatigue Risk</div>
+      <div class="value" style="font-size:22px;color:${riskColor(l.creative_fatigue_risk === 'Low' ? 'Low' : l.creative_fatigue_risk === 'Medium' ? 'Medium' : 'High')}">${l.creative_fatigue_risk}</div>
+      <div class="sub">RFI: ${(idx.refreshability_index * 100).toFixed(0)}%</div>
+    </div>
+    <div class="score-card">
+      <div class="label">Funnel Strength</div>
+      <div class="value" style="font-size:22px;color:var(--purple)">${l.expected_funnel_strength}</div>
+      <div class="sub">TOF ${(idx.funnel_strength.tof * 100).toFixed(0)} / MOF ${(idx.funnel_strength.mof * 100).toFixed(0)} / BOF ${(idx.funnel_strength.bof * 100).toFixed(0)}</div>
+    </div>
+  </div>`;
+
+  // Section score bars
+  html += '<div style="display:grid;gap:8px">';
+  const labels = {hook_attention:'Hook & Attention',brand_visibility:'Brand Visibility',social_proof_trust:'Social Proof & Trust',product_clarity_benefits:'Product Clarity',funnel_alignment:'Funnel Alignment',cta:'Call to Action',creative_diversity_readiness:'Creative Diversity',measurement_compatibility:'Measurement Readiness',data_audience_leverage:'Audience Leverage'};
+  for (const [key, label] of Object.entries(labels)) {
+    const score = p.section_scores[key] || 0;
+    const max = p.section_maxes[key] || 1;
+    const pct = Math.round(score / max * 100);
+    const barColor = pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
+    html += `<div style="display:flex;align-items:center;gap:10px;font-size:13px">
+      <span style="width:160px;color:var(--text2);flex-shrink:0">${label}</span>
+      <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:4px"></div>
+      </div>
+      <span style="width:60px;text-align:right;font-weight:600;color:var(--text)">${score}/${max}</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Drivers
+  if (p.drivers) {
+    const pos = (p.drivers.top_positive || []).map(d => `<span style="color:var(--green)">+ ${d.feature}</span>`).join(' &nbsp; ');
+    const neg = (p.drivers.top_negative || []).map(d => `<span style="color:var(--red)">- ${d.feature}</span>`).join(' &nbsp; ');
+    if (pos || neg) {
+      html += `<div style="margin-top:16px;font-size:12px;color:var(--text2)">
+        ${pos ? `<div style="margin-bottom:4px">${pos}</div>` : ''}
+        ${neg ? `<div>${neg}</div>` : ''}
+      </div>`;
+    }
+  }
+
+  $('perfContent').innerHTML = html;
+}
+
+function renderVideoPlayer(data) {
+  const container = $('videoPlayer');
+  const uri = data.video_uri || '';
+  // YouTube embed
+  let ytId = '';
+  if (uri.includes('youtube.com/watch')) {
+    try { ytId = new URL(uri).searchParams.get('v'); } catch {}
+  } else if (uri.includes('youtu.be/')) {
+    ytId = uri.split('youtu.be/')[1]?.split(/[?#]/)[0];
+  }
+  if (ytId) {
+    container.innerHTML = `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;background:#000">
+      <iframe src="https://www.youtube.com/embed/${ytId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe>
+    </div>`;
+    return;
+  }
+  // Local file or GCS — use object URL if we have the file, otherwise GCS public URL
+  if (selectedFile) {
+    const url = URL.createObjectURL(selectedFile);
+    container.innerHTML = `<video controls style="width:100%;border-radius:12px;background:#000;max-height:480px" src="${url}"></video>`;
+    return;
+  }
+  if (uri.startsWith('gs://')) {
+    const publicUrl = 'https://storage.googleapis.com/' + uri.slice(5);
+    container.innerHTML = `<video controls style="width:100%;border-radius:12px;background:#000;max-height:480px" src="${publicUrl}"></video>`;
+    return;
+  }
+  container.innerHTML = '';
+}
+
+function renderScenes(data) {
+  const scenes = data.scenes;
+  if (!scenes || scenes.length === 0) { $('scenesSection').style.display = 'none'; return; }
+  $('scenesSection').style.display = 'block';
+  const grid = $('scenesGrid');
+  grid.innerHTML = '';
+  const emoColors = {
+    excitement:'#f59e0b', trust:'#0A6D86', humor:'#a855f7', fear:'#dc2626',
+    urgency:'#ea580c', inspiration:'#16a34a', nostalgia:'#8b5cf6', curiosity:'#0ea5e9',
+    calm:'#6ee7b7', sadness:'#6b7280'
+  };
+  const moodColors = {energetic:'#f59e0b', calm:'#6ee7b7', dramatic:'#dc2626', playful:'#a855f7', tense:'#ea580c'};
+  scenes.forEach((sc, i) => {
+    const num = sc.scene_number || (i + 1);
+    const ts = `${sc.start_time || '?'} \u2013 ${sc.end_time || '?'}`;
+    const img = sc.keyframe
+      ? `<img src="data:image/jpeg;base64,${sc.keyframe}" alt="Scene ${num}">`
+      : '';
+    // Emotion pill
+    let emotionPill = '';
+    if (sc.emotion) {
+      const ec = emoColors[sc.emotion] || '#888';
+      const sentStr = sc.sentiment_score !== undefined && sc.sentiment_score !== null ? ` (${sc.sentiment_score > 0 ? '+' : ''}${sc.sentiment_score.toFixed(1)})` : '';
+      emotionPill = `<span class="emotion-pill" style="background:${ec}30;color:${ec}">${sc.emotion}${sentStr}</span>`;
+    }
+    // Music mood pill
+    let musicPill = '';
+    const mood = sc.music_mood || 'none';
+    if (mood && mood !== 'none') {
+      const mc = moodColors[mood] || '#888';
+      musicPill = `<span class="music-pill" style="background:${mc}30;color:${mc}">&#9835; ${mood}</span>`;
+    }
+    grid.innerHTML += `
+      <div class="scene-card">
+        ${img}
+        <div class="scene-body">
+          <div class="scene-ts">SCENE ${num} &middot; ${ts}</div>
+          <div class="scene-desc">${sc.description || ''}</div>
+          ${emotionPill}${musicPill}
+          ${sc.transcript ? `<div class="scene-transcript">&ldquo;${sc.transcript}&rdquo;</div>` : ''}
+        </div>
+      </div>`;
+  });
+}
+
+function renderVideoMetadata(data) {
+  const m = data.video_metadata;
+  if (!m || Object.keys(m).length === 0) { $('metadataSection').style.display = 'none'; return; }
+  $('metadataSection').style.display = 'block';
+  const items = [
+    ['Duration', m.duration],
+    ['Resolution', m.resolution],
+    ['Aspect Ratio', m.aspect_ratio],
+    ['Frame Rate', m.frame_rate],
+    ['File Size', m.file_size],
+    ['Codec', m.codec],
+  ].filter(([, v]) => v && v !== 'Unknown');
+  $('metadataContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+      ${items.map(([label, value]) => `
+        <div class="score-card" style="padding:16px">
+          <div class="label" style="margin-bottom:4px">${label}</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text)">${value}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderExecutiveSummary(data) {
+  const el = $('execSummarySection');
+  const items = [];
+  const abcd = data.abcd || {};
+  const persuasion = data.persuasion || {};
+  const structure = data.structure || {};
+  const scenes = data.scenes || [];
+  const ec = data.emotional_coherence || {};
+  const acc = data.accessibility || {};
+  const bm = data.benchmarks || {};
+  const aa = data.audio_analysis || {};
+  const bmSample = (bm && bm.sample_size) || 0;
+
+  if (abcd.total > 0) {
+    const label = abcd.score >= 80 ? 'Excellent' : abcd.score >= 65 ? 'Might Improve' : 'Needs Review';
+    items.push(`ABCD Score of <strong>${abcd.score}%</strong> (${abcd.passed}/${abcd.total} features) — ${label}.`);
+  }
+  if (persuasion.total > 0) {
+    items.push(`Persuasion Density of <strong>${persuasion.density}%</strong> with ${persuasion.detected}/${persuasion.total} tactics detected.`);
+  }
+  if (structure.features && structure.features.length > 0) {
+    const arch = structure.features[0].evidence || '';
+    if (arch) items.push(`Creative structure identified as <strong>${arch}</strong>.`);
+  }
+  if (scenes.length > 0) {
+    items.push(`Video broken into <strong>${scenes.length}</strong> scene${scenes.length !== 1 ? 's' : ''}.`);
+    const flagged = scenes.filter(s => s.volume_flag);
+    if (flagged.length > 0) {
+      items.push(`<span style="color:var(--red)">\u26a0 Volume jumps detected in ${flagged.length} scene${flagged.length !== 1 ? 's' : ''}.</span>`);
+    }
+  }
+  if (ec.score !== undefined && ec.score !== null) {
+    items.push(`Emotional Coherence score of <strong>${ec.score}</strong>/100.`);
+  }
+  if (ec.flagged_shifts && ec.flagged_shifts.length > 0) {
+    const shifts = ec.flagged_shifts.slice(0, 3).map(s =>
+      `Scene ${s.from_scene}\u2192${s.to_scene} (${s.from_emotion}\u2192${s.to_emotion})`
+    ).join(', ');
+    items.push(`<span style="color:var(--red)">\u26a0 Abrupt emotional shift${ec.flagged_shifts.length !== 1 ? 's' : ''} detected: ${shifts}.</span>`);
+  }
+  if (bmSample >= 5) {
+    const parts = [];
+    if (bm.abcd_percentile !== undefined) parts.push(`ABCD: <strong>${Math.round(bm.abcd_percentile)}th</strong>`);
+    if (bm.persuasion_percentile !== undefined) parts.push(`Persuasion: <strong>${Math.round(bm.persuasion_percentile)}th</strong>`);
+    if (bm.performance_percentile !== undefined) parts.push(`Performance: <strong>${Math.round(bm.performance_percentile)}th</strong>`);
+    if (parts.length) items.push(`Percentile ranks (n=${bmSample}): ${parts.join(', ')}.`);
+  }
+  if (acc.total > 0) {
+    items.push(`Accessibility score of <strong>${acc.score}%</strong> (${acc.passed || 0}/${acc.total} checks passed).`);
+    if (acc.score < 60 && acc.features) {
+      const failed = acc.features.filter(f => !f.detected).map(f => f.name);
+      if (failed.length) items.push(`<span style="color:var(--red)">\u26a0 Accessibility issues: ${failed.join(', ')}.</span>`);
+    }
+  }
+  if (aa.summary) {
+    items.push(`Audio: ${aa.summary}`);
+    if (aa.congruence_score !== undefined) items.push(`Audio-Visual Congruence score of <strong>${aa.congruence_score}</strong>/100.`);
+  }
+
+  if (items.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `<div class="exec-summary">
+    <h3>Executive Summary</h3>
+    <ul>${items.map(i => `<li>${i}</li>`).join('')}</ul>
+  </div>`;
+}
+
+function renderActionPlan(data) {
+  const ap = data.action_plan || [];
+  if (!ap.length) { $('actionPlanSection').style.display = 'none'; return; }
+  $('actionPlanSection').style.display = 'block';
+  const priColors = {high:'var(--red)', medium:'var(--yellow)', low:'var(--purple)'};
+  const priIcons = {high:'\u26a0', medium:'\u25cf', low:'\u25cb'};
+  let html = '<div class="structure-card" style="padding:0;overflow:hidden">';
+  ap.forEach(item => {
+    const pri = item.priority || 'medium';
+    const pc = priColors[pri] || 'var(--text2)';
+    const icon = priIcons[pri] || '';
+    const label = item.detected ? 'Optimize' : 'Fix';
+    html += `<div class="action-item">
+      <span class="action-icon" style="color:${pc}">${icon}</span>
+      <div class="action-body">
+        <span class="action-name">${item.feature_name || ''}</span>
+        <span class="action-priority" style="color:${pc}">${pri} — ${label}</span>
+        <div class="action-rec">${item.recommendation || ''}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  $('actionPlanContent').innerHTML = html;
+}
+
+function renderConcept(data) {
+  const concept = data.concept || {};
+  const hasBrief = !!concept.one_line_pitch;
+  if (!hasBrief && !concept.name && !concept.description) {
+    $('conceptSection').style.display = 'none';
+    return;
+  }
+  $('conceptSection').style.display = 'block';
+
+  if (hasBrief) {
+    $('conceptHeading').textContent = 'Creative Brief';
+    const briefFields = [
+      ['Key Message', concept.key_message],
+      ['Emotional Hook', concept.emotional_hook],
+      ['Narrative Technique', concept.narrative_technique],
+      ['Unique Selling Proposition', concept.unique_selling_proposition],
+      ['Target Emotion', concept.target_emotion],
+      ['Creative Territory', concept.creative_territory],
+    ];
+    let fieldsHtml = briefFields.filter(([,v]) => v).map(([lbl, val]) =>
+      `<div style="margin-bottom:10px"><span class="detail-label">${lbl}</span><br><span style="color:var(--text2);font-size:13px;line-height:1.6">${val}</span></div>`
+    ).join('');
+    // Messaging hierarchy
+    const mh = concept.messaging_hierarchy || {};
+    if (mh.primary || mh.secondary) {
+      let mhHtml = `<div style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:8px">
+        <span style="color:var(--purple);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Messaging Hierarchy</span>
+        <div style="margin-top:6px;font-size:13px;color:var(--text)"><strong>Primary:</strong> ${mh.primary || ''}</div>
+        <div style="font-size:13px;color:var(--text2)"><strong>Secondary:</strong> ${mh.secondary || ''}</div>`;
+      if (mh.proof_points && mh.proof_points.length > 0) {
+        mhHtml += '<ul style="margin:4px 0 0 16px;padding:0;font-size:12px;color:var(--text2)">' +
+          mh.proof_points.filter(Boolean).map(p => `<li>${p}</li>`).join('') + '</ul>';
+      }
+      mhHtml += '</div>';
+      fieldsHtml += mhHtml;
+    }
+    $('conceptContent').innerHTML = `<div class="structure-card">
+      <div style="font-size:20px;font-weight:700;color:var(--purple);margin-bottom:16px;line-height:1.3">&ldquo;${concept.one_line_pitch}&rdquo;</div>
+      ${fieldsHtml}
+    </div>`;
+  } else {
+    $('conceptHeading').textContent = 'Creative Concept';
+    $('conceptContent').innerHTML = `<div class="structure-card">
+      ${concept.name ? `<div style="font-size:18px;font-weight:700;color:var(--purple);margin-bottom:10px">${concept.name}</div>` : ''}
+      ${concept.description ? `<div class="detail-text" style="line-height:1.7">${concept.description}</div>` : ''}
+    </div>`;
+  }
+}
+
+function renderEmotionalArc(data) {
+  const scenes = data.scenes || [];
+  const emoScenes = scenes.filter(s => s.sentiment_score !== undefined && s.sentiment_score !== null);
+  if (emoScenes.length === 0) { $('emotionalArcSection').style.display = 'none'; return; }
+  $('emotionalArcSection').style.display = 'block';
+
+  const emoColors = {
+    excitement:'#f59e0b', trust:'#0A6D86', humor:'#a855f7', fear:'#dc2626',
+    urgency:'#ea580c', inspiration:'#16a34a', nostalgia:'#8b5cf6', curiosity:'#0ea5e9',
+    calm:'#6ee7b7', sadness:'#6b7280'
+  };
+  const n = emoScenes.length;
+  const chartW = Math.min(800, Math.max(400, n * 56));
+  const chartH = 200;
+  const padL = 44, padR = 16, padT = 20, padB = 44;
+  const plotW = chartW - padL - padR;
+  const plotH = chartH - padT - padB;
+  const yMap = v => padT + plotH - ((v + 1.0) / 2.0 * plotH);
+  const spacing = plotW / Math.max(n - 1, 1);
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${chartW}" height="${chartH}" style="font-family:Inter,-apple-system,sans-serif;background:var(--surface);border-radius:12px">`;
+  // Y-axis
+  [[-1.0,'-1.0'],[-0.5,'-0.5'],[0.0,'0.0'],[0.5,'+0.5'],[1.0,'+1.0']].forEach(([val,lbl]) => {
+    const y = yMap(val);
+    svg += `<text x="${padL-6}" y="${y+4}" text-anchor="end" fill="#8aa8b0" font-size="9">${lbl}</text>`;
+    const dash = val === 0 ? ' stroke-dasharray="4,4"' : '';
+    svg += `<line x1="${padL}" y1="${y}" x2="${padL+plotW}" y2="${y}" stroke="${val === 0 ? '#666' : '#0D4A55'}" stroke-width="0.5"${dash}/>`;
+  });
+  // Points
+  const points = emoScenes.map((sc, i) => ({ x: padL + i * spacing, y: yMap(sc.sentiment_score), sc }));
+  // Area fill
+  if (points.length >= 2) {
+    const z = yMap(0);
+    let area = `M${points[0].x},${z}`;
+    points.forEach(p => area += ` L${p.x},${p.y}`);
+    area += ` L${points[points.length-1].x},${z} Z`;
+    svg += `<path d="${area}" fill="#0A6D86" opacity="0.15"/>`;
+  }
+  // Line
+  if (points.length >= 2) {
+    let line = `M${points[0].x},${points[0].y}`;
+    points.slice(1).forEach(p => line += ` L${p.x},${p.y}`);
+    svg += `<path d="${line}" fill="none" stroke="#0A6D86" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  // Dots and labels
+  points.forEach((p, i) => {
+    const emo = p.sc.emotion || '';
+    const sent = p.sc.sentiment_score;
+    const color = emoColors[emo] || '#0A6D86';
+    let isShift = false;
+    if (i > 0) {
+      const prev = emoScenes[i-1].sentiment_score;
+      if (Math.abs(sent - prev) > 0.5) isShift = true;
+    }
+    const r = isShift ? 6 : 4;
+    const stroke = isShift ? ' stroke="#dc2626" stroke-width="2"' : '';
+    svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}"${stroke}/>`;
+    svg += `<text x="${p.x}" y="${p.y-10}" text-anchor="middle" fill="${isShift ? '#dc2626' : '#8aa8b0'}" font-size="9" font-weight="${isShift ? '700' : '400'}">${sent > 0 ? '+' : ''}${sent.toFixed(1)}</text>`;
+    svg += `<text x="${p.x}" y="${padT+plotH+14}" text-anchor="middle" fill="${color}" font-size="8" font-weight="600">${emo.substring(0,6)}</text>`;
+    svg += `<text x="${p.x}" y="${padT+plotH+26}" text-anchor="middle" fill="#8aa8b0" font-size="9">S${p.sc.scene_number || (i+1)}</text>`;
+  });
+  svg += '</svg>';
+  $('emotionalArcContent').innerHTML = svg;
+
+  // Shift alerts
+  const ecData = data.emotional_coherence || {};
+  const alertEl = $('emotionalArcAlert');
+  if (ecData.flagged_shifts && ecData.flagged_shifts.length > 0) {
+    const shifts = ecData.flagged_shifts;
+    const desc = shifts.map(s =>
+      `Scene ${s.from_scene}\u2192${s.to_scene} (${s.from_emotion}\u2192${s.to_emotion}, \u0394${s.delta.toFixed(1)})`
+    ).join(', ');
+    alertEl.innerHTML = `<div class="vol-alert" style="margin-top:12px"><strong>\u26a0 Abrupt emotional shift${shifts.length !== 1 ? 's' : ''}</strong>: ${desc}</div>`;
+  } else {
+    alertEl.innerHTML = '';
+  }
+}
+
+function renderFeatureTimeline(data) {
+  const ft = data.feature_timeline || {};
+  const features = (ft.features || []).filter(f => f.timestamps && f.timestamps.length > 0);
+  if (features.length === 0) { $('featureTimelineSection').style.display = 'none'; return; }
+  $('featureTimelineSection').style.display = 'block';
+
+  const duration = ft.video_duration_s || 0;
+  if (duration <= 0) { $('featureTimelineSection').style.display = 'none'; return; }
+  const boundaries = ft.scene_boundaries || [];
+  const rowH = 28;
+  const labelW = 160;
+  const padL = labelW + 12, padR = 16, padT = 30, padB = 20;
+  const plotW = Math.max(400, Math.min(700, Math.floor(duration * 12)));
+  const chartW = padL + plotW + padR;
+  const chartH = padT + features.length * rowH + padB;
+  const xMap = s => padL + (s / duration) * plotW;
+  const subCatColors = {ATTRACT:'#f59e0b', BRAND:'#0A6D86', CONNECT:'#a855f7', DIRECT:'#16a34a', PERSUASION:'#ea580c', STRUCTURE:'#831F80'};
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${chartW}" height="${chartH}" style="font-family:Inter,-apple-system,sans-serif;background:var(--surface);border-radius:12px">`;
+  // Scene columns
+  boundaries.forEach((b, i) => {
+    const bx = xMap(b.start_s);
+    const bw = xMap(b.end_s) - bx;
+    if (i % 2 === 0) svg += `<rect x="${bx}" y="${padT}" width="${bw}" height="${features.length * rowH}" fill="#0D4A55" opacity="0.2"/>`;
+    svg += `<text x="${bx + bw/2}" y="${padT-8}" text-anchor="middle" fill="#8aa8b0" font-size="9">S${b.scene_number}</text>`;
+    svg += `<line x1="${bx}" y1="${padT-2}" x2="${bx}" y2="${padT + features.length * rowH}" stroke="#0D4A55" stroke-width="0.5"/>`;
+  });
+  // Time axis
+  const step = Math.max(5, Math.floor(duration / 10));
+  for (let t = 0; t <= duration; t += step) {
+    const x = xMap(t);
+    const m = Math.floor(t / 60), s = t % 60;
+    svg += `<text x="${x}" y="${padT + features.length * rowH + 14}" text-anchor="middle" fill="#8aa8b0" font-size="8">${m}:${String(Math.floor(s)).padStart(2,'0')}</text>`;
+  }
+  // Feature rows
+  features.forEach((feat, ri) => {
+    const yTop = padT + ri * rowH;
+    const yMid = yTop + rowH / 2;
+    const color = subCatColors[feat.sub_category] || '#0A6D86';
+    const detected = feat.detected;
+    const icon = detected ? '\u2713' : '\u2717';
+    const iconColor = detected ? '#16a34a' : '#dc2626';
+    svg += `<line x1="0" y1="${yTop}" x2="${chartW}" y2="${yTop}" stroke="#0D4A55" stroke-width="0.5"/>`;
+    svg += `<text x="14" y="${yMid+4}" fill="${iconColor}" font-size="11" font-weight="600">${icon}</text>`;
+    svg += `<text x="28" y="${yMid+4}" fill="#e0e0e0" font-size="10">${(feat.name || '').substring(0,24)}</text>`;
+    feat.timestamps.forEach(ts => {
+      const bx = xMap(ts.start_s);
+      const bw = Math.max(4, xMap(ts.end_s) - bx);
+      const barY = yTop + 4, barH = rowH - 8;
+      const opacity = detected ? '0.8' : '0.35';
+      svg += `<rect x="${bx}" y="${barY}" width="${bw}" height="${barH}" rx="4" fill="${color}" opacity="${opacity}"/>`;
+      if (bw > 40 && ts.label) {
+        svg += `<text x="${bx+4}" y="${barY + barH/2 + 3}" fill="#fff" font-size="8">${ts.label.substring(0, Math.floor(bw/5))}</text>`;
+      }
+    });
+  });
+  svg += '</svg>';
+
+  const nWithTs = features.length;
+  $('featureTimelineContent').innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">${nWithTs} feature${nWithTs !== 1 ? 's' : ''} with structured timestamps.</p>
+    <div style="overflow-x:auto">${svg}</div>`;
+}
+
+function renderPlatformFit(data) {
+  const pf = data.platform_fit || {};
+  if (!pf || Object.keys(pf).length === 0) { $('platformSection').style.display = 'none'; return; }
+  const platLabels = {youtube:'YouTube', meta_feed:'Meta Feed', meta_reels:'Meta Reels', tiktok:'TikTok', ctv:'CTV'};
+  let html = '<div class="platform-grid">';
+  let hasCards = false;
+  for (const [key, label] of Object.entries(platLabels)) {
+    const pd = pf[key];
+    if (!pd) continue;
+    hasCards = true;
+    const ps = pd.score || 0;
+    const psColor = ps >= 80 ? 'var(--green)' : ps >= 65 ? 'var(--yellow)' : 'var(--red)';
+    const tips = (pd.tips || []).slice(0, 3);
+    const tipsHtml = tips.length ? `<ul>${tips.map(t => `<li>${t}</li>`).join('')}</ul>` : '';
+    html += `<div class="platform-card" style="border-top-color:${psColor}">
+      <div class="plat-label">${label}</div>
+      <div class="plat-score" style="color:${psColor}">${ps}</div>
+      <div class="plat-sub">out of 100</div>
+      ${tipsHtml}
+    </div>`;
+  }
+  html += '</div>';
+  if (!hasCards) { $('platformSection').style.display = 'none'; return; }
+  $('platformSection').style.display = 'block';
+  $('platformContent').innerHTML = html;
+}
+
+function renderReferenceAds(data) {
+  const refs = data.reference_ads || [];
+  if (!refs.length) { $('referenceAdsSection').style.display = 'none'; return; }
+  $('referenceAdsSection').style.display = 'block';
+  let html = '<div style="display:flex;gap:16px;flex-wrap:wrap">';
+  refs.slice(0, 3).forEach(ra => {
+    const ytUrl = ra.youtube_url || '#';
+    html += `<div class="ref-ad-card">
+      <div class="ref-ad-name"><a href="${ytUrl}" target="_blank" style="color:var(--purple);text-decoration:none">${ra.name || ''}</a></div>
+      <div class="ref-ad-meta">${ra.brand || ''} &middot; ${ra.vertical || ''} &middot; ${ra.structure_archetype || ''}</div>
+      <div class="ref-ad-why">${ra.why_effective || ''}</div>
+      <div class="ref-ad-badges">
+        <span class="ref-ad-badge" style="background:var(--surface2);color:var(--purple)">ABCD ${ra.abcd_score || 0}%</span>
+        <span class="ref-ad-badge" style="background:rgba(52,211,153,0.15);color:var(--green)">Perf ${ra.performance_score || 0}</span>
+        <span class="ref-ad-badge" style="background:rgba(251,191,36,0.15);color:var(--yellow)">Sim ${((ra.similarity || 0) * 100).toFixed(0)}%</span>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  $('referenceAdsContent').innerHTML = html;
+}
+
+function renderAccessibility(data) {
+  const acc = data.accessibility || {};
+  if (!acc || !acc.total || acc.total === 0) { $('accessibilitySection').style.display = 'none'; return; }
+  $('accessibilitySection').style.display = 'block';
+  const feats = acc.features || [];
+  const wpm = acc.speech_rate_wpm || 0;
+  const wpmFlag = acc.speech_rate_flag || 'no_speech';
+  const accScore = acc.score || 100;
+  const accP = acc.passed || 0;
+  const accT = acc.total || 0;
+  const accColor = _scoreClass(accScore);
+
+  let html = '';
+  // Summary cards
+  if (wpm > 0) {
+    const wpmColor = wpmFlag === 'too_fast' ? 'var(--red)' : wpmFlag === 'too_slow' ? 'var(--yellow)' : 'var(--green)';
+    const wpmLabel = wpmFlag === 'too_fast' ? 'Too fast' : wpmFlag === 'too_slow' ? 'Too slow' : 'OK';
+    html += `<div class="score-row" style="margin-bottom:16px">
+      <div class="score-card" style="padding:14px">
+        <div class="label">Score</div>
+        <div class="value ${accColor}" style="font-size:22px">${accScore}%</div>
+        <div class="sub">${accP}/${accT} passed</div>
+      </div>
+      <div class="score-card" style="padding:14px">
+        <div class="label">Speech Rate</div>
+        <div class="value" style="font-size:22px;color:${wpmColor}">${Math.round(wpm)}</div>
+        <div class="sub">WPM &middot; ${wpmLabel}</div>
+      </div>
+    </div>`;
+  }
+  // Feature rows
+  feats.forEach(af => {
+    const icon = af.detected ? '&#10003;' : '&#10007;';
+    const iconColor = af.detected ? 'var(--green)' : 'var(--red)';
+    const conf = af.confidence ? `${(af.confidence * 100).toFixed(0)}%` : '';
+    let details = '';
+    if (af.rationale) details += `<div class="detail-label">Rationale</div><div class="detail-text">${af.rationale}</div>`;
+    if (af.evidence) details += `<div class="detail-label">Evidence</div><div class="detail-text">${af.evidence}</div>`;
+    let remediation = '';
+    if (!af.detected && af.remediation) {
+      remediation = `<div class="acc-remediation"><span style="color:var(--yellow);font-weight:700;font-size:10px;text-transform:uppercase">FIX</span> ${af.remediation}</div>`;
+    }
+    html += `<div class="acc-feature-row">
+      <span class="acc-icon" style="color:${iconColor}">${icon}</span>
+      <div class="acc-body">
+        <div style="font-weight:500">${af.name || ''} <span style="color:var(--text2);font-size:12px;margin-left:8px">${conf}</span></div>
+        ${details ? `<div style="margin-top:6px;font-size:12px;line-height:1.5">${details}</div>` : ''}
+        ${remediation}
+      </div>
+    </div>`;
+  });
+  $('accessibilityContent').innerHTML = html;
+}
+
+function renderBrandIntelligence(data) {
+  const bi = data.brand_intelligence;
+  if (!bi || !bi.company_name) { $('brandIntelSection').style.display = 'none'; return; }
+  $('brandIntelSection').style.display = 'block';
+  const el = $('brandIntelContent');
+
+  function row(label, value) {
+    if (!value || value === 'Not available') return '';
+    return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="width:180px;flex-shrink:0;color:var(--accent);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">${label}</span>
+      <span style="color:var(--text2);line-height:1.6">${value}</span>
+    </div>`;
+  }
+
+  function listSection(title, items) {
+    if (!items || items.length === 0) return '';
+    const bullets = items.filter(Boolean).map(item => `<li style="margin-bottom:4px;color:var(--text2)">${item}</li>`).join('');
+    if (!bullets) return '';
+    return `<h4 style="font-size:13px;font-weight:600;color:var(--purple);margin:20px 0 8px">${title}</h4>
+      <ul style="padding-left:20px;font-size:13px;line-height:1.6">${bullets}</ul>`;
+  }
+
+  let html = '<div class="structure-card">';
+
+  // Company Overview
+  html += '<h4 style="font-size:13px;font-weight:600;color:var(--purple);margin:0 0 8px">Company Overview</h4>';
+  html += row('Company', bi.company_name);
+  html += row('Website', bi.website);
+  html += row('Founders / Leadership', bi.founders_leadership);
+  html += row('Product / Service', bi.product_service);
+  html += row('Launched', bi.launched);
+  html += row('Description', bi.description);
+  html += row('Brand Positioning', bi.brand_positioning);
+  html += row('Core Value Proposition', bi.core_value_proposition);
+  html += row('Mission', bi.mission);
+  html += row('Taglines', bi.taglines);
+  html += row('Social Proof', bi.social_proof_overview);
+
+  // Target Audience
+  html += '<h4 style="font-size:13px;font-weight:600;color:var(--purple);margin:20px 0 8px">Target Audience</h4>';
+  html += row('Primary Audience', bi.target_audience_primary);
+  html += row('Secondary Audience', bi.target_audience_secondary);
+  html += row('Key Insight', bi.key_insight);
+  html += row('Secondary Insight', bi.secondary_insight);
+
+  html += listSection('Products & Pricing', bi.products_pricing);
+
+  // Brand Tone & Voice
+  html += '<h4 style="font-size:13px;font-weight:600;color:var(--purple);margin:20px 0 8px">Brand Tone & Voice</h4>';
+  html += row('Tone', bi.tone);
+  html += row('Voice', bi.voice);
+  html += row('What It Is NOT', bi.what_it_is_not);
+
+  html += listSection('Social Proof & Credibility', bi.credibility_signals);
+  html += listSection('Paid Media Channels', bi.paid_media_channels);
+  html += listSection('Creative Formats', bi.creative_formats);
+  html += listSection('Messaging Themes', bi.messaging_themes);
+  html += listSection('Offers & CTA Patterns', bi.offers_and_ctas);
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderFeatures(sectionId, containerId, features) {
+  if (!features || features.length === 0) return;
+  $(sectionId).style.display = 'block';
+  const container = $(containerId);
+  container.innerHTML = '';
+  features.forEach(f => {
+    const icon = f.detected ? '&#10003;' : '&#10007;';
+    const iconColor = f.detected ? 'var(--green)' : 'var(--red)';
+    const div = document.createElement('div');
+    div.className = 'feature';
+    div.innerHTML = `
+      <div class="feature-header">
+        <span class="feature-icon" style="color:${iconColor}">${icon}</span>
+        <span class="feature-name">${f.name}</span>
+        <span class="feature-confidence">${f.confidence ? (f.confidence * 100).toFixed(0) + '%' : ''}</span>
+      </div>
+      <div class="feature-details">
+        ${f.rationale ? `<div class="detail-label">Rationale</div><div class="detail-text">${f.rationale}</div>` : ''}
+        ${f.evidence ? `<div class="detail-label">Evidence</div><div class="detail-text">${f.evidence}</div>` : ''}
+        ${f.strengths ? `<div class="detail-label">Strengths</div><div class="detail-text">${f.strengths}</div>` : ''}
+        ${f.weaknesses ? `<div class="detail-label">Weaknesses</div><div class="detail-text">${f.weaknesses}</div>` : ''}
+      </div>`;
+    div.addEventListener('click', () => div.querySelector('.feature-details').classList.toggle('open'));
+    container.appendChild(div);
+  });
+}
+
+// ---------- A/B Comparison ----------
+let compareMode = false;
+
+$('btnAddVariant').addEventListener('click', () => {
+  compareMode = true;
+  $('compareSection').style.display = 'block';
+  $('btnAddVariant').style.display = 'none';
+  $('btnCompare').style.display = 'inline-block';
+});
+
+$('btnRemoveVariant').addEventListener('click', () => {
+  compareMode = false;
+  $('compareSection').style.display = 'none';
+  $('btnAddVariant').style.display = 'inline-block';
+  $('btnCompare').style.display = 'none';
+  $('urlInputB').value = '';
+});
+
+$('btnCompare').addEventListener('click', async () => {
+  const urlA = $('urlInput').value.trim();
+  const urlB = $('urlInputB').value.trim();
+  if (!urlA || !urlB) {
+    setStatus('error', '\u274c Please provide URLs for both variants.');
+    return;
+  }
+  $('btnCompare').disabled = true;
+  $('btnEvaluate').disabled = true;
+  setInputsDisabled(true);
+  $('results').classList.remove('visible');
+  $('actionBar').style.display = 'none';
+
+  setProgress('info', 'Running A/B comparison...', `Evaluating ${2} variants in parallel`, 10);
+
+  try {
+    const body = {
+      video_uris: [urlA, urlB],
+      use_abcd: $('optAbcd').checked,
+      use_shorts: $('optShorts').checked,
+      use_ci: $('optCI').checked,
+    };
+    const res = await fetch('/api/evaluate_compare', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 402) { showPaywall(err); return; }
+      throw new Error(err.message || err.error || `Comparison failed (${res.status})`);
+    }
+    const result = await res.json();
+    setStatus('success', '\u2705 A/B Comparison complete!');
+    renderComparisonResults(result);
+  } catch (err) {
+    setStatus('error', '\u274c Error: ' + err.message);
+  } finally {
+    $('btnCompare').disabled = false;
+    $('btnEvaluate').disabled = false;
+    setInputsDisabled(false);
+  }
+});
+
+function renderComparisonResults(data) {
+  const cmp = data.comparison || {};
+  const variants = cmp.variants || [];
+  const deltas = cmp.deltas || [];
+  const diffs = cmp.feature_diffs || [];
+  const winner = cmp.recommended_winner || {};
+  const el = $('results');
+  el.classList.add('visible');
+  $('scoreCards').innerHTML = '';
+  // Hide single-eval sections
+  ['structureSection','perfSection','persuasionSection','scenesSection','metadataSection',
+   'volumeSection','conceptSection','abcdSection','brandIntelSection',
+   'execSummarySection','actionPlanSection','emotionalArcSection','featureTimelineSection',
+   'platformSection','referenceAdsSection','accessibilitySection'].forEach(id => $(id).style.display = 'none');
+  $('videoPlayer').innerHTML = '';
+  $('videoTags').innerHTML = '';
+
+  let html = '';
+
+  // Winner banner
+  if (winner.video_name) {
+    html += `<div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid var(--green);border-radius:16px;padding:20px;margin-bottom:24px">
+      <div style="font-size:20px;font-weight:700;color:var(--green)">&#127942; Recommended: ${winner.video_name}</div>
+      <div style="font-size:14px;color:#333;margin-top:6px">${winner.justification || ''}</div>
+    </div>`;
+  }
+
+  // Side-by-side score cards
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px">';
+  variants.forEach((v, i) => {
+    const isW = i === winner.index;
+    const border = isW ? '2px solid var(--green)' : '1px solid var(--border)';
+    const badge = isW ? '<span style="background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;margin-left:6px">WINNER</span>' : '';
+    html += `<div style="background:var(--surface);border:${border};border-radius:16px;padding:20px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${v.video_name || ('Variant '+(i+1))}${badge}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${v.brand_name || ''}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    [{l:'ABCD',v:v.abcd_score+'%'},{l:'Performance',v:v.performance_score},{l:'Persuasion',v:v.persuasion_density+'%'},{l:'Accessibility',v:v.accessibility_score+'%'}].forEach(m => {
+      html += `<div style="text-align:center;background:var(--surface2);border-radius:8px;padding:10px">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase">${m.l}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--accent)">${m.v}</div>
+      </div>`;
+    });
+    const rid = v.report_id;
+    html += `</div>${rid ? '<div style="margin-top:8px;text-align:right"><a href="/report/'+rid+'" target="_blank" style="color:var(--accent);font-size:12px">Full Report &rarr;</a></div>' : ''}</div>`;
+  });
+  html += '</div>';
+
+  // Deltas
+  if (deltas.length) {
+    html += '<h3 style="margin-bottom:8px">Score Deltas</h3>';
+    deltas.forEach(d => {
+      html += `<div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--border)"><strong>${d.vs}</strong><div style="display:flex;gap:16px;margin-top:6px">`;
+      [{l:'ABCD',v:d.abcd_delta},{l:'Persuasion',v:d.persuasion_delta},{l:'Performance',v:d.performance_delta}].forEach(m => {
+        const c = m.v > 0 ? 'var(--green)' : m.v < 0 ? 'var(--red)' : 'var(--text2)';
+        const arr = m.v > 0 ? '&#9650;' : m.v < 0 ? '&#9660;' : '&#8212;';
+        html += `<span style="color:${c};font-weight:600">${m.l}: ${arr} ${Math.abs(m.v).toFixed(1)}</span>`;
+      });
+      html += '</div></div>';
+    });
+  }
+
+  // Feature diffs
+  if (diffs.length) {
+    html += '<h3 style="margin:20px 0 8px">Feature Differences</h3><p style="font-size:13px;color:var(--text2);margin-bottom:8px">Features where variants disagree:</p>';
+    diffs.forEach(fd => {
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="width:200px;font-weight:600;font-size:13px">${fd.feature_name}</span>`;
+      fd.results.forEach(r => {
+        if (r === true) html += '<span style="color:var(--green);font-weight:700;width:80px;text-align:center">&#10003;</span>';
+        else if (r === false) html += '<span style="color:var(--red);font-weight:700;width:80px;text-align:center">&#10007;</span>';
+        else html += '<span style="color:var(--text2);width:80px;text-align:center">N/A</span>';
+      });
+      html += '</div>';
+    });
+  }
+
+  // View comparison report link
+  if (data.comparison_id) {
+    html += `<div style="text-align:center;margin-top:24px"><a href="/report/compare/${data.comparison_id}" target="_blank" style="color:var(--accent);font-weight:600;font-size:14px">View Full Comparison Report &rarr;</a></div>`;
+  }
+
+  $('scoreCards').innerHTML = html;
+}
+</script>
+</body>
+</html>

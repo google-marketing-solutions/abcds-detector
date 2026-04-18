@@ -2,8 +2,13 @@
 
 # Python
 venv
+.venv/
 **/__pycache__/
+
+# Environment
+.env
 reduced/
+data/
 ffmpeg
 annotations_evaluation/_pycache_
 feature_configs/_pycache_

@@ -1,15 +1,40 @@
 name: Continuous Integration
 on:
   push:
-    branches: [$default-branch]
+    branches: [main]
   pull_request:
-    branches: [$default-branch]
+    branches: [main]
+
 jobs:
-  pre-commit:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version-file: "pyproject.toml"
-      - uses: pre-commit/action@v3.0.1
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install ruff
+      - name: Run ruff lint
+        run: ruff check .
+      - name: Run ruff format check
+        run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+      - name: Run tests
+        env:
+          DATABASE_URL: sqlite:///data/app.db
+        run: pytest tests/ -v --tb=short -x

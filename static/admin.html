@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — AI Creative Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #021A20; --surface: #04272F; --surface2: #083640; --border: #0D4A55;
+    --text: #e0e0e0; --text2: #8aa8b0; --accent: #831F80; --green: #34d399;
+    --yellow: #fbbf24; --red: #f87171; --purple: #0A6D86;
+    --nav-w: 200px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* ---- Left Nav ---- */
+  .nav { width: var(--nav-w); background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; overflow-y: auto; }
+  .nav-brand { padding: 0 20px 20px; font-size: 18px; font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .nav a { display: block; padding: 10px 20px; font-size: 14px; color: var(--text2); text-decoration: none; transition: all 0.15s; }
+  .nav a:hover { background: var(--surface2); color: var(--text); }
+  .nav a.active { color: var(--accent); background: rgba(131,31,128,0.1); border-right: 3px solid var(--accent); font-weight: 600; }
+
+  /* ---- Main area ---- */
+  .main { margin-left: var(--nav-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Header */
+  .header { padding: 14px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); position: sticky; top: 0; z-index: 10; }
+  .header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
+  .search-box { flex: 1; max-width: 480px; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; outline: none; }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: #556; }
+  .header-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .header-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .header-meta { font-size: 11px; color: var(--text2); white-space: nowrap; }
+
+  /* Bulk bar */
+  .bulk-bar { display: none; padding: 10px 24px; background: var(--surface2); border-bottom: 1px solid var(--border); align-items: center; gap: 10px; font-size: 13px; }
+  .bulk-bar.visible { display: flex; }
+  .bulk-bar span { color: var(--text2); }
+  .bulk-btn { padding: 5px 12px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
+  .bulk-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .bulk-btn.danger { border-color: var(--red); color: var(--red); }
+
+  /* Content */
+  .content { flex: 1; padding: 0; overflow-x: auto; }
+
+  /* ---- Table ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 5; }
+  th { padding: 10px 12px; text-align: left; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--text); }
+  th .sort-arrow { font-size: 10px; margin-left: 3px; }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(13,74,85,0.3); vertical-align: middle; white-space: nowrap; }
+  tr:hover td { background: rgba(8,54,64,0.5); }
+  tr.selected td { background: rgba(131,31,128,0.08); }
+
+  /* Checkbox */
+  .chk { accent-color: var(--accent); cursor: pointer; }
+
+  /* Status pill */
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+  .pill-queued { background: rgba(138,168,176,0.15); color: var(--text2); }
+  .pill-rendering { background: rgba(10,109,134,0.2); color: var(--purple); }
+  .pill-succeeded { background: rgba(52,211,153,0.15); color: var(--green); }
+  .pill-failed { background: rgba(248,113,113,0.15); color: var(--red); }
+  .pill-canceled { background: rgba(251,191,36,0.15); color: var(--yellow); }
+
+  /* Progress bar inside pill */
+  .pill-progress { display: inline-flex; align-items: center; gap: 6px; }
+  .mini-bar { width: 40px; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; background: var(--purple); border-radius: 2px; }
+
+  /* Copy icon */
+  .copy-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px; }
+  .copy-btn:hover { color: var(--accent); background: var(--surface2); }
+
+  /* Actions menu */
+  .actions-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 18px; padding: 2px 8px; border-radius: 4px; }
+  .actions-btn:hover { background: var(--surface2); color: var(--text); }
+  .actions-menu { display: none; position: absolute; right: 12px; top: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-width: 200px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden; }
+  .actions-menu.open { display: block; }
+  .actions-menu button { display: block; width: 100%; padding: 9px 16px; text-align: left; background: none; border: none; color: var(--text); font-size: 13px; cursor: pointer; }
+  .actions-menu button:hover { background: var(--surface2); }
+  .actions-menu button.danger { color: var(--red); }
+  .actions-menu hr { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+
+  /* ---- Pagination ---- */
+  .pagination { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); font-size: 13px; color: var(--text2); }
+  .page-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .page-btn:not(:disabled):hover { border-color: var(--accent); }
+
+  /* ---- Filter Drawer ---- */
+  .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; }
+  .drawer-overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; right: -380px; bottom: 0; width: 380px; background: var(--surface); border-left: 1px solid var(--border); z-index: 51; transition: right 0.25s ease; overflow-y: auto; display: flex; flex-direction: column; }
+  .drawer.open { right: 0; }
+  .drawer-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .drawer-header h2 { font-size: 16px; }
+  .drawer-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+  .drawer-body { padding: 20px; flex: 1; overflow-y: auto; }
+  .drawer-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .filter-group { margin-bottom: 18px; }
+  .filter-label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter-pill { padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .filter-pill:hover, .filter-pill.active { border-color: var(--accent); color: var(--accent); background: rgba(131,31,128,0.1); }
+  .filter-input { width: 100%; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; outline: none; }
+  .filter-input:focus { border-color: var(--accent); }
+  .filter-row { display: flex; gap: 8px; }
+  .filter-row .filter-input { flex: 1; }
+  .filter-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .filter-toggle input { accent-color: var(--accent); }
+  .btn-apply { flex: 1; padding: 8px 16px; border-radius: 6px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-apply:hover { opacity: 0.9; }
+  .btn-clear { flex: 1; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; }
+  .btn-clear:hover { border-color: var(--text); color: var(--text); }
+
+  /* ---- Detail Panel ---- */
+  .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; }
+  .detail-overlay.open { display: block; }
+  .detail-panel { position: fixed; top: 0; right: -600px; bottom: 0; width: 600px; background: var(--bg); border-left: 1px solid var(--border); z-index: 61; transition: right 0.25s ease; overflow-y: auto; display: flex; flex-direction: column; }
+  .detail-panel.open { right: 0; }
+  .detail-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--surface); }
+  .detail-header h2 { font-size: 15px; flex: 1; }
+  .detail-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+  .detail-actions { display: flex; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .detail-actions button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
+  .detail-actions button:hover { border-color: var(--accent); color: var(--accent); }
+  .detail-actions button.danger { border-color: var(--red); color: var(--red); }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 20px; background: var(--surface); }
+  .tab { padding: 10px 16px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-content { padding: 20px; flex: 1; overflow-y: auto; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Detail fields */
+  .field { margin-bottom: 14px; }
+  .field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 3px; }
+  .field-value { font-size: 14px; color: var(--text); word-break: break-all; }
+  .field-value.mono { font-family: monospace; font-size: 13px; background: var(--surface2); padding: 8px 12px; border-radius: 6px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+
+  /* Pipeline timeline */
+  .pipeline-step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(13,74,85,0.3); }
+  .pipeline-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .pipeline-dot.ok { background: var(--green); }
+  .pipeline-dot.fail { background: var(--red); }
+  .pipeline-dot.pending { background: var(--text2); }
+  .pipeline-name { flex: 1; font-size: 13px; }
+  .pipeline-dur { font-size: 12px; color: var(--text2); }
+
+  /* ---- States ---- */
+  .state-empty { text-align: center; padding: 80px 24px; color: var(--text2); }
+  .state-empty h3 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+  .state-empty p { font-size: 14px; margin-bottom: 16px; }
+  .skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 20px; border-radius: 8px; background: var(--green); color: #000; font-size: 13px; font-weight: 600; opacity: 0; transition: opacity 0.3s; z-index: 200; }
+  .toast.show { opacity: 1; }
+  .toast.error { background: var(--red); }
+
+  /* Thumbnail placeholder */
+  .thumb { width: 48px; height: 36px; border-radius: 4px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text2); overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* User link */
+  .user-link { color: var(--purple); text-decoration: none; }
+  .user-link:hover { text-decoration: underline; }
+
+  /* Download icon */
+  .dl-btn { color: var(--text2); text-decoration: none; font-size: 14px; }
+  .dl-btn:hover { color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- Left Nav -->
+<nav class="nav">
+  <div class="nav-brand">Admin</div>
+  <a href="/admin">Dashboard</a>
+  <a href="/admin">Users</a>
+  <a href="/admin" class="active">Renders</a>
+  <a href="/admin">Billing</a>
+  <a href="/admin">Webhooks</a>
+  <a href="/admin">Settings</a>
+</nav>
+
+<!-- Main -->
+<div class="main">
+  <!-- Header -->
+  <div class="header">
+    <h1>All Renders</h1>
+    <input type="text" class="search-box" id="searchBox" placeholder="Search by render ID, user, prompt, brand, filename…">
+    <button class="header-btn" id="btnFilters">Filters</button>
+    <button class="header-btn" id="btnRefresh">↻ Refresh</button>
+    <span class="header-meta" id="lastUpdated"></span>
+  </div>
+
+  <!-- Bulk actions bar -->
+  <div class="bulk-bar" id="bulkBar">
+    <span id="bulkCount">0 selected</span>
+    <button class="bulk-btn" id="bulkRerun">Re-run selected</button>
+    <button class="bulk-btn" id="bulkExport">Export CSV</button>
+    <button class="bulk-btn" id="bulkRefund">Refund credits</button>
+    <button class="bulk-btn danger" id="bulkDelete">Delete outputs</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Loading state -->
+    <div id="loadingState" style="padding:24px">
+      <table><thead><tr>
+        <th style="width:32px"></th><th>Preview</th><th>Render ID</th><th>Status</th><th>User</th><th>Created</th><th>Dur / Size</th><th>Pipeline</th><th>Credits</th><th>Asset URL</th><th>Report URL</th><th>Slack</th><th>Output</th><th></th>
+      </tr></thead><tbody id="skeletonBody"></tbody></table>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="state-empty" style="display:none">
+      <h3>No renders found</h3>
+      <p>Try adjusting your filters or refreshing.</p>
+      <button class="header-btn" onclick="clearAllFilters()">Clear filters</button>
+      <button class="header-btn" onclick="loadRenders()">Refresh</button>
+    </div>
+
+    <!-- Error state -->
+    <div id="errorState" class="state-empty" style="display:none">
+      <h3>Couldn't load renders</h3>
+      <p id="errorMsg"></p>
+      <button class="header-btn" onclick="loadRenders()">Retry</button>
+    </div>
+
+    <!-- Table -->
+    <div id="tableWrap" style="display:none">
+      <table>
+        <thead><tr>
+          <th style="width:32px"><input type="checkbox" class="chk" id="selectAll"></th>
+          <th>Preview</th>
+          <th id="thRenderId" data-sort="render_id">Render ID</th>
+          <th id="thStatus" data-sort="status">Status</th>
+          <th id="thUser" data-sort="user_email">User</th>
+          <th id="thCreated" data-sort="created_at">Created <span class="sort-arrow">▼</span></th>
+          <th id="thDuration" data-sort="duration_seconds">Dur / Size</th>
+          <th>Pipeline</th>
+          <th id="thCredits" data-sort="tokens_used">Credits</th>
+          <th>Asset URL</th>
+          <th>Report URL</th>
+          <th>Slack</th>
+          <th>Output</th>
+          <th style="width:40px"></th>
+        </tr></thead>
+        <tbody id="renderBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="paginationBar" style="display:none">
+    <span id="pageInfo"></span>
+    <div style="display:flex;gap:8px">
+      <button class="page-btn" id="prevPage">← Prev</button>
+      <button class="page-btn" id="nextPage">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Drawer -->
+<div class="drawer-overlay" id="filterOverlay"></div>
+<div class="drawer" id="filterDrawer">
+  <div class="drawer-header">
+    <h2>Filters</h2>
+    <button class="drawer-close" id="filterClose">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="filter-group">
+      <div class="filter-label">Time range</div>
+      <div class="filter-pills" id="timeFilters">
+        <button class="filter-pill" data-val="1h">1h</button>
+        <button class="filter-pill" data-val="24h">24h</button>
+        <button class="filter-pill" data-val="7d">7d</button>
+        <button class="filter-pill" data-val="30d">30d</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Status</div>
+      <div class="filter-pills" id="statusFilters">
+        <button class="filter-pill" data-val="queued">Queued</button>
+        <button class="filter-pill" data-val="rendering">Rendering</button>
+        <button class="filter-pill" data-val="succeeded">Succeeded</button>
+        <button class="filter-pill" data-val="failed">Failed</button>
+        <button class="filter-pill" data-val="canceled">Canceled</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">User</div>
+      <input type="text" class="filter-input" id="filterUser" placeholder="Search by name or email">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Source</div>
+      <div class="filter-pills" id="sourceFilters">
+        <button class="filter-pill" data-val="upload">Upload</button>
+        <button class="filter-pill" data-val="url">URL</button>
+        <button class="filter-pill" data-val="api">API</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Duration (seconds)</div>
+      <div class="filter-row">
+        <input type="number" class="filter-input" id="filterMinDur" placeholder="Min">
+        <input type="number" class="filter-input" id="filterMaxDur" placeholder="Max">
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">File size (MB)</div>
+      <div class="filter-row">
+        <input type="number" class="filter-input" id="filterMinSize" placeholder="Min">
+        <input type="number" class="filter-input" id="filterMaxSize" placeholder="Max">
+      </div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Credits used</div>
+      <div class="filter-row">
+        <input type="number" class="filter-input" id="filterMinCredits" placeholder="Min">
+        <input type="number" class="filter-input" id="filterMaxCredits" placeholder="Max">
+      </div>
+    </div>
+    <div class="filter-group">
+      <label class="filter-toggle"><input type="checkbox" id="filterErrorsOnly"> Errors only</label>
+    </div>
+    <div class="filter-group">
+      <label class="filter-toggle"><input type="checkbox" id="filterWebhookFail"> Has webhook failures</label>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-clear" id="filterClear">Clear all</button>
+    <button class="btn-apply" id="filterApply">Apply</button>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detailOverlay"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <h2 id="detailTitle">Render Details</h2>
+    <button class="detail-close" id="detailClose">×</button>
+  </div>
+  <div class="detail-actions" id="detailActions"></div>
+  <div class="tabs" id="detailTabs">
+    <div class="tab active" data-tab="summary">Summary</div>
+    <div class="tab" data-tab="inputs">Inputs</div>
+    <div class="tab" data-tab="pipeline">Pipeline</div>
+    <div class="tab" data-tab="logs">Logs</div>
+    <div class="tab" data-tab="events">Events</div>
+    <div class="tab" data-tab="admin">Admin</div>
+  </div>
+  <div class="tab-content">
+    <div class="tab-pane active" id="pane-summary"></div>
+    <div class="tab-pane" id="pane-inputs"></div>
+    <div class="tab-pane" id="pane-pipeline"></div>
+    <div class="tab-pane" id="pane-logs"></div>
+    <div class="tab-pane" id="pane-events"></div>
+    <div class="tab-pane" id="pane-admin"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ---- State ----
+let renders = [];
+let totalRenders = 0;
+let currentPage = 1;
+const pageSize = 0;  // 0 = load all renders
+let sortBy = 'created_at';
+let sortDir = 'desc';
+let selectedIds = new Set();
+let openMenuId = null;
+let currentDetail = null;
+
+// Filter state
+let filters = { q: '', status: '', source: '', user: '', time_range: '', min_duration: '', max_duration: '', min_size: '', max_size: '', min_credits: '', max_credits: '', errors_only: false, webhook_failures: false };
+
+// ---- API ----
+async function apiGet(url) {
+  const res = await fetch(url);
+  if (res.status === 401) { window.location.href = '/auth/login'; return null; }
+  if (res.status === 403) { showToast('Admin access required', true); return null; }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+async function apiPost(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+  return res.json();
+}
+async function apiDelete(url) {
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+  return res.json();
+}
+
+// ---- Load renders ----
+async function loadRenders() {
+  $('loadingState').style.display = 'block';
+  $('tableWrap').style.display = 'none';
+  $('emptyState').style.display = 'none';
+  $('errorState').style.display = 'none';
+  $('paginationBar').style.display = 'none';
+  showSkeletons();
+
+  const params = new URLSearchParams();
+  params.set('page', currentPage);
+  params.set('page_size', pageSize);
+  params.set('sort_by', sortBy);
+  params.set('sort_dir', sortDir);
+  if (filters.q) params.set('q', filters.q);
+  if (filters.status) params.set('status', filters.status);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.user) params.set('user', filters.user);
+  if (filters.time_range) params.set('time_range', filters.time_range);
+  if (filters.min_duration) params.set('min_duration', filters.min_duration);
+  if (filters.max_duration) params.set('max_duration', filters.max_duration);
+  if (filters.min_size) params.set('min_size', filters.min_size);
+  if (filters.max_size) params.set('max_size', filters.max_size);
+  if (filters.min_credits) params.set('min_credits', filters.min_credits);
+  if (filters.max_credits) params.set('max_credits', filters.max_credits);
+  if (filters.errors_only) params.set('errors_only', 'true');
+  if (filters.webhook_failures) params.set('webhook_failures', 'true');
+
+  try {
+    const data = await apiGet(`/admin/api/renders?${params}`);
+    if (!data) return;
+    renders = data.renders;
+    totalRenders = data.total;
+    $('loadingState').style.display = 'none';
+
+    if (renders.length === 0) {
+      $('emptyState').style.display = 'block';
+    } else {
+      $('tableWrap').style.display = 'block';
+      $('paginationBar').style.display = 'flex';
+      renderTable();
+      updatePagination();
+    }
+    $('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch (err) {
+    $('loadingState').style.display = 'none';
+    $('errorState').style.display = 'block';
+    $('errorMsg').textContent = err.message;
+  }
+}
+
+function showSkeletons() {
+  const body = $('skeletonBody');
+  body.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    body.innerHTML += `<tr>${'<td><div class="skeleton" style="height:14px;width:80%">&nbsp;</div></td>'.repeat(14)}</tr>`;
+  }
+}
+
+// ---- Render table ----
+function renderTable() {
+  const body = $('renderBody');
+  body.innerHTML = '';
+  renders.forEach(r => {
+    const checked = selectedIds.has(r.render_id) ? 'checked' : '';
+    const selClass = selectedIds.has(r.render_id) ? 'selected' : '';
+    const statusHtml = r.status === 'rendering'
+      ? `<span class="pill pill-rendering pill-progress">${r.status} <span class="mini-bar"><span class="mini-bar-fill" style="width:${r.progress_pct||0}%"></span></span></span>`
+      : `<span class="pill pill-${r.status}">${r.status}</span>`;
+
+    const dur = r.duration_seconds != null ? `${Math.round(r.duration_seconds)}s` : '—';
+    const size = r.file_size_mb != null ? `${r.file_size_mb.toFixed(1)} MB` : '—';
+    const created = r.created_at ? timeAgo(r.created_at) : '—';
+    const createdFull = r.created_at || '';
+    const credits = r.tokens_used != null ? `${r.tokens_used}` : '—';
+    const estCredits = r.tokens_estimated != null ? ` / ~${r.tokens_estimated}` : '';
+    const sourceIcon = r.source_type === 'upload' ? '📤' : r.source_type === 'url' ? '🔗' : '⚡';
+    const assetUrl = r.asset_url || r.prompt_text || '';
+    const assetHtml = assetUrl
+      ? `<a href="${assetUrl.startsWith('gs://') ? '#' : assetUrl}" ${assetUrl.startsWith('gs://') ? '' : 'target="_blank"'} style="color:var(--purple);text-decoration:none;font-size:12px" title="${escHtml(assetUrl)}">${sourceIcon} ${truncate(assetUrl.split('/').pop() || assetUrl, 24)}</a> <button class="copy-btn" data-copy="${escHtml(assetUrl)}" title="Copy asset URL">📋</button>`
+      : '—';
+    const reportHtml = r.report_url ? `<a href="${r.report_url}" target="_blank" style="color:var(--purple);text-decoration:none;font-size:12px" title="${r.report_url}">View Report</a> <button class="copy-btn" data-copy="${r.report_url}" title="Copy report URL">📋</button>` : '—';
+    const slackHtml = r.slack_notified ? '<span style="color:var(--green);font-size:12px">✓ Sent</span>' : '<span style="color:var(--text2);font-size:12px">—</span>';
+    const outputHtml = r.output_url ? `<a href="${r.output_url}" target="_blank" class="dl-btn" title="Download">⬇</a>` : '—';
+    const thumbHtml = r.thumbnail_url ? `<div class="thumb"><img src="${r.thumbnail_url}" alt=""></div>` : `<div class="thumb">▶</div>`;
+
+    const tr = document.createElement('tr');
+    tr.className = selClass;
+    tr.dataset.id = r.render_id;
+    tr.innerHTML = `
+      <td><input type="checkbox" class="chk row-chk" data-id="${r.render_id}" ${checked}></td>
+      <td>${thumbHtml}</td>
+      <td><code style="font-size:12px">${r.render_id}</code> <button class="copy-btn" data-copy="${r.render_id}" title="Copy ID">📋</button></td>
+      <td>${statusHtml}</td>
+      <td><a class="user-link" title="${r.user_email || ''}">${r.user_name || r.user_email || '—'}</a><br><span style="font-size:11px;color:var(--text2)">${r.user_email || ''}</span></td>
+      <td title="${createdFull}">${created}</td>
+      <td>${dur} / ${size}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.pipeline_version || ''}">${r.pipeline_version || '—'}</td>
+      <td>${credits}${estCredits}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${assetHtml}</td>
+      <td>${reportHtml}</td>
+      <td>${slackHtml}</td>
+      <td>${outputHtml}</td>
+      <td style="position:relative">
+        <button class="actions-btn" data-id="${r.render_id}">⋯</button>
+        <div class="actions-menu" id="menu-${r.render_id}">
+          <button onclick="openDetail('${r.render_id}')">Open details</button>
+          <button onclick="rerunRender('${r.render_id}')">Re-run render</button>
+          ${r.status === 'queued' || r.status === 'rendering' ? `<button onclick="cancelRender('${r.render_id}')">Cancel</button>` : ''}
+          <button onclick="copyDebug('${r.render_id}')">Copy debug JSON</button>
+          <hr>
+          <button class="danger" onclick="refundRender('${r.render_id}')">Refund credits</button>
+          <button class="danger" onclick="deleteOutput('${r.render_id}')">Delete output</button>
+        </div>
+      </td>`;
+    body.appendChild(tr);
+  });
+}
+
+// ---- Pagination ----
+function updatePagination() {
+  const totalPages = Math.ceil(totalRenders / pageSize);
+  if (pageSize === 0) {
+    $('pageInfo').textContent = `${totalRenders} renders — All`;
+    $('prevPage').disabled = true;
+    $('nextPage').disabled = true;
+  } else {
+    $('pageInfo').textContent = `${totalRenders} renders — Page ${currentPage} of ${totalPages}`;
+    $('prevPage').disabled = currentPage <= 1;
+    $('nextPage').disabled = currentPage >= totalPages;
+  }
+}
+$('prevPage').addEventListener('click', () => { if (currentPage > 1) { currentPage--; loadRenders(); } });
+$('nextPage').addEventListener('click', () => { currentPage++; loadRenders(); });
+
+// ---- Sorting ----
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if (sortBy === col) { sortDir = sortDir === 'desc' ? 'asc' : 'desc'; }
+    else { sortBy = col; sortDir = 'desc'; }
+    // Update arrows
+    document.querySelectorAll('th .sort-arrow').forEach(a => a.remove());
+    th.insertAdjacentHTML('beforeend', `<span class="sort-arrow">${sortDir === 'desc' ? '▼' : '▲'}</span>`);
+    currentPage = 1;
+    loadRenders();
+  });
+});
+
+// ---- Selection ----
+$('selectAll').addEventListener('change', e => {
+  const checked = e.target.checked;
+  renders.forEach(r => checked ? selectedIds.add(r.render_id) : selectedIds.delete(r.render_id));
+  document.querySelectorAll('.row-chk').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('#renderBody tr').forEach(tr => tr.classList.toggle('selected', checked));
+  updateBulkBar();
+});
+document.addEventListener('change', e => {
+  if (!e.target.classList.contains('row-chk')) return;
+  const id = e.target.dataset.id;
+  if (e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
+  e.target.closest('tr').classList.toggle('selected', e.target.checked);
+  $('selectAll').checked = selectedIds.size === renders.length && renders.length > 0;
+  updateBulkBar();
+});
+function updateBulkBar() {
+  const bar = $('bulkBar');
+  if (selectedIds.size > 0) {
+    bar.classList.add('visible');
+    $('bulkCount').textContent = `${selectedIds.size} selected`;
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+// ---- Bulk actions ----
+$('bulkRerun').addEventListener('click', async () => {
+  try {
+    await apiPost('/admin/api/renders/bulk', { action: 'rerun', render_ids: [...selectedIds] });
+    showToast(`Re-queued ${selectedIds.size} renders`);
+    selectedIds.clear(); updateBulkBar(); loadRenders();
+  } catch (e) { showToast(e.message, true); }
+});
+$('bulkRefund').addEventListener('click', async () => {
+  try {
+    await apiPost('/admin/api/renders/bulk', { action: 'refund', render_ids: [...selectedIds] });
+    showToast(`Refunded ${selectedIds.size} renders`);
+    selectedIds.clear(); updateBulkBar(); loadRenders();
+  } catch (e) { showToast(e.message, true); }
+});
+$('bulkDelete').addEventListener('click', async () => {
+  try {
+    await apiPost('/admin/api/renders/bulk', { action: 'delete_output', render_ids: [...selectedIds] });
+    showToast(`Deleted outputs for ${selectedIds.size} renders`);
+    selectedIds.clear(); updateBulkBar(); loadRenders();
+  } catch (e) { showToast(e.message, true); }
+});
+$('bulkExport').addEventListener('click', () => {
+  const params = new URLSearchParams();
+  if (filters.q) params.set('q', filters.q);
+  if (filters.status) params.set('status', filters.status);
+  if (filters.source) params.set('source', filters.source);
+  if (filters.errors_only) params.set('errors_only', 'true');
+  window.open(`/admin/api/renders/export?${params}`, '_blank');
+});
+
+// ---- Actions menu ----
+document.addEventListener('click', e => {
+  // Toggle menu
+  if (e.target.classList.contains('actions-btn')) {
+    const id = e.target.dataset.id;
+    const menu = $(`menu-${id}`);
+    document.querySelectorAll('.actions-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
+    menu.classList.toggle('open');
+    openMenuId = menu.classList.contains('open') ? id : null;
+    e.stopPropagation();
+    return;
+  }
+  // Close menus
+  document.querySelectorAll('.actions-menu.open').forEach(m => m.classList.remove('open'));
+  openMenuId = null;
+});
+
+// ---- Row actions ----
+async function rerunRender(id) {
+  closeMenus();
+  try {
+    const res = await apiPost(`/admin/api/renders/${id}/rerun`);
+    showToast(`Re-queued as ${res.render_id}`);
+    loadRenders();
+  } catch (e) { showToast(e.message, true); }
+}
+async function cancelRender(id) {
+  closeMenus();
+  try {
+    await apiPost(`/admin/api/renders/${id}/cancel`);
+    showToast('Render canceled');
+    loadRenders();
+  } catch (e) { showToast(e.message, true); }
+}
+async function refundRender(id) {
+  closeMenus();
+  try {
+    const res = await apiPost(`/admin/api/renders/${id}/refund`);
+    showToast(`Refunded ${res.credits_refunded} credits`);
+    loadRenders();
+  } catch (e) { showToast(e.message, true); }
+}
+async function deleteOutput(id) {
+  closeMenus();
+  try {
+    await apiDelete(`/admin/api/renders/${id}/output`);
+    showToast('Output deleted');
+    loadRenders();
+  } catch (e) { showToast(e.message, true); }
+}
+function copyDebug(id) {
+  closeMenus();
+  const r = renders.find(r => r.render_id === id);
+  if (r) {
+    navigator.clipboard.writeText(JSON.stringify(r, null, 2));
+    showToast('Debug JSON copied');
+  }
+}
+function closeMenus() {
+  document.querySelectorAll('.actions-menu.open').forEach(m => m.classList.remove('open'));
+  openMenuId = null;
+}
+
+// ---- Filters ----
+$('btnFilters').addEventListener('click', openFilterDrawer);
+$('filterOverlay').addEventListener('click', closeFilterDrawer);
+$('filterClose').addEventListener('click', closeFilterDrawer);
+function openFilterDrawer() { $('filterDrawer').classList.add('open'); $('filterOverlay').classList.add('open'); }
+function closeFilterDrawer() { $('filterDrawer').classList.remove('open'); $('filterOverlay').classList.remove('open'); }
+
+// Multi-select pills
+function setupPills(containerId, toggle) {
+  const container = $(containerId);
+  container.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      if (toggle) { pill.classList.toggle('active'); }
+      else { container.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active')); pill.classList.add('active'); }
+    });
+  });
+}
+setupPills('timeFilters', false);
+setupPills('statusFilters', true);
+setupPills('sourceFilters', true);
+
+function getActivePills(containerId) {
+  return [...$(containerId).querySelectorAll('.filter-pill.active')].map(p => p.dataset.val);
+}
+
+$('filterApply').addEventListener('click', () => {
+  const timeRange = getActivePills('timeFilters');
+  filters.time_range = timeRange.length ? timeRange[0] : '';
+  filters.status = getActivePills('statusFilters').join(',');
+  filters.source = getActivePills('sourceFilters').join(',');
+  filters.user = $('filterUser').value.trim();
+  filters.min_duration = $('filterMinDur').value;
+  filters.max_duration = $('filterMaxDur').value;
+  filters.min_size = $('filterMinSize').value;
+  filters.max_size = $('filterMaxSize').value;
+  filters.min_credits = $('filterMinCredits').value;
+  filters.max_credits = $('filterMaxCredits').value;
+  filters.errors_only = $('filterErrorsOnly').checked;
+  filters.webhook_failures = $('filterWebhookFail').checked;
+  currentPage = 1;
+  closeFilterDrawer();
+  loadRenders();
+});
+
+$('filterClear').addEventListener('click', clearAllFilters);
+function clearAllFilters() {
+  filters = { q: '', status: '', source: '', user: '', time_range: '', min_duration: '', max_duration: '', min_size: '', max_size: '', min_credits: '', max_credits: '', errors_only: false, webhook_failures: false };
+  document.querySelectorAll('.filter-pill.active').forEach(p => p.classList.remove('active'));
+  $('filterUser').value = '';
+  $('filterMinDur').value = '';
+  $('filterMaxDur').value = '';
+  $('filterMinSize').value = '';
+  $('filterMaxSize').value = '';
+  $('filterMinCredits').value = '';
+  $('filterMaxCredits').value = '';
+  $('filterErrorsOnly').checked = false;
+  $('filterWebhookFail').checked = false;
+  $('searchBox').value = '';
+  currentPage = 1;
+  closeFilterDrawer();
+  loadRenders();
+}
+
+// Search
+let searchTimer;
+$('searchBox').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { filters.q = e.target.value.trim(); currentPage = 1; loadRenders(); }, 400);
+});
+
+// Refresh
+$('btnRefresh').addEventListener('click', loadRenders);
+
+// ---- Detail Panel ----
+async function openDetail(id) {
+  closeMenus();
+  try {
+    const data = await apiGet(`/admin/api/renders/${id}`);
+    if (!data) return;
+    currentDetail = data;
+    $('detailTitle').textContent = `Render ${data.render_id}`;
+    renderDetailActions(data);
+    renderDetailTabs(data);
+    $('detailPanel').classList.add('open');
+    $('detailOverlay').classList.add('open');
+  } catch (e) { showToast(e.message, true); }
+}
+$('detailClose').addEventListener('click', closeDetail);
+$('detailOverlay').addEventListener('click', closeDetail);
+function closeDetail() { $('detailPanel').classList.remove('open'); $('detailOverlay').classList.remove('open'); currentDetail = null; }
+
+// Tabs
+$('detailTabs').addEventListener('click', e => {
+  if (!e.target.classList.contains('tab')) return;
+  $('detailTabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  e.target.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  $(`pane-${e.target.dataset.tab}`).classList.add('active');
+});
+
+function renderDetailActions(d) {
+  const acts = $('detailActions');
+  acts.innerHTML = '';
+  if (d.report_url) acts.innerHTML += `<a href="${d.report_url}" target="_blank"><button>📊 View Report</button></a>`;
+  if (d.output_url) acts.innerHTML += `<a href="${d.output_url}" target="_blank"><button>⬇ Download</button></a>`;
+  acts.innerHTML += `<button onclick="rerunRender('${d.render_id}');closeDetail()">↻ Re-run</button>`;
+  if (d.status === 'queued' || d.status === 'rendering') acts.innerHTML += `<button onclick="cancelRender('${d.render_id}');closeDetail()">⏹ Cancel</button>`;
+  acts.innerHTML += `<button onclick="copyDebug('${d.render_id}')">📋 Copy JSON</button>`;
+}
+
+function renderDetailTabs(d) {
+  // Summary
+  const detailAssetUrl = d.asset_url || d.prompt_text || '';
+  $('pane-summary').innerHTML = `
+    ${field('Render ID', d.render_id)}
+    ${field('Status', `<span class="pill pill-${d.status}">${d.status}</span>` + (d.progress_pct != null && d.status === 'rendering' ? ` (${d.progress_pct}%)` : ''))}
+    ${field('Report URL', d.report_url ? `<a href="${d.report_url}" target="_blank" style="color:var(--purple)">${d.report_url}</a> <button class="copy-btn" data-copy="${d.report_url}" title="Copy report URL" style="margin-left:6px">📋</button>` : '—')}
+    ${field('Asset URL', detailAssetUrl ? `<a href="${detailAssetUrl.startsWith('gs://') ? '#' : detailAssetUrl}" ${detailAssetUrl.startsWith('gs://') ? '' : 'target="_blank"'} style="color:var(--purple);word-break:break-all">${escHtml(detailAssetUrl)}</a> <button class="copy-btn" data-copy="${escHtml(detailAssetUrl)}" title="Copy asset URL" style="margin-left:6px">📋</button>` : '—')}
+    ${field('User', `${d.user_name || ''} &lt;${d.user_email || ''}&gt;`)}
+    ${field('Created', d.created_at || '—')}
+    ${field('Started', d.started_at || '—')}
+    ${field('Finished', d.finished_at || '—')}
+    ${field('Runtime', d.started_at && d.finished_at ? formatDuration(new Date(d.finished_at) - new Date(d.started_at)) : '—')}
+    ${field('Credits Used', `${d.tokens_used ?? '—'} / ~${d.tokens_estimated ?? '—'} estimated`)}
+    ${field('Duration', d.duration_seconds != null ? `${d.duration_seconds}s` : '—')}
+    ${field('File Size', d.file_size_mb != null ? `${d.file_size_mb} MB` : '—')}
+    ${field('Model', d.model || '—')}
+    ${field('Pipeline', d.pipeline_version || '—')}
+    ${field('Slack Notified', d.slack_notified ? '<span style="color:var(--green)">✓ Sent</span>' : '—')}
+    ${d.error_code ? field('Error', `<span style="color:var(--red)">${d.error_code}: ${d.error_message || ''}</span>`) : ''}
+  `;
+
+  // Inputs
+  $('pane-inputs').innerHTML = `
+    ${field('Prompt', `<div class="field-value mono">${escHtml(d.prompt_text || '—')}</div>`, true)}
+    ${field('Brand / Guide', d.brand_guide || '—')}
+    ${field('Source', `${d.source_type || '—'} — ${d.source_ref || '—'}`)}
+    ${field('Config', `<div class="field-value mono">${escHtml(JSON.stringify(d.config || {}, null, 2))}</div>`, true)}
+    ${field('Assets', d.input_assets && d.input_assets.length ? d.input_assets.map(a => `<div style="font-size:13px">${a.type} — ${a.size} MB — <code>${a.url}</code></div>`).join('') : '—', true)}
+  `;
+
+  // Pipeline
+  const steps = ['Ingest', 'Parse', 'Generate', 'Encode', 'Deliver'];
+  const pipeHtml = steps.map((s, i) => {
+    const done = d.status === 'succeeded' || (d.status === 'rendering' && d.progress_pct > (i + 1) * 20);
+    const fail = d.status === 'failed' && i === steps.length - 1;
+    return `<div class="pipeline-step"><div class="pipeline-dot ${fail ? 'fail' : done ? 'ok' : 'pending'}"></div><span class="pipeline-name">${s}</span><span class="pipeline-dur">${done ? '✓' : fail ? '✗' : '…'}</span></div>`;
+  }).join('');
+  $('pane-pipeline').innerHTML = pipeHtml;
+
+  // Logs
+  $('pane-logs').innerHTML = d.logs_url
+    ? `<p style="color:var(--text2);font-size:13px">Logs available at: <a href="${d.logs_url}" style="color:var(--purple)">${d.logs_url}</a></p>`
+    : `<p style="color:var(--text2)">No logs available.</p>`;
+
+  // Events
+  $('pane-events').innerHTML = d.webhook_failures_count > 0
+    ? `<p style="color:var(--red)">${d.webhook_failures_count} webhook failure(s)</p>`
+    : `<p style="color:var(--text2)">No webhook events.</p>`;
+
+  // Admin
+  $('pane-admin').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="header-btn" onclick="refundRender('${d.render_id}');closeDetail()">💳 Refund credits</button>
+      <button class="header-btn" onclick="cancelRender('${d.render_id}');closeDetail()">⏹ Hard cancel</button>
+      <button class="header-btn" style="border-color:var(--red);color:var(--red)" onclick="deleteOutput('${d.render_id}');closeDetail()">🗑 Delete artifacts</button>
+    </div>
+  `;
+}
+
+function field(label, value, raw) {
+  return `<div class="field"><div class="field-label">${label}</div>${raw ? value : `<div class="field-value">${value}</div>`}</div>`;
+}
+
+// ---- Utilities ----
+function timeAgo(iso) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+function truncate(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
+function formatDuration(ms) {
+  const s = Math.round(ms / 1000);
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showToast(msg, error) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (error ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// Copy buttons
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('copy-btn')) {
+    navigator.clipboard.writeText(e.target.dataset.copy);
+    showToast('Copied!');
+  }
+});
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', e => {
+  // Don't trigger in inputs
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === '/') { e.preventDefault(); $('searchBox').focus(); }
+  if (e.key === 'r') { loadRenders(); }
+  if (e.key === 'l' && currentDetail) { $('detailTabs').querySelector('[data-tab="logs"]').click(); }
+  if (e.key === 'Escape') { closeDetail(); closeFilterDrawer(); }
+});
+
+// ---- Init ----
+loadRenders();
+</script>
+</body>
+</html>

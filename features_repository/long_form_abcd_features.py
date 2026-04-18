@@ -65,7 +65,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.ANNOTATIONS,
           evaluation_function="detect_dynamic_start",
           include_in_evaluation=True,
-          group_by=VideoSegment.NONE,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="a_quick_pacing",
@@ -103,7 +103,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.ANNOTATIONS,
           evaluation_function="detect_quick_pacing",
           include_in_evaluation=True,
-          group_by=VideoSegment.NONE,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="a_quick_pacing_1st_5_secs",
@@ -138,7 +138,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.ANNOTATIONS,
           evaluation_function="detect_quick_pacing_1st_5_secs",
           include_in_evaluation=True,
-          group_by=VideoSegment.NONE,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="a_supers",
@@ -246,7 +246,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="b_brand_visuals",
@@ -302,7 +302,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="b_product_mention_speech",
@@ -366,7 +366,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="b_product_mention_text",
@@ -417,7 +417,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="b_product_visuals",
@@ -473,7 +473,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="c_overall_pacing",
@@ -501,7 +501,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.ANNOTATIONS,
           evaluation_function="detect_overall_pacing",
           include_in_evaluation=True,
-          group_by=VideoSegment.NONE,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="c_presence_of_people",
@@ -559,7 +559,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="c_visible_face",
@@ -585,7 +585,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="c_visible_face_close_up",
@@ -634,7 +634,7 @@ def get_long_form_abcd_feature_configs() -> list[VideoFeature]:
           evaluation_method=EvaluationMethod.LLMS,
           evaluation_function="",
           include_in_evaluation=True,
-          group_by=VideoSegment.FIRST_5_SECS_VIDEO,
+          group_by=VideoSegment.FULL_VIDEO,
       ),
       VideoFeature(
           id="d_call_to_action_speech",

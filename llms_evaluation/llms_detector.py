@@ -65,6 +65,9 @@ class LLMDetector:
         config
     ).execute_gemini_with_genai(prompt_config, llm_params)
 
+    if not evaluated_features:
+      evaluated_features = []
+
     if config.verbose:
       if len(evaluated_features) == 0:
         print(

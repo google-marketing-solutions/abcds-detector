@@ -146,6 +146,9 @@ class VideoEvaluationService:
                   evidence=evaluated_feature.get("evidence"),
                   strengths=evaluated_feature.get("strengths"),
                   weaknesses=evaluated_feature.get("weaknesses"),
+                  timestamps=evaluated_feature.get("timestamps", []),
+                  recommendation=evaluated_feature.get("recommendation", ""),
+                  recommendation_priority=evaluated_feature.get("recommendation_priority", ""),
               )
           )
         else:

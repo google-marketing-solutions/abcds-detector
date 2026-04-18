@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 ###########################################################################
 #
 #    Copyright 2024 Google LLC
@@ -48,7 +50,8 @@ def build_abcd_params_config(args: any) -> Configuration:
       use_llms=args.use_llms,
       run_long_form_abcd=args.run_long_form_abcd,
       run_shorts=args.run_shorts,
-      features_to_evaluate=args.features_to_evaluate.split(","),
+      run_creative_intelligence=args.run_creative_intelligence,
+      features_to_evaluate=args.features_to_evaluate.split(",") if args.features_to_evaluate else [],
       creative_provider_type=args.creative_provider_type,
       verbose=args.verbose,
   )
@@ -62,11 +65,11 @@ def build_abcd_params_config(args: any) -> Configuration:
   )
 
   config.set_llm_params(
-      llm_name=args.llm_name,
-      location=args.llm_location,
-      max_output_tokens=args.max_output_tokens,
-      temperature=args.temperature,
-      top_p=args.top_p,
+      llm_name=args.llm_name or "gemini-2.5-pro",
+      location=args.llm_location or "us-central1",
+      max_output_tokens=args.max_output_tokens or 65535,
+      temperature=args.temperature or 1,
+      top_p=args.top_p or 0.95,
   )
 
   return config
@@ -232,6 +235,13 @@ def parse_args(arg_list: list[str] | None = None) -> None:
       "-run_shorts",
       "-rs",
       help="Run evaluation for Shorts features",
+      action="store_true",
+      default=False,
+  )
+  parser.add_argument(
+      "-run_creative_intelligence",
+      "-rci",
+      help="Run Creative Intelligence evaluation (persuasion + structure)",
       action="store_true",
       default=False,
   )

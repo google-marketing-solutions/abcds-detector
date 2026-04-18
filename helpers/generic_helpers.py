@@ -122,6 +122,63 @@ def trim_video(config: Configuration, video_uri: str):
     print(f"Video {video_uri} has already been trimmed. Skipping...\n")
 
 
+def print_creative_intelligence_assessment(
+    brand_name: str,
+    video_uri: str,
+    evaluated_features: list[models.FeatureEvaluation],
+) -> None:
+  """Print Creative Intelligence Assessment (Persuasion + Structure)"""
+  print(f"\n***** Creative Intelligence Assessment for brand {brand_name} ***** \n")
+  print(f"Asset name: {video_uri} \n")
+
+  # Separate persuasion features from structure
+  persuasion_features = [
+      f for f in evaluated_features
+      if f.feature.sub_category == models.VideoFeatureSubCategory.PERSUASION
+  ]
+  structure_features = [
+      f for f in evaluated_features
+      if f.feature.sub_category == models.VideoFeatureSubCategory.STRUCTURE
+  ]
+
+  # Persuasion summary
+  if persuasion_features:
+    detected_count = len([f for f in persuasion_features if f.detected])
+    total_count = len(persuasion_features)
+    density = round((detected_count / total_count) * 100, 1) if total_count > 0 else 0
+    print(f"Persuasion Density: {density}% ({detected_count}/{total_count} tactics detected)\n")
+    print("Persuasion Tactics: \n")
+    for eval_feature in persuasion_features:
+      icon = "\u2705" if eval_feature.detected else "\u274c"
+      print(f" * {icon} {eval_feature.feature.name}")
+      if eval_feature.rationale:
+        print(f"     Rationale: {eval_feature.rationale}")
+      if eval_feature.evidence:
+        print(f"     Evidence: {eval_feature.evidence}")
+      if eval_feature.strengths:
+        print(f"     Strengths: {eval_feature.strengths}")
+      if eval_feature.weaknesses:
+        print(f"     Weaknesses: {eval_feature.weaknesses}")
+      print()
+
+  # Structure summary
+  if structure_features:
+    print("\nCreative Structure: \n")
+    for eval_feature in structure_features:
+      print(f" * {eval_feature.feature.name}")
+      if eval_feature.evidence:
+        print(f"     Archetype(s): {eval_feature.evidence}")
+      if eval_feature.rationale:
+        print(f"     Rationale: {eval_feature.rationale}")
+      if eval_feature.strengths:
+        print(f"     Strengths: {eval_feature.strengths}")
+      if eval_feature.weaknesses:
+        print(f"     Weaknesses: {eval_feature.weaknesses}")
+      print()
+
+  print("\n")
+
+
 def player(video_url: str):
   """Placeholder function to test locally"""
   print(f"{video_url} \n")
@@ -164,10 +221,19 @@ def print_score_details(
 
   print("Evaluated Features: \n")
   for eval_feature in evaluated_features:
-    if eval_feature.detected:
-      print(f" * ✅ {eval_feature.feature.name}")
-    else:
-      print(f" * ❌ {eval_feature.feature.name}")
+    icon = "✅" if eval_feature.detected else "❌"
+    print(f" * {icon} {eval_feature.feature.name}")
+    if eval_feature.rationale:
+      print(f"     Rationale: {eval_feature.rationale}")
+    if eval_feature.evidence:
+      print(f"     Evidence: {eval_feature.evidence}")
+    if eval_feature.strengths:
+      print(f"     Strengths: {eval_feature.strengths}")
+    if eval_feature.weaknesses:
+      print(f"     Weaknesses: {eval_feature.weaknesses}")
+    if eval_feature.confidence_score:
+      print(f"     Confidence: {eval_feature.confidence_score}")
+    print()
   print("\n")
 
 
@@ -446,6 +512,7 @@ def build_features_for_bq(
   evaluated_features = []
   evaluated_features.extend(video_assessment.long_form_abcd_evaluated_features)
   evaluated_features.extend(video_assessment.shorts_evaluated_features)
+  evaluated_features.extend(video_assessment.creative_intelligence_evaluated_features)
   # Insert all feature configs first
   for eval_feature in evaluated_features:
     if config.creative_provider_type == models.CreativeProviderType:

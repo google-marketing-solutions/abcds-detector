@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billing — AI Creative Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #021A20; --surface: #04272F; --surface2: #083640; --border: #0D4A55;
+    --text: #e0e0e0; --text2: #8aa8b0; --accent: #831F80; --green: #34d399;
+    --yellow: #fbbf24; --red: #f87171; --purple: #0A6D86;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .header { padding: 24px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header h1 a { color: inherit; text-decoration: none; }
+  .header h1 a:hover { color: var(--accent); }
+  .header span { color: var(--text2); font-size: 14px; }
+  .user-bar { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  .user-bar .user-email { font-size: 13px; color: var(--text2); }
+  .user-bar .user-credits {
+    font-size: 13px; font-weight: 600; color: var(--green);
+    background: rgba(52,211,153,0.1); padding: 4px 12px; border-radius: 20px;
+  }
+  .user-bar .btn-logout {
+    font-size: 12px; color: var(--text2); background: none; border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .user-bar .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* Layout */
+  .container { max-width: 900px; margin: 0 auto; padding: 32px; }
+
+  /* Page heading */
+  .page-heading { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .page-sub { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+
+  /* Balance card */
+  .balance-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 32px; text-align: center; margin-bottom: 32px;
+  }
+  .balance-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 8px; }
+  .balance-value { font-size: 48px; font-weight: 700; color: var(--green); }
+  .balance-sub { font-size: 14px; color: var(--text2); margin-top: 6px; }
+
+  /* Section */
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* Pack cards */
+  .pack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .pack-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .pack-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .pack-card .pack-tokens { font-size: 32px; font-weight: 700; color: var(--green); }
+  .pack-card .pack-label { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .pack-card .pack-price { font-size: 20px; font-weight: 600; color: var(--text); margin-top: 12px; }
+  .pack-card .pack-unit { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .pack-card .pack-btn {
+    display: inline-block; margin-top: 16px; padding: 10px 28px; border-radius: 8px;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer; transition: opacity 0.2s;
+  }
+  .pack-card .pack-btn:hover { opacity: 0.9; }
+  .pack-unavailable { opacity: 0.5; pointer-events: none; }
+  .pack-unavailable .pack-btn { background: var(--border); }
+
+  /* Transaction table */
+  .txn-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .txn-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text2); padding: 10px 14px; border-bottom: 2px solid var(--border);
+  }
+  .txn-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .txn-table tr:hover td { background: var(--surface2); }
+  .txn-type {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+  }
+  .txn-type.grant { background: rgba(52,211,153,0.15); color: var(--green); }
+  .txn-type.debit { background: rgba(248,113,113,0.15); color: var(--red); }
+  .txn-amount.positive { color: var(--green); font-weight: 600; }
+  .txn-amount.negative { color: var(--red); font-weight: 600; }
+  .txn-empty { text-align: center; padding: 40px 0; color: var(--text2); font-size: 14px; }
+
+  /* Back link */
+  .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); text-decoration: none; font-size: 14px; margin-bottom: 24px; }
+  .back-link:hover { text-decoration: underline; }
+
+  /* Loading */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading { text-align: center; padding: 40px 0; color: var(--text2); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><a href="/">AI Creative Review</a></h1>
+  <span>Billing</span>
+  <div class="user-bar" id="userBar" style="display:none">
+    <span class="user-email" id="userEmail"></span>
+    <span class="user-credits" id="userCredits"></span>
+    <button class="btn-logout" id="btnLogout">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+  <a href="/" class="back-link">&#8592; Back to app</a>
+
+  <h1 class="page-heading">Billing</h1>
+  <p class="page-sub">Manage your token balance, buy more tokens, and view your purchase history.</p>
+
+  <!-- Balance card -->
+  <div class="balance-card">
+    <div class="balance-label">Current Balance</div>
+    <div class="balance-value" id="balanceValue"><span class="spinner"></span></div>
+    <div class="balance-sub">tokens available</div>
+  </div>
+
+  <!-- Buy tokens -->
+  <div class="section">
+    <h2>Buy More Tokens</h2>
+    <div class="pack-grid" id="packGrid">
+      <div class="loading"><span class="spinner"></span> Loading packs...</div>
+    </div>
+  </div>
+
+  <!-- Purchase history -->
+  <div class="section">
+    <h2>Transaction History</h2>
+    <div id="historyContent">
+      <div class="loading"><span class="spinner"></span> Loading history...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Auth check
+async function init() {
+  try {
+    const res = await fetch('/auth/me');
+    if (!res.ok) { window.location.href = '/'; return; }
+    const data = await res.json();
+    const user = data.user;
+    $('userBar').style.display = 'flex';
+    $('userEmail').textContent = user.email;
+    $('userCredits').textContent = `${user.credits_balance.toLocaleString()} credits`;
+  } catch {
+    window.location.href = '/';
+    return;
+  }
+  loadPacks();
+  loadHistory();
+}
+
+async function loadPacks() {
+  try {
+    const res = await fetch('/billing/packs');
+    if (!res.ok) throw new Error('Failed to load packs');
+    const data = await res.json();
+    $('balanceValue').textContent = data.credits_balance.toLocaleString();
+
+    const grid = $('packGrid');
+    grid.innerHTML = '';
+    (data.packs || []).forEach(pack => {
+      const perToken = (pack.usd / pack.tokens * 1000).toFixed(1);
+      const card = document.createElement('div');
+      card.className = 'pack-card' + (pack.available ? '' : ' pack-unavailable');
+      card.innerHTML = `
+        <div class="pack-tokens">${pack.tokens.toLocaleString()}</div>
+        <div class="pack-label">tokens</div>
+        <div class="pack-price">$${pack.usd}</div>
+        <div class="pack-unit">$${perToken} per 1,000 tokens</div>
+        <button class="pack-btn">${pack.available ? 'Buy Now' : 'Unavailable'}</button>`;
+      if (pack.available) {
+        card.addEventListener('click', () => buyPack(pack.key));
+      }
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    $('packGrid').innerHTML = `<div class="txn-empty">Failed to load token packs.</div>`;
+  }
+}
+
+async function buyPack(packKey) {
+  try {
+    const res = await fetch('/billing/checkout-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ pack: packKey }),
+    });
+    const data = await res.json();
+    if (data.checkout_url) {
+      window.location.href = data.checkout_url;
+    } else {
+      alert(data.detail || 'Failed to start checkout');
+    }
+  } catch (e) {
+    alert('Failed to start checkout');
+  }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch('/billing/history');
+    if (!res.ok) throw new Error('Failed to load history');
+    const data = await res.json();
+    const txns = data.transactions || [];
+
+    if (txns.length === 0) {
+      $('historyContent').innerHTML = '<div class="txn-empty">No transactions yet. Buy tokens to get started!</div>';
+      return;
+    }
+
+    const reasonLabels = {
+      'video_evaluation': 'Video Evaluation',
+      'purchase_TOKENS_1000': 'Purchased 1,000 Pack',
+      'purchase_TOKENS_3000': 'Purchased 3,000 Pack',
+      'signup_bonus': 'Signup Bonus',
+      'admin_grant': 'Admin Grant',
+    };
+
+    let html = `<table class="txn-table">
+      <thead><tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Report</th>
+        <th style="text-align:right">Amount</th>
+      </tr></thead><tbody>`;
+
+    txns.forEach(tx => {
+      const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+      const typeClass = tx.type === 'grant' ? 'grant' : 'debit';
+      const typeLabel = tx.type === 'grant' ? 'Credit' : 'Debit';
+      const reason = reasonLabels[tx.reason] || tx.reason || '—';
+      const sign = tx.type === 'grant' ? '+' : '-';
+      const amountClass = tx.type === 'grant' ? 'positive' : 'negative';
+      const jobLink = tx.job_id && tx.type === 'debit' ? `<a href="/report/${tx.job_id}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:12px">${tx.job_id}</a>` : (tx.job_id || '—');
+      html += `<tr>
+        <td>${date}</td>
+        <td><span class="txn-type ${typeClass}">${typeLabel}</span></td>
+        <td>${reason}</td>
+        <td>${jobLink}</td>
+        <td style="text-align:right" class="txn-amount ${amountClass}">${sign}${tx.amount.toLocaleString()}</td>
+      </tr>`;
+    });
+
+    html += '</tbody></table>';
+    $('historyContent').innerHTML = html;
+  } catch (e) {
+    $('historyContent').innerHTML = '<div class="txn-empty">Failed to load transaction history.</div>';
+  }
+}
+
+$('btnLogout').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method: 'POST' });
+  window.location.href = '/';
+});
+
+// Handle billing return
+const billingParam = new URLSearchParams(window.location.search).get('billing');
+if (billingParam === 'success') {
+  // Refresh data after a short delay to let the webhook process
+  setTimeout(() => {
+    loadPacks();
+    loadHistory();
+    init();
+  }, 1000);
+  window.history.replaceState({}, '', '/billing');
+}
+
+init();
+</script>
+</body>
+</html>
