@@ -4,5 +4,5 @@ google-cloud-storage==2.19.0
 moviepy==1.0.3
 google-api-python-client==2.172.0
 pandas==2.3.0
-pyarrow==20.0.0
+pyarrow==23.0.1
 pyopenssl==26.1.0
