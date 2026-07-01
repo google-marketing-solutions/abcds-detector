@@ -1,4 +1,4 @@
-google-cloud-aiplatform==1.97.0
+google-cloud-aiplatform==1.133.0
 google-cloud-videointelligence==2.16.1
 google-cloud-storage==2.19.0
 moviepy==1.0.3
