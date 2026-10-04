@@ -1,242 +1,225 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
-#    Copyright 2024 Google LLC
+#  Copyright 2024 Google LLC
 #
-#    Licensed under the Apache License, Version 2.0 (the "License");
-#    you may not use this file except in compliance with the License.
-#    You may obtain a copy of the License at
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
 #
-#            https://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    See the License for the specific language governing permissions and
-#    limitations under the License.
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
 #
 ###########################################################################
 
-"""Module that defines global parameters"""
+"""Module that defines ABCD Detector configuration structures and validation."""
 
+import dataclasses
+import enum
 import os
-from models import CreativeProviderType, LLMParameters
-
-FFMPEG_BUFFER = "reduced/buffer.mp4"
-FFMPEG_BUFFER_REDUCED = "reduced/buffer_reduced.mp4"
-
-if not os.path.exists("reduced"):
-  os.makedirs("reduced")
 
 
-class Configuration:
-  """Class that stores all parameters used by ABCD."""
+class ExecutionMode(str, enum.Enum):
+  """Execution mode for feature evaluation."""
+  BULK = "BULK"
+  INDIVIDUAL = "INDIVIDUAL"
 
-  def __init__(self):
-    """Initialize with only the required parameters.
 
-    Set all optional parameter defaults in this class to avoid
-    importing the global constants.
-    Hence no global variables for hard coded values by design.
+@dataclasses.dataclass(frozen=True)
+class GCPConfig:
+  """Configuration settings for Google Cloud Platform."""
+  project_id: str = dataclasses.field(
+      default_factory=lambda: os.getenv(
+          "PROJECT_ID", os.getenv("GOOGLE_CLOUD_PROJECT", "")
+      )
+  )
+  location: str = dataclasses.field(
+      default_factory=lambda: os.getenv(
+          "GCP_LOCATION", os.getenv("LOCATION", "us-central1")
+      )
+  )
+
+  def __post_init__(self) -> None:
+    """Validates GCP configuration fields post-initialization."""
+    self.validate()
+
+  def validate(self) -> None:
+    """Strictly validates GCP settings.
+
+    Raises:
+      ValueError: If project_id or location is missing or empty.
     """
-    # set parameters
-    self.project_id: str = ""
-    self.project_zone: str = "us-central1"
-    self.bucket_name: str = ""
-    self.knowledge_graph_api_key: str = ""
-    self.bq_dataset_name: str = "abcd_detector_ds"
-    self.bq_table_name: str = "abcd_assessments"
-    self.assessment_file: str = ""
-    self.verbose: bool = True
-    self.annotation_path: str = ""
-    self.extract_brand_metadata = True
-    self.use_annotations = False
-    self.use_llms = True
-    self.run_long_form_abcd: bool = True
-    self.run_shorts: bool = True
-    self.features_to_evaluate: list[str]  # list of feature ids to run
-    self.creative_provider_type = CreativeProviderType.GCS  # GCS by default
+    if not self.project_id or not self.project_id.strip():
+      raise ValueError(
+          "project_id is required. Please set the PROJECT_ID or "
+          "GOOGLE_CLOUD_PROJECT environment variable or pass project_id "
+          "explicitly in GCPConfig."
+      )
+    if not self.location or not self.location.strip():
+      raise ValueError("location is required and must be a non-empty string.")
 
-    # set videos
-    self.video_uris: list[str] = []
 
-    # set brand
-    self.brand_name: str = ""
-    self.brand_variations: list[str] = []
-    self.branded_products: list[str] = []
-    self.branded_products_categories: list[str] = []
-    self.branded_call_to_actions: list[str] = []
+@dataclasses.dataclass(frozen=True)
+class GeminiConfig:
+  """Configuration settings for Gemini models via Google GenAI SDK."""
+  api_key: str = dataclasses.field(
+      default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
+  )
+  model_name: str = "gemini-3.8-flash"
+  model_location: str = "global"
+  temperature: float = 0.1
+  top_p: float = 0.95
+  max_output_tokens: int = 65536
 
-    # set thresholds for annotations
-    self.early_time_seconds: float = 5
-    self.confidence_threshold: float = 0.5
-    self.face_surface_threshold: float = 0.15
-    self.logo_size_threshold: float = 3.5
-    self.avg_shot_duration_seconds: float = 2
-    self.dynamic_cutoff_ms: float = 3000
+  def __post_init__(self) -> None:
+    """Validates Gemini configuration fields post-initialization."""
+    self.validate()
 
-    # set llm params
-    self.llm_params: LLMParameters = LLMParameters()
+  def validate(self) -> None:
+    """Strictly validates Gemini settings.
 
-  def set_parameters(
-      self,
-      project_id: str,
-      project_zone: str,
-      bucket_name: str,
-      knowledge_graph_api_key: str,
-      bigquery_dataset: str,
-      bigquery_table: str,
-      assessment_file: str,
-      use_annotations: bool,
-      use_llms: bool,
-      extract_brand_metadata: bool,
-      run_long_form_abcd: bool,
-      run_shorts: bool,
-      features_to_evaluate: list[str],
-      creative_provider_type: CreativeProviderType,
-      verbose: bool,
-  ) -> None:
-    """Set the required parameters for ABCD to run.
-
-      Having a separate method for this allows colab multi cell edits.
-
-    Args:
-      project_id: Google Cloud Project ID
-      project_zone: Google Cloud Project zone (us-central1 if None)
-      bucket_name: Google Cloud Storage Bucket name (not uri)
-      knowledge_graph_api_key: Google Cloud API Key (limit this)
-      bigquery_dataset: name of dataset in BigQuery.
-      bigquery_table: name of table to append results to in BigQuery.
-      assessment_file: If present, results will be written to the file path.
-      use_annotations: Use video annotation AI.
-      use_llms: Use LLM AI.
-      verbose: Turn on extra debug and execution prints.
+    Raises:
+      ValueError: If api_key or model_location is empty, max_tokens <= 0,
+        or temperature out of range.
     """
-    self.project_id = project_id
-    self.project_zone = project_zone or "us-central1"
-    self.bucket_name = bucket_name
-    self.knowledge_graph_api_key = knowledge_graph_api_key.strip()
-    self.bq_dataset_name = bigquery_dataset
-    self.bq_table_name = bigquery_table
-    self.assessment_file = assessment_file
-    self.extract_brand_metadata = extract_brand_metadata
-    self.use_annotations = use_annotations
-    self.use_llms = use_llms
-    self.run_long_form_abcd = run_long_form_abcd
-    self.run_shorts = run_shorts
-    self.verbose = verbose
-    self.features_to_evaluate = features_to_evaluate
+    if not self.api_key or not self.api_key.strip():
+      raise ValueError(
+          "GEMINI_API_KEY is required. Please set the GEMINI_API_KEY "
+          "environment variable or pass api_key explicitly."
+      )
+    if not self.model_location or not self.model_location.strip():
+      raise ValueError("model_location must be a non-empty string.")
+    if self.max_output_tokens <= 0:
+      raise ValueError("max_output_tokens must be greater than 0.")
+    if not (0.0 <= self.temperature <= 2.0):
+      raise ValueError("temperature must be between 0.0 and 2.0.")
 
-    if creative_provider_type == CreativeProviderType.GCS.value:
-      self.creative_provider_type = CreativeProviderType.GCS
 
-    if creative_provider_type == CreativeProviderType.YOUTUBE.value:
-      self.creative_provider_type = CreativeProviderType.YOUTUBE
+@dataclasses.dataclass(frozen=True)
+class BrandContext:
+  """Brand metadata used for ABCD evaluation."""
+  brand_name: str
+  branded_products: list[str]
+  branded_call_to_actions: list[str] = dataclasses.field(default_factory=list)
 
-    self.annotation_path = f"gs://{bucket_name}/ABCD/"
+  def __post_init__(self) -> None:
+    """Validates brand context fields post-initialization."""
+    self.validate()
 
-  def set_videos(self, video_uris: list) -> None:
-    """Set the videos that will be processed.
+  def validate(self) -> None:
+    """Validates brand context settings.
 
-    Having a separate method for this allows multiple runs.
-    We accept a string in case someone passes only one video.
-
-    Args:
-      video_uris: a list of Google Cloud Storage URIs for videos or paths.
+    Raises:
+      ValueError: If brand_name is empty or branded_products is empty.
     """
-    if isinstance(video_uris, str):
-      self.video_uris = [v.strip() for v in video_uris.split(",")]
-    elif isinstance(video_uris, (list, tuple)):
-      self.video_uris = video_uris
-    else:
-      self.video_uris = [video_uris]
+    if not self.brand_name or not self.brand_name.strip():
+      raise ValueError("brand_name is required and must be a non-empty string.")
+    if not self.branded_products:
+      raise ValueError(
+          "branded_products is required and must contain at least one "
+          "non-empty product name."
+      )
 
-  def set_brand_details(
-      self,
-      brand_name: str,
-      brand_variations: str,
-      products: str,
-      products_categories: str,
-      call_to_actions: str,
-  ) -> None:
-    """Set brand values to help AI evaluate videos.
 
-    Args:
-        name: name of brand featured in video.
-        variations: comma delimited variations on the brand name.
-        products: comma delimited list of products in the video.
-        products_categories: comma delimited list of product types.
-        call_to_actions: comma delimited list of actions
+@dataclasses.dataclass(frozen=True)
+class BigQuerySettings:
+  """Settings for exporting assessments to Google Cloud BigQuery."""
+  project_id: str = dataclasses.field(
+      default_factory=lambda: os.getenv(
+          "PROJECT_ID", os.getenv("GOOGLE_CLOUD_PROJECT", "")
+      )
+  )
+  dataset_name: str = dataclasses.field(
+      default_factory=lambda: os.getenv("BQ_DATASET", "")
+  )
+  table_name: str = dataclasses.field(
+      default_factory=lambda: os.getenv("BQ_TABLE", "")
+  )
+
+  def __post_init__(self) -> None:
+    """Validates BigQuery settings post-initialization."""
+    self.validate()
+
+  def validate(self) -> None:
+    """Strictly validates BigQuery settings.
+
+    Raises:
+      ValueError: If project_id, dataset_name, or table_name is missing.
     """
-    self.brand_name = brand_name
-    self.brand_variations = (
-        [t.strip() for t in brand_variations.split(",")]
-        if brand_variations
-        else []
-    )
-    self.branded_products = (
-        [t.strip() for t in products.split(",")] if products else []
-    )
-    self.branded_products_categories = (
-        [t.strip() for t in products_categories.split(",")]
-        if products_categories
-        else []
-    )
-    self.branded_call_to_actions = (
-        [t.strip() for t in call_to_actions.split(",")]
-        if call_to_actions
-        else []
-    )
+    missing = []
+    if not self.project_id or not self.project_id.strip():
+      missing.append(
+          "project_id (or PROJECT_ID / GOOGLE_CLOUD_PROJECT env var)"
+      )
+    if not self.dataset_name or not self.dataset_name.strip():
+      missing.append("dataset_name (or BQ_DATASET env var)")
+    if not self.table_name or not self.table_name.strip():
+      missing.append("table_name (or BQ_TABLE env var)")
 
-  def set_annotations_params(
-      self,
-      early_time_seconds: int,
-      confidence_threshold: float,
-      face_surface_threshold: float,
-      logo_size_threshold: float,
-      avg_shot_duration_seconds: int,
-      dynamic_cutoff_ms: int,
-  ) -> None:
-    """Set annotation thresholds to help the AI recognize content.
+    if missing:
+      raise ValueError(
+          f"Missing required BigQuery settings: {', '.join(missing)}"
+      )
 
-    Args:
-      early_time_seconds: how soon in the video something appears
-      confidence_threshold: level of certainty for a positive match
-      face_surface_threshold: level of certainty for face detection
-      logo_size_threshold: minimal logo size
-      avg_shot_duration_seconds: video timing
-      dynamic_cutoff_ms: longest clip analyzed
+
+@dataclasses.dataclass(frozen=True)
+class EvaluationRequest:
+  """Request definition for evaluating video ads against ABCD framework."""
+  gcp_config: GCPConfig
+  gemini_config: GeminiConfig
+  video_uris: list[str]
+  slices: list[str] = dataclasses.field(
+      default_factory=lambda: ["universal", "shorts"]
+  )
+  features_to_evaluate: dict[str, list[str]] | None = None
+  execution_mode: ExecutionMode = ExecutionMode.BULK
+  extract_brand_metadata: bool = True
+  brand_context: BrandContext | None = None
+  bigquery_settings: BigQuerySettings | None = None
+
+  def __post_init__(self) -> None:
+    """Validates evaluation request fields post-initialization."""
+    self.validate()
+
+  def validate(self) -> None:
+    """Strictly validates evaluation request parameters.
+
+    Raises:
+      ValueError: If configurations are invalid or required inputs are missing.
     """
-    self.early_time_seconds = early_time_seconds
-    self.confidence_threshold = confidence_threshold
-    self.face_surface_threshold = face_surface_threshold
-    self.logo_size_threshold = logo_size_threshold
-    self.avg_shot_duration_seconds = avg_shot_duration_seconds
-    self.dynamic_cutoff_ms = dynamic_cutoff_ms
+    if self.gcp_config is None:
+      raise ValueError("gcp_config is required and cannot be None.")
+    self.gcp_config.validate()
 
-  def set_llm_params(
-      self,
-      llm_name: str,
-      location: str,
-      max_output_tokens: int,
-      temperature: float,
-      top_p: float,
-  ) -> None:
-    """Set LLM model parameters.
+    if self.gemini_config is None:
+      raise ValueError("gemini_config is required and cannot be None.")
+    self.gemini_config.validate()
 
-    Args:
-      llm_name: name of LLm model to use
-      location: model location
-      max_output_tokens: largest response (limit API costs)
-      temperature: how creative the model gets
-      top_p: how varied the model gets
-    """
-    self.llm_params.model_name = llm_name
-    self.llm_params.location = location
-    self.llm_params.generation_config = {
-        "max_output_tokens": int(max_output_tokens),
-        "temperature": float(temperature),
-        "top_p": float(top_p),
-        "response_schema": {"type": "string"},
-    }
+    if not self.video_uris:
+      raise ValueError("At least one video URI must be provided in video_uris.")
+
+    if not self.slices:
+      raise ValueError("At least one slice must be specified in slices.")
+
+    if self.features_to_evaluate is not None and not isinstance(
+        self.features_to_evaluate, dict
+    ):
+      raise ValueError(
+          "features_to_evaluate must be a dict mapping slice names to list of "
+          "feature IDs, e.g. {'universal': ['dynamic_start']}."
+      )
+
+    if not self.extract_brand_metadata:
+      if not self.brand_context:
+        raise ValueError(
+            "When extract_brand_metadata is False, brand_context with "
+            "brand_name and branded_products must be provided."
+        )
+      self.brand_context.validate()
+
+    if self.bigquery_settings:
+      self.bigquery_settings.validate()

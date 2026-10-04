@@ -1,15 +1,13 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # Python
-venv
+venv/
+.venv/
 **/__pycache__/
+*.py[cod]
+.pytest_cache/
 reduced/
 ffmpeg
-annotations_evaluation/_pycache_
-feature_configs/_pycache_
-helpers/_pycache_
-llms_evaluation/_pycache_
-prompts/_pycache_
 
 # IDEs and editors
 .idea/
@@ -21,7 +19,7 @@ prompts/_pycache_
 *.sublime-workspace
 
 # Visual Studio Code
-.vscode/
+.vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json

@@ -1,8 +1,7 @@
-google-cloud-aiplatform==1.97.0
-google-cloud-videointelligence==2.16.1
-google-cloud-storage==2.19.0
-moviepy==1.0.3
-google-api-python-client==2.172.0
-pandas==2.3.0
-pyarrow==20.0.0
-pyopenssl==26.1.0
+google-genai==2.28.0
+google-cloud-storage==3.16.0
+google-cloud-bigquery==3.46.1
+google-api-python-client==2.201.0
+pandas==3.0.6
+pyarrow==25.0.1
+pyopenssl==26.4.0
