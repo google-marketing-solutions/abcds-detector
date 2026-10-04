@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2025 Google LLC
@@ -18,50 +16,122 @@
 #
 ###########################################################################
 
-"""Module to evaluate features for ABCDs using custom functions"""
+"""Module to evaluate features for ABCDs using custom functions / registry."""
 
-import annotations_evaluation.feature_modules as annotations_module  # Change this
-from configuration import Configuration
-from models import VideoFeature, FeatureEvaluation
+import importlib
+import logging
+import pathlib
+import sys
+from typing import Any, Callable
+
+import configuration
+import models
+
+logger = logging.getLogger("abcd_detector")
+
+# Registry for custom feature evaluation functions
+CUSTOM_EVALUATORS: dict[str, Callable[..., Any]] = {}
+
+
+def register_evaluator(
+    name: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+  """Decorator to register a custom evaluation function.
+
+  Args:
+    name: Identifier name for the custom evaluator.
+
+  Returns:
+    Decorator function registering the callable under the given name.
+  """
+
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Registers the decorated function in CUSTOM_EVALUATORS."""
+    CUSTOM_EVALUATORS[name] = func
+    return func
+
+  return decorator
+
+
+def load_custom_evaluators() -> None:
+  """Imports all evaluator modules from custom_evaluation/evaluations/."""
+  evaluations_dir = pathlib.Path(__file__).parent / "evaluations"
+  if evaluations_dir.exists() and evaluations_dir.is_dir():
+    for file_path in sorted(evaluations_dir.glob("*.py")):
+      if file_path.name.startswith("__"):
+        continue
+      module_name = f"custom_evaluation.evaluations.{file_path.stem}"
+      if module_name not in sys.modules:
+        try:
+          importlib.import_module(module_name)
+          logger.debug("Imported custom evaluator module: %s", module_name)
+        except Exception as err:
+          logger.warning(
+              "Failed to auto-import custom evaluator '%s': %s",
+              module_name,
+              err,
+          )
 
 
 class CustomDetector:
-  """Module to evaluate features for ABCDs using annotations."""
+  """Evaluates ABCD features using registered custom evaluation functions."""
 
-  def __init__(self):
-    pass
+  def __init__(self) -> None:
+    """Initializes CustomDetector and auto-discovers custom evaluators."""
+    load_custom_evaluators()
 
-  def evaluate_features(
-      self, config: Configuration, feature_config: VideoFeature, video_uri: str
-  ) -> list[FeatureEvaluation]:
-    """Evaluates ABCD features using custom functions."""
+  def evaluate_feature(
+      self,
+      gemini_config: configuration.GeminiConfig,
+      feature_config: models.VideoFeature,
+      video_uri: str,
+      brand_context: configuration.BrandContext | None = None,
+  ) -> models.FeatureEvaluation:
+    """Evaluates a single ABCD feature using its registered custom function.
 
-    print("Starting ABCD evaluation using custom functions... \n")
+    Args:
+      gemini_config: Gemini API configuration parameters.
+      feature_config: Definition of the feature to evaluate.
+      video_uri: Cloud Storage URI of the video.
+      brand_context: Optional brand metadata for augmented prompts.
 
-    feature_evaluations: list[FeatureEvaluation] = []
+    Returns:
+      Evaluation result for the feature.
+    """
+    func_name = feature_config.evaluation_function
+    logger.info(
+        "Executing custom evaluator '%s' for feature '%s'...",
+        func_name,
+        feature_config.name,
+    )
 
-    print(f"Custom function evaluation for feature {feature_config.name}... \n")
-    eval_function_name = feature_config.evaluation_function
-    func = getattr(annotations_module, eval_function_name)
-    evaluation = func(config, feature_config.name, video_uri)
+    if not func_name:
+      raise ValueError(
+          f"Feature '{feature_config.id}' does not have an evaluation_function"
+          " defined."
+      )
 
-    if isinstance(evaluation, bool):
-      feature_evaluation = {
-          "id": feature_config.id,
-          "detected": evaluation,
-          "confidence_score": 1,  # TODO (ae) calculate this for annotations
-          "rationale": "",
-          "evidence": "",
-          "strengths": "",
-          "weaknesses": "",
-      }
-    else:
-      # TODO (ae) add details about the interface returned here
-      feature_evaluation = evaluation
+    if func_name not in CUSTOM_EVALUATORS:
+      load_custom_evaluators()
 
-    feature_evaluations.append(feature_evaluation)
+    if func_name not in CUSTOM_EVALUATORS:
+      raise ValueError(
+          f"Custom evaluation function '{func_name}' is not registered. "
+          f"Available evaluators: {list(CUSTOM_EVALUATORS.keys())}"
+      )
 
-    return feature_evaluations
+    evaluator_func = CUSTOM_EVALUATORS[func_name]
+    result = evaluator_func(
+        gemini_config=gemini_config,
+        feature_config=feature_config,
+        video_uri=video_uri,
+        brand_context=brand_context,
+    )
 
+    if not isinstance(result, models.FeatureEvaluation):
+      raise TypeError(
+          f"Custom evaluator '{func_name}' must return a FeatureEvaluation"
+          f" instance, got '{type(result).__name__}'."
+      )
 
-custom_detector = CustomDetector()
+    return result
