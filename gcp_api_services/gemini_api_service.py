@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -18,348 +16,378 @@
 #
 ###########################################################################
 
-"""Module to load helper functions and classes to interact with Vertex AI"""
+"""Module to interact with Gemini models using Vertex AI and GenAI SDK."""
 
-import time
 import json
-import vertexai
-import vertexai.preview.generative_models as generative_models
-from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig
-from google.api_core.exceptions import ResourceExhausted
+import logging
+import time
+from typing import Any
+
+from google.api_core import exceptions as api_exceptions
+import google.auth
 from google import genai
 from google.genai import types
-from configuration import Configuration
-from prompts.prompt_generator import PromptConfig
-from models import LLMParameters
 
+import configuration
+import models
+from prompts import prompt_generator
 
-DEFAULT_CONFIG = LLMParameters()
+logger = logging.getLogger("abcd_detector")
 
 
 class GeminiAPIService:
-  """Gemini API Service to leverage the Vertex APIs for inference"""
+  """Gemini API Service supporting Vertex AI and Interactions API."""
 
-  def __init__(self, project_id: str):
-    self.project_id = project_id
+  def __init__(
+      self,
+      gcp_config: configuration.GCPConfig | None,
+      gemini_config: configuration.GeminiConfig,
+  ) -> None:
+    """Initializes the GeminiAPIService.
 
-  def execute_gemini_with_genai(
-      self, prompt_config: PromptConfig, llm_params: LLMParameters | None = None
-  ):
-    """Executes Gemini using the GenAI library"""
-    if not llm_params:
-      llm_params = DEFAULT_CONFIG
-    # Retry call for retriable errors
-    retries = 3
+    Args:
+      gcp_config: Optional Google Cloud Platform configuration.
+      gemini_config: Configuration settings for the Gemini API.
+    """
+    self.config = gemini_config
+    self.gcp_config = gcp_config
+    self.client = (
+        genai.Client(api_key=gemini_config.api_key)
+        if gemini_config.api_key
+        else None
+    )
+    self._registered_files_cache: dict[str, str] = {}
+
+  def _resolve_video_uri(self, video_uri: str) -> str:
+    """Registers a GCS video with the Gemini File Service if needed.
+
+    Args:
+      video_uri: URI of the video (e.g. gs://bucket/video.mp4).
+
+    Returns:
+      Registered file URI or the original URI if not GCS.
+    """
+    if not video_uri.startswith("gs://"):
+      return video_uri
+
+    if video_uri in self._registered_files_cache:
+      return self._registered_files_cache[video_uri]
+
+    logger.info("Registering GCS video with Gemini File Service: %s", video_uri)
+    credentials, _ = google.auth.default(
+        scopes=[
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/devstorage.read_only",
+            "https://www.googleapis.com/auth/generative-language",
+        ]
+    )
+
+    response = self.client.files.register_files(
+        auth=credentials,
+        uris=[video_uri],
+    )
+    if not response.files:
+      raise ValueError(
+          f"Failed to register video file with Gemini: {video_uri}"
+      )
+
+    file_ref = response.files[0]
+
+    # Wait for processing if necessary
+    while getattr(file_ref, "state", None) == types.FileState.PROCESSING:
+      time.sleep(2)
+      file_ref = self.client.files.get(name=file_ref.name)
+
+    if getattr(file_ref, "state", None) == types.FileState.FAILED:
+      raise ValueError(
+          f"Gemini failed to process registered video: {file_ref.error}"
+      )
+
+    resolved_uri = file_ref.uri
+    self._registered_files_cache[video_uri] = resolved_uri
+    logger.info(
+        "Successfully registered video with Gemini: %s -> %s",
+        video_uri,
+        resolved_uri,
+    )
+    return resolved_uri
+
+  def execute_interaction(
+      self,
+      video_uri: str,
+      prompt_config: models.PromptConfig,
+      response_schema: dict[str, Any],
+      retries: int = 3,
+  ) -> list[dict[str, Any]] | dict[str, Any]:
+    """Executes a request to Gemini using the Interactions API.
+
+    Args:
+      video_uri: Cloud Storage URI of the video.
+      prompt_config: PromptConfig containing prompt and system instructions.
+      response_schema: JSON schema dict for the structured response.
+      retries: Maximum number of retry attempts for transient errors.
+
+    Returns:
+      Parsed JSON response from Gemini as a list of dicts or dict.
+    """
+    resolved_uri = self._resolve_video_uri(video_uri)
+    for attempt in range(retries):
+      try:
+        logger.info(
+            "Calling Gemini Interactions API (attempt %d/%d) for video: %s with"
+            " model %s",
+            attempt + 1,
+            retries,
+            video_uri,
+            self.config.model_name,
+        )
+
+        interaction = self.client.interactions.create(
+            model=self.config.model_name,
+            input=[
+                {"type": "video", "uri": resolved_uri},
+                {"type": "text", "text": prompt_config.prompt},
+            ],
+            system_instruction=prompt_config.system_instructions,
+            response_format={
+                "type": "text",
+                "mime_type": "application/json",
+                "schema": response_schema,
+            },
+            generation_config={
+                "temperature": self.config.temperature,
+                "top_p": self.config.top_p,
+                "max_output_tokens": self.config.max_output_tokens,
+            },
+        )
+
+        raw_text = None
+        if hasattr(interaction, "output_text") and interaction.output_text:
+          raw_text = interaction.output_text
+        elif hasattr(interaction, "outputs") and interaction.outputs:
+          raw_text = interaction.outputs[-1].text
+
+        if not raw_text:
+          logger.warning(
+              "Empty output received from Gemini for video: %s", video_uri
+          )
+          return []
+
+        parsed = json.loads(raw_text)
+        return parsed
+
+      except api_exceptions.ResourceExhausted as ex:
+        wait = 10 * (2**attempt)
+        logger.warning(
+            "Quota/Rate limit hit (%s). Retrying in %ds...", ex, wait
+        )
+        time.sleep(wait)
+      except Exception as ex:
+        error_msg = str(ex)
+        if "429" in error_msg or "503" in error_msg or "500" in error_msg:
+          wait = 10 * (2**attempt)
+          logger.warning(
+              "Transient API error (%s). Retrying in %ds...", error_msg, wait
+          )
+          time.sleep(wait)
+        else:
+          logger.error(
+              "Non-retriable error calling Gemini Interactions API: %s",
+              error_msg,
+          )
+          raise
+
+    logger.error("Max retries exceeded for video: %s", video_uri)
+    return []
+
+  def _get_modality_parts(
+      self, prompt: str, modality: dict[str, Any]
+  ) -> list[Any]:
+    """Builds the modality parameters based on the type of LLM capability.
+
+    Args:
+      prompt: The text prompt.
+      modality: The type of modality (e.g., "text", "VIDEO", "DOCUMENT").
+
+    Returns:
+      A list of parameters for the specified modality.
+    """
+    prompt_part = types.Part.from_text(text=prompt)
+    modality_type = (
+        str(modality.get("type", "")).upper()
+        if isinstance(modality, dict)
+        else "TEXT"
+    )
+    if modality_type == "TEXT":
+      return [prompt_part]
+    if modality_type == "VIDEO":
+      video_uri = modality.get("video_uri") or modality.get("gcs_uri", "")
+      mime_type = (
+          f"video/{video_uri.rsplit('.', 1)[-1]}"
+          if "." in video_uri
+          else "video/mp4"
+      )
+      video = types.Part.from_uri(file_uri=video_uri, mime_type=mime_type)
+      return [video, prompt_part]
+    if modality_type == "DOCUMENT":
+      gcs_uri = modality.get("gcs_uri", "")
+      extension = gcs_uri.rsplit(".", 1)[-1] if "." in gcs_uri else ""
+      if extension == "pdf":
+        mime_type = f"application/{extension}"
+      elif extension == "txt":
+        mime_type = "text/plain"
+      else:
+        mime_type = "application/octet-stream"
+      document = types.Part.from_uri(file_uri=gcs_uri, mime_type=mime_type)
+      return [document, prompt_part]
+    return [prompt_part]
+
+  def call_gemini_vertex_ai(
+      self,
+      video_uri: str,
+      prompt_config: models.PromptConfig,
+      response_schema: dict[str, Any],
+      retries: int = 3,
+  ) -> list[dict[str, Any]] | dict[str, Any]:
+    """Calls Gemini via Vertex AI enforcing structured JSON output.
+
+    Args:
+      video_uri: Cloud Storage URI of the video.
+      prompt_config: PromptConfig containing prompt and system instructions.
+      response_schema: JSON schema dict for the structured response.
+      retries: Maximum number of retry attempts for transient errors.
+
+    Returns:
+      Parsed structured JSON response from Gemini as a list of dicts or dict.
+    """
+    project = self.gcp_config.project_id if self.gcp_config else ""
+    location = self.config.model_location if self.config else ""
+
+    modality = {"type": "VIDEO", "video_uri": video_uri}
+    parts = self._get_modality_parts(prompt_config.prompt, modality)
+    contents = [types.Content(role="user", parts=parts)]
+
+    generate_content_config = types.GenerateContentConfig(
+        temperature=self.config.temperature,
+        top_p=self.config.top_p,
+        seed=0,
+        max_output_tokens=self.config.max_output_tokens,
+        response_modalities=["TEXT"],
+        safety_settings=[
+            types.SafetySetting(
+                category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"
+            ),
+            types.SafetySetting(
+                category="HARM_CATEGORY_HARASSMENT", threshold="OFF"
+            ),
+        ],
+        system_instruction=[
+            types.Part.from_text(text=prompt_config.system_instructions)
+        ],
+        response_mime_type="application/json",
+        response_schema=response_schema,
+    )
+
     for this_retry in range(retries):
       try:
         client = genai.Client(
             vertexai=True,
-            project=self.project_id,
-            location=llm_params.location,
+            project=project,
+            location=location,
         )
-        # Build prompt parts
-        contents = self._get_modality_params_genai(
-            prompt_config.prompt, llm_params
+
+        logger.info(
+            "Calling Gemini Vertex AI (attempt %d/%d) for video: %s with"
+            " model %s in %s",
+            this_retry + 1,
+            retries,
+            video_uri,
+            self.config.model_name,
+            location,
         )
-        generate_content_config = types.GenerateContentConfig(
-            temperature=llm_params.generation_config.get("temperature"),
-            top_p=llm_params.generation_config.get("top_p"),
-            seed=0,
-            max_output_tokens=llm_params.generation_config.get(
-                "max_output_tokens"
-            ),
-            response_modalities=["TEXT"],  # Just text for now
-            safety_settings=[
-                types.SafetySetting(
-                    category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_HARASSMENT", threshold="OFF"
-                ),
-            ],
-            system_instruction=[
-                types.Part.from_text(text=prompt_config.system_instructions)
-            ],
-            response_mime_type="application/json",
-            response_schema=llm_params.generation_config.get("response_schema"),
-        )
-        # Get response from Gemini
+
         response = client.models.generate_content(
-            model=llm_params.model_name,
+            model=self.config.model_name,
             contents=contents,
             config=generate_content_config,
         )
 
-        if response.parsed is None:
-          print("WARNING: response.parsed is None. Returning empty list.")
-          try:
-            print(f"DEBUG: Raw response text: {response.text}")
-          except Exception as e:
-            print(f"DEBUG: Could not print raw response text: {e}")
-          return []
-        return response.parsed
-      except ResourceExhausted as ex:
-        print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)} ...")
+        if getattr(response, "parsed", None) is not None:
+          return response.parsed
+
+        if hasattr(response, "text") and response.text:
+          return json.loads(response.text.strip())
+
+        return []
+
+      except api_exceptions.ResourceExhausted as ex:
+        logger.warning(
+            "QUOTA RETRY: %d. ERROR %s ...", this_retry + 1, str(ex)
+        )
         wait = 10 * 2**this_retry
         time.sleep(wait)
-      except AttributeError as ex:
-        error_message = str(ex)
-        if "Content has no parts" in error_message:
-          # Retry request
-          print(
-              f"Error: {ex} Gemini might be blocking the response due to safety"
-              f" issues. Retrying {retries} times using exponential backoff."
-              f" Retry number {this_retry + 1}...\n"
-          )
-          wait = 10 * 2**this_retry
-          time.sleep(wait)
       except Exception as ex:
-        print("GENERAL EXCEPTION...\n")
         error_message = str(ex)
-        # Check quota issues for now
-        if (
-            "429" in error_message
-            or "503 The service is currently unavailable" in error_message
-            or "500 Internal error encountered" in error_message
-        ):
-          print(
-              f"Error {error_message}. Retrying {retries} times using"
-              f" exponential backoff. Retry number {this_retry + 1}...\n"
+        if any(code in error_message for code in ("503", "429")):
+          logger.warning(
+              "Error %s. Retrying %d times using exponential backoff. Retry"
+              " number %d...\n",
+              error_message,
+              retries,
+              this_retry + 1,
           )
-          # Retry request
           wait = 10 * 2**this_retry
           time.sleep(wait)
         else:
-          print(
-              f"ERROR: the following issue can't be retried: {error_message}\n"
+          logger.error(
+              "ERROR: the following issue can't be retried: %s\n",
+              error_message,
           )
-          # Raise exception for non-retriable errors
           raise
+
+    logger.error("Max retries exceeded for video: %s", video_uri)
     return []
 
-  def execute_gemini_pro(
-      self, config: Configuration, prompt: str, params: LLMParameters
-  ) -> str:
-    """Makes a request to Gemini to get a prediction based on the provided prompt
-    and multi-modal params
-    Args:
-        prompt: a string with the prompt for LLM
-        params: llm params model_name, location, modality and generation_config
-    Returns:
-        response.text: a string with the generated response
-    """
-    retries = 3
-    for this_retry in range(retries):
-      try:
-        vertexai.init(project=self.project_id, location=params.location)
-        model = GenerativeModel(params.model_name)
-        modality_params = self._get_modality_params(prompt, params)
-        response = model.generate_content(
-            modality_params,
-            generation_config=GenerationConfig(
-                temperature=params.generation_config.get("temperature"),
-                max_output_tokens=params.generation_config.get(
-                    "max_output_tokens"
-                ),
-                top_p=params.generation_config.get("top_p"),
-                response_mime_type="application/json",
-                response_schema={},  # TOD (ae) fix this later
-            ),
-            safety_settings={
-                generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: (
-                    generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH
-                ),
-                generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: (
-                    generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH
-                ),
-                generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: (
-                    generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH
-                ),
-                generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: (
-                    generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH
-                ),
-            },
-            stream=False,
-        )
-        return response.text if response else ""
-      except ResourceExhausted as ex:
-        print(f"QUOTA RETRY: {this_retry + 1}. ERROR {str(ex)} ...")
-        wait = 10 * 2**this_retry
-        time.sleep(wait)
-      except AttributeError as ex:
-        error_message = str(ex)
-        if "Content has no parts" in error_message:
-          # Retry request
-          print(
-              f"Error: {ex} Gemini might be blocking the response due to safety"
-              f" issues. Retrying {retries} times using exponential backoff."
-              f" Retry number {this_retry + 1}...\n"
-          )
-          wait = 10 * 2**this_retry
-          time.sleep(wait)
-      except Exception as ex:
-        print("GENERAL EXCEPTION...\n")
-        error_message = str(ex)
-        # Check quota issues for now
-        if (
-            "429 Quota exceeded" in error_message
-            or "503 The service is currently unavailable" in error_message
-            or "500 Internal error encountered" in error_message
-            or "403" in error_message
-        ):
-          if config.verbose:
-            print(
-                f"Error {error_message}. Retrying {retries} times using"
-                f" exponential backoff. Retry number {this_retry + 1}...\n"
-            )
-          # Retry request
-          wait = 10 * 2**this_retry
-          time.sleep(wait)
-        else:
-          if config.verbose:
-            print(
-                "ERROR: the following issue can't be retried:"
-                f" {error_message}\n"
-            )
-          # Raise exception for non-retriable errors
-          raise
-    return ""
+  def extract_brand_metadata(
+      self, video_uri: str
+  ) -> configuration.BrandContext:
+    """Extracts brand metadata dynamically from a video.
 
-  def _get_modality_params_genai(
-      self, prompt: str, params: LLMParameters
-  ) -> list[any]:
-    """Build the modality params based on the type of llm capability to use
     Args:
-        prompt: a string with the prompt for LLM
-        model_params: the model params for inference, see defaults above
+      video_uri: Cloud Storage URI of the video to analyze.
+
     Returns:
-        modality_params: list of modality params based on the model capability to use
+      BrandContext populated with brand name, products, and CTAs.
     """
-    if params.modality["type"] == "video":
-      mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
-      video = types.Part.from_uri(
-          file_uri=params.modality["video_uri"], mime_type=mime_type
+    logger.info("Extracting brand metadata for video: %s", video_uri)
+    metadata_prompt_config = (
+        prompt_generator.prompt_generator.get_metadata_prompt_config()
+    )
+
+    result = self.call_gemini_vertex_ai(
+        video_uri=video_uri,
+        prompt_config=metadata_prompt_config,
+        response_schema=models.VIDEO_METADATA_RESPONSE_SCHEMA,
+    )
+
+    if (
+        isinstance(result, dict)
+        and result.get("brand_name")
+        and result.get("branded_products")
+    ):
+      return configuration.BrandContext(
+          brand_name=result["brand_name"],
+          branded_products=result["branded_products"],
+          branded_call_to_actions=result.get("branded_call_to_actions", []),
       )
-      return [
-          types.Content(
-              role="user", parts=[video, types.Part.from_text(text=prompt)]
-          )
-      ]
-    elif params.modality["type"] == "text":
-      return [
-          types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-      ]
 
-    return []
-
-  def _get_modality_params(
-      self, prompt: str, params: LLMParameters
-  ) -> list[any]:
-    """Build the modality params based on the type of llm capability to use
-    Args:
-        prompt: a string with the prompt for LLM
-        model_params: the model params for inference, see defaults above
-    Returns:
-        modality_params: list of modality params based on the model capability to use
-    """
-    if params.modality["type"] == "video":
-      mime_type = f"video/{params.modality['video_uri'].rsplit('.', 1)[-1]}"
-      video = Part.from_uri(
-          uri=params.modality["video_uri"], mime_type=mime_type
-      )
-      return [video, prompt]
-    elif params.modality["type"] == "text":
-      return [prompt]
-    return []
-
-
-def get_gemini_api_service(config: Configuration) -> GeminiAPIService:
-  """Gets Vertex AI service to interact with Gemini"""
-  gemini_api_service = GeminiAPIService(config.project_id)
-
-  return gemini_api_service
-
-
-def detect_features_with_llm_in_bulk(
-    config: Configuration,
-    prompt_config: PromptConfig,
-    features_group_by: str,
-) -> list[dict]:
-  """Detect features in bulk using LLM
-  Args:
-      config: All the variables
-      prompt: prompt for the llm
-      llm_params: object with llm params
-  Returns:
-      features: list of evaluated features
-  """
-  retries = 3
-  for this_retry in range(retries):
-    try:
-      gemini_api_service = get_gemini_api_service(config)
-      if config.llm_params.model_name == config.llm_params.model_name:
-        # Gemini 1.5 does not support top_k param
-        if "top_k" in config.llm_params.generation_config:
-          del config.llm_params.generation_config["top_k"]
-        llm_response = gemini_api_service.execute_gemini_with_genai(
-            prompt_config=prompt_config,
-            llm_params=config.llm_params,
-        )
-      else:
-        print(f"LLM {config.llm_params.model_name} not supported.")
-        return False
-      # Parse response
-      features = json.loads(clean_llm_response(llm_response))
-      if isinstance(features, list) and len(features) > 0:
-        if config.verbose:
-          print(
-              "***Powered by LLMs*** \n\n FEATURES in group"
-              f" {features_group_by}: \n\n {str(features)} \n"
-          )
-        return features
-      else:
-        print(
-            f"LLM response is not a dict. Response was: {features}. Retrying"
-            f" request {this_retry + 1} times... \n"
-        )
-        if this_retry == retries - 1:
-          break
-
-        # Retry if response is not an array or response was empty
-        wait = 10 * 2**this_retry
-        time.sleep(wait)
-    except json.JSONDecodeError as ex:
-      if this_retry == retries - 1:
-        break
-
-      if config.verbose:
-        print(
-            f"LLM response could not be parsed. Error: {ex}.\n Using string"
-            " version...\n"
-        )
-        if llm_response:
-          print(f"***Powered by LLMs*** \n LLM response: {llm_response} \n")
-
-      # Retry if response could not be parsed
-      wait = 10 * 2**this_retry
-      time.sleep(wait)
-    except Exception as ex:
-      print(ex)  # raise?
-  # return empty list if not possible to get response after retries
-  return []
-
-
-def clean_llm_response(response: str) -> str:
-  """Cleans LLM response
-  Args:
-      response: llm response to clean
-  Returns:
-      reponse: without extra characters
-  """
-  return response.replace("```", "").replace("json", "")
+    raise ValueError(
+        "Unable to extract required brand metadata (brand_name and"
+        f" branded_products) for video: {video_uri}. Gemini returned: {result}"
+    )
