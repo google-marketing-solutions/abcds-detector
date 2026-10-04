@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -18,168 +16,201 @@
 #
 ###########################################################################
 
-"""Module to define the prompts that will contain the ABCD features."""
+"""Module defining prompts for ABCD feature evaluation and brand metadata."""
 
-from helpers.generic_helpers import get_call_to_action_api_list
-from configuration import Configuration
-from models import VideoFeature, PromptConfig
+import configuration
+import models
 
 
 class PromptGenerator:
-  """Class to generate the prompts that will contain the ABCD features."""
-
-  def __init__(self):
-    pass
+  """Generates prompts for ABCD feature evaluation and brand extraction."""
 
   def get_abcds_prompt_config(
-      self, features: list[VideoFeature], config: Configuration
-  ) -> PromptConfig:
-    """Gets the prompt with required ABCD features
-    for full videos and first 5 secs videos
+      self,
+      features: list[models.VideoFeature],
+      brand_context: configuration.BrandContext | None = None,
+  ) -> models.PromptConfig:
+    """Gets the prompt and system instructions for ABCD features.
+
+    Args:
+      features: List of VideoFeature definitions to evaluate.
+      brand_context: Optional brand metadata for prompt augmentation.
+
     Returns:
-        prompt: string prompt template
+      PromptConfig containing the formatted prompt and system instructions.
     """
-    features_questions = self.get_features_prompt_template(features, config)
-
-    system_instructions = """
-            You are an AI Video Analysis Engine. Your primary function is to act as a meticulous and objective creative expert.
-            Your goal is to analyze video ad content and answer a series of questions about specific features within the video.
-            Your analysis must be rigorously based only on the visual and auditory information present in the provided video.
-
-            ## CORE DIRECTIVES
-
-            - Absolute Objectivity: Your analysis must be based exclusively on concrete evidence from the video. Do not infer, assume,
-            or use any external knowledge. If you cannot see or hear it in the video, it did not happen.
-            - No Hallucination: Your primary directive is to avoid making up information. If a feature is ambiguous, not clearly shown,
-            or impossible to verify from the video, you must answer "false" and explain why it is ambiguous or unverifiable in your explanation.
-            - Strict Adherence to Format: The output format is non-negotiable. Any deviation will result in failure.
-            - Assess your confidence in [SPECIFIC TASK/ASSERTION, e.g., 'the presence of the brand in a specific frame of the video'].
-            For EACH feature, calculate a confidence score from 0.0 (completely uncertain) to 1.0 (absolutely certain).
-                Base this score on:
-                - The clarity and visibility of the relevant features asked in the question. 0
-                - The absence of significant occlusions or ambiguities. Also based on the strenghts and weaknesses that you identify.
-                - The robustness of your internal analysis.
-                - Output only the numerical score as a float (e.g., 0.85)."
-
-            ## STEP-BY-STEP TASK EXECUTION
-
-            - Receive Input: You will be given a video file and a list of questions to answer.
-            - Analyze Video: Conduct a thorough, frame-by-frame analysis of the video's visual elements and a full analysis of its
-            audio track (dialogue, sound effects, music).
-            - Evaluate Each Question: For each question, determine a definitive answer.
-            The answer must be a boolean: true if the statement is verifiably correct based on the video.
-            The answer must be a boolean: false if the statement is verifiably incorrect OR if it cannot be verified from the video.
-            - Formulate Explanation: For each answer, write a detailed and logically sound explanation.
-            Your explanation must cite specific visual or auditory evidence from the video.
-            Use timestamps (e.g., "from 0:15 to 0:22," "at 0:08") whenever possible to support your claims.
-            The explanation should be a simple string, without any special characters or formatting beyond standard punctuation.
-            - Construct Final Output: Assemble all answers and explanations into the specified JSON format.
-            - Feature ID Handling: CRITICAL REQUIREMENT
-            The value for the feature id "id" key MUST be an exact, case-sensitive copy of the Feature ID provided in the input prompt.
-            The evaluation will fail if the id is not found or does not match exactly.
-            Preserve the original data type (e.g., string, etc).
-        """
-
-    prompt = """These are the questions that you have to answer for each feature:
-        {features_questions}""".replace(
-        "{features_questions}", features_questions
+    features_questions = self.get_features_prompt_template(
+        features, brand_context
     )
 
-    prompt_config = PromptConfig(
+    system_instructions = (
+        "You are an AI Video Analysis Engine. Your primary function is to act"
+        " as a meticulous and objective creative expert.\n"
+        "Your goal is to analyze video ad content and answer a series of"
+        " questions about specific features within the video.\n"
+        "Your analysis must be rigorously based only on the visual and"
+        " auditory information present in the provided video.\n\n"
+        "## CORE DIRECTIVES\n\n"
+        "- Absolute Objectivity: Your analysis must be based exclusively on"
+        " concrete evidence from the video. Do not infer, assume, or use any"
+        " external knowledge. If you cannot see or hear it in the video, it did"
+        " not happen.\n"
+        "- No Hallucination: Your primary directive is to avoid making up"
+        " information. If a feature is ambiguous, not clearly shown, or"
+        " impossible to verify from the video, you must answer 'false' and"
+        " explain why it is ambiguous or unverifiable in your explanation.\n"
+        "- Strict Adherence to Format: The output format is non-negotiable."
+        " Any deviation will result in failure.\n"
+        "- Assess your confidence for EACH feature: calculate a confidence"
+        " score from 0.0 (completely uncertain) to 1.0 (absolutely certain).\n"
+        "  Base this score on:\n"
+        "  - The clarity and visibility of the relevant features asked in the"
+        " question.\n"
+        "  - The absence of significant occlusions or ambiguities.\n"
+        "  - Output only the numerical score as a float (e.g., 0.85).\n\n"
+        "## STEP-BY-STEP TASK EXECUTION\n\n"
+        "- Receive Input: You will be given a video file and a list of"
+        " questions to answer.\n"
+        "- Analyze Video: Conduct a thorough analysis of the video's visual"
+        " elements and audio track (dialogue, sound effects, music).\n"
+        "- Timecode Grounding: Pay careful attention to timestamps. If a"
+        " feature specifies the first 5 seconds (00:00 to 00:05), strictly base"
+        " your evaluation on occurrences within that exact time window.\n"
+        "- Evaluate Each Question: For each question, determine a definitive"
+        " answer:\n"
+        "  true if the statement is verifiably correct based on the video.\n"
+        "  false if the statement is verifiably incorrect OR cannot be verified"
+        " from the video.\n"
+        "- Formulate Explanation: For each answer, write a detailed and"
+        " logically sound explanation citing specific visual or auditory"
+        " evidence from the video with exact timestamps (e.g. 'at 00:03').\n"
+        "- Feature ID Handling: CRITICAL REQUIREMENT\n"
+        "The value for the feature id 'id' key MUST be an exact, case-sensitive"
+        " copy of the Feature ID provided in the input prompt."
+    )
+
+    prompt = (
+        "These are the questions that you have to answer for each feature:\n"
+        f"{features_questions}\n"
+    )
+
+    return models.PromptConfig(
         prompt=prompt, system_instructions=system_instructions
     )
 
-    return prompt_config
-
   def get_features_prompt_template(
-      self, features: list[VideoFeature], config: Configuration
+      self,
+      features: list[models.VideoFeature],
+      brand_context: configuration.BrandContext | None = None,
   ) -> str:
-    """Gets features prompt template"""
+    """Builds features prompt template string.
+
+    Args:
+      features: List of VideoFeature objects to build question blocks for.
+      brand_context: Optional BrandContext to inject into questions.
+
+    Returns:
+      Formatted string of feature questions and evaluation criteria.
+    """
     features_prompt = ""
     for feature in features:
-      # Replace input parameters in instructions
-      instructions = self.augment_instructions(feature, config)
-      features_prompt += f"""
-            Feature ID: {feature.id}
-            Feature Name: {feature.name}
-            Feature Category: {feature.category}
-            Feature Sub Category: {feature.sub_category}
-            Feature Video Segment: {feature.video_segment}
-            Feature Evaluation Criteria: {feature.evaluation_criteria}
-            Question: {feature.prompt_template}
-            {instructions} \n\n
-        """
+      instructions = self.augment_instructions(feature, brand_context)
+      features_prompt += (
+          f"Feature ID: {feature.id}\n"
+          f"Feature Name: {feature.name}\n"
+          f"Feature Category: {feature.category.value}\n"
+          f"Feature Sub Category: {feature.sub_category.value}\n"
+          "Feature Evaluation Criteria: "
+          f"{feature.evaluation_criteria.strip()}\n"
+          f"Question: {feature.prompt_template or feature.name}\n"
+          f"{instructions}\n\n"
+      )
 
-    # This is specific to the Shorts features
-    video_metadata = f"""
-            Brand Name: {config.brand_name}
-            Brand Variations: {config.brand_variations}
-            Branded Products: {config.branded_products}
-            Branded Product Categories: {config.branded_products_categories}
-        """
+    if brand_context:
+      brand_name = brand_context.brand_name or ""
+      branded_products_str = (
+          ", ".join(brand_context.branded_products)
+          if brand_context.branded_products
+          else ""
+      )
+      branded_ctas_str = (
+          ", ".join(brand_context.branded_call_to_actions)
+          if brand_context.branded_call_to_actions
+          else ""
+      )
+      metadata_summary = (
+          f"Brand Name: {brand_name}\n"
+          f"Branded Products: {branded_products_str}\n"
+          f"Branded Call To Actions: {branded_ctas_str}\n"
+      )
+      features_prompt = (
+          features_prompt.replace("{brand_name}", brand_name)
+          .replace("{branded_products}", branded_products_str)
+          .replace("{branded_call_to_actions_str}", branded_ctas_str)
+          .replace("{metadata_summary}", metadata_summary)
+      )
 
-    features_prompt = (
-        features_prompt.replace("{brand_name}", config.brand_name)
-        .replace("{brand_variations}", ", ".join(config.brand_variations))
-        .replace("{branded_products}", ", ".join(config.branded_products))
-        .replace(
-            "{branded_products_categories}",
-            ", ".join(config.branded_products_categories),
-        )
-        .replace(
-            "{branded_call_to_actions_str}",
-            ", ".join(config.branded_call_to_actions),
-        )
-        .replace("{metadata_summary}", video_metadata)
-    )
     return features_prompt
 
   def augment_instructions(
-      self, feature: VideoFeature, config: Configuration
+      self,
+      feature: models.VideoFeature,
+      brand_context: configuration.BrandContext | None = None,
   ) -> str:
-    """Augment LLM instructions in the prompt"""
-    call_to_actions = ", ".join(get_call_to_action_api_list()) + ", ".join(
-        config.branded_call_to_actions
+    """Augments LLM instructions in the prompt.
+
+    Args:
+      feature: The VideoFeature containing criteria and extra instructions.
+      brand_context: Optional BrandContext containing branded call-to-actions.
+
+    Returns:
+      Augmented instructions string.
+    """
+    branded_ctas = (
+        brand_context.branded_call_to_actions
+        if brand_context and brand_context.branded_call_to_actions
+        else []
     )
-    instructions = (
-        "\n".join(feature.extra_instructions)
-        .replace("{criteria}", feature.evaluation_criteria)  # TODO fix this
-        .replace("{call_to_actions}", ", ".join(call_to_actions))
-    )
+
+    raw_instructions = "\n".join(feature.extra_instructions)
+    instructions = raw_instructions.replace(
+        "{criteria}", feature.evaluation_criteria.strip()
+    ).replace("{call_to_actions}", ", ".join(branded_ctas))
     return instructions
 
-  def get_metadata_prompt_config(self):
-    """Get metadata from a video to identify key brand elements"""
+  def get_metadata_prompt_config(self) -> models.PromptConfig:
+    """Gets prompt configuration to extract key brand elements from a video.
 
-    system_instructions = """
-            You are BrandVision AI, a world-class expert in brand strategy, digital marketing, and multimedia content analysis.
-            Your primary function is to meticulously analyze video content to identify and extract key brand elements with unparalleled accuracy and detail.
-            You operate under the following core principles:
-
-            **Holistic Analysis:** You must analyze the video content from multiple dimensions simultaneously:
-                **Visual:** Logos, product packaging, brand colors, branded apparel, physical product placement.
-                **Auditory:** Spoken brand names, product mentions, jingles, sponsored messaging.
-                **Textual:** On-screen text, chyrons, text in the video description, closed captions/subtitles if available.
-            **Canonical Naming:** Use the official, canonical name for all brands and products (e.g., "The Coca-Cola Company" or "Coca-Cola" instead of "coke";
-            "iPhone 15 Pro Max" instead of "the new iphone").
-            **Zero Hallucination:** It is critically important that you DO NOT invent or infer information. If a requested element (e.g., a call-to-action)
-            is not present in the video, you will return an empty array `[]` for that key.
-            Do not state "There were no CTAs." Simply provide the empty array within the JSON structure.
-            **Comprehensive Call-to-Action (CTA) Analysis:** CTAs are not just "buy now." Identify and classify all types:
-                **Explicit:** Direct commands like "Click the link in the description," "Subscribe to my channel," "Visit our website at..."
-                **Implicit:** Softer suggestions like "You can check these out for yourself," "Let me know what you think in the comments."
-                **Destination:** Where does the CTA direct the user? (e.g., a website URL, the comments section, a social media handle).
-        """
-
-    prompt = """
-            Analyze the provided video to extract key brand elements such as brand name, branded products, branded categories and branded call to actions.
-        """
-
-    prompt_config = PromptConfig(
-        prompt=prompt, system_instructions=system_instructions
+    Returns:
+      PromptConfig containing instructions to extract brand elements.
+    """
+    system_instructions = (
+        "You are BrandVision AI, an expert in brand strategy and multimedia"
+        " content analysis.\n"
+        "Your primary function is to meticulously analyze video content to"
+        " identify and extract key brand elements.\n"
+        "You operate under the following core principles:\n\n"
+        "- Holistic Analysis: Analyze the video content across visual (logos,"
+        " product packaging, on-screen text) and auditory (spoken brand"
+        " names, product mentions, jingles) dimensions.\n"
+        "- Canonical Naming: Use the official, canonical name for all brands"
+        " and products (e.g., 'Google' or 'Coca-Cola').\n"
+        "- Zero Hallucination: If an element is not present in the video,"
+        " return an empty array `[]`.\n"
+        "- Comprehensive Call-to-Action (CTA) Analysis: Identify direct or"
+        " implied CTAs (e.g., 'Visit our website', 'Subscribe', 'Buy now')."
     )
 
-    return prompt_config
+    prompt = (
+        "Analyze the provided video to extract key brand elements:\n"
+        "1. Brand Name (brand_name)\n"
+        "2. Branded Products (branded_products)\n"
+        "3. Branded Call-to-Actions (branded_call_to_actions)"
+    )
+
+    return models.PromptConfig(
+        prompt=prompt, system_instructions=system_instructions
+    )
 
 
 prompt_generator = PromptGenerator()
