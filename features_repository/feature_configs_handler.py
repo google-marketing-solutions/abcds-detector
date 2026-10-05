@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2025 Google LLC
@@ -18,82 +16,94 @@
 #
 ###########################################################################
 
-"""Module with the supported ABCD feature configurations"""
+"""Module with the supported ABCD feature configurations."""
 
 import logging
-from models import (
-    VideoFeature,
-    VideoFeatureCategory,
-)
-from features_repository.long_form_abcd_features import (
-    get_long_form_abcd_feature_configs,
-)
-from features_repository.shorts_features import get_shorts_feature_configs
+
+from features_repository import shorts_features
+from features_repository import universal_features
 import models
+
+logger = logging.getLogger("abcd_detector")
 
 
 class FeaturesConfigsHandler:
-  """Service that handles video evaluations using AI (LLMs + Annotations)"""
+  """Service managing retrieval and filtering of ABCD feature configs."""
+
+  def get_features_for_slice(
+      self,
+      slice_name: str,
+      features_filter: list[str] | None = None,
+  ) -> list[models.VideoFeature]:
+    """Gets all features for a given slice, optionally filtered by feature IDs.
+
+    Args:
+      slice_name: ABCD slice name ('universal' or 'shorts').
+      features_filter: Optional list of feature IDs to filter by.
+
+    Returns:
+      List of active VideoFeature definitions matching the criteria.
+    """
+    normalized_slice = slice_name.lower().strip()
+    if normalized_slice == "universal":
+      features = universal_features.get_universal_feature_configs()
+    elif normalized_slice == "shorts":
+      features = shorts_features.get_shorts_feature_configs()
+    else:
+      logger.warning(
+          "Slice '%s' is not recognized. Returning empty features.",
+          slice_name,
+      )
+      return []
+
+    # Include only features marked for evaluation
+    active_features = [f for f in features if f.include_in_evaluation]
+
+    # Filter by specific feature IDs if requested
+    if features_filter is not None:
+      filter_set = set(features_filter)
+      active_features = [f for f in active_features if f.id in filter_set]
+
+    return active_features
 
   def get_feature_configs_by_category(
-      self, category: VideoFeatureCategory
-  ) -> list[VideoFeature]:
-    """Gets all the supported features by category
-    Full ABCD, Shorts.
+      self, category: models.VideoFeatureCategory
+  ) -> list[models.VideoFeature]:
+    """Gets feature configurations by category enum.
+
+    Args:
+      category: VideoFeatureCategory enum instance.
+
     Returns:
-    feature_configs: list of feature configurations
+      List of VideoFeature definitions for the category.
     """
-    if category.value == VideoFeatureCategory.SHORTS.value:
-      shorts_features = get_shorts_feature_configs()
+    if category.value == models.VideoFeatureCategory.SHORTS.value:
+      return shorts_features.get_shorts_feature_configs()
+    return universal_features.get_universal_feature_configs()
 
-      return shorts_features
-    elif category.value == VideoFeatureCategory.LONG_FORM_ABCD.value:
-      long_form_abcd_features = get_long_form_abcd_feature_configs()
+  def get_all_features(self) -> list[models.VideoFeature]:
+    """Gets all registered feature configurations across all slices.
 
-      return long_form_abcd_features
-    else:
-      logging.log("Category %s not supported. Please check", category)
-
-  def change_evaluation_method_to_llms_only(self, features: list[VideoFeature]):
-    """Change features evaluation method to use LLMs"""
-    for feature in features:
-      feature.evaluation_method = models.EvaluationMethod.LLMS
-
-  def get_features_by_category_by_group_config(
-      self, category: VideoFeatureCategory
-  ) -> list[VideoFeature]:
-    """Groups features by video_segment in feature_configs"""
-    feature_configs = self.get_feature_configs_by_category(category)
-    grouped_features = {}
-    for d in feature_configs:
-      grouped_features.setdefault(d.group_by.value, []).append(
-          d
-      )  # Check this video_segment!
-    return grouped_features
-
-  def get_all_features(self):
-    """Gets all feature configs for Full ABCD and Shorts"""
+    Returns:
+      List of all VideoFeature definitions.
+    """
     feature_configs = []
-    feature_configs.extend(
-        self.get_feature_configs_by_category(
-            VideoFeatureCategory.LONG_FORM_ABCD
-        )
-    )
-    feature_configs.extend(
-        self.get_feature_configs_by_category(VideoFeatureCategory.SHORTS)
-    )
-
+    feature_configs.extend(universal_features.get_universal_feature_configs())
+    feature_configs.extend(shorts_features.get_shorts_feature_configs())
     return feature_configs
 
-  def get_feature_by_id(self, feature_id: str):
-    """Gets a feature by id"""
-    feature_configs = self.get_all_features()
-    feature = [
-        feature for feature in feature_configs if feature.id == feature_id
-    ]
-    if len(feature) > 0:
-      return feature[0]
+  def get_feature_by_id(self, feature_id: str) -> models.VideoFeature | None:
+    """Gets a feature by its unique ID.
 
+    Args:
+      feature_id: Unique identifier string for the feature.
+
+    Returns:
+      Matching VideoFeature instance, or None if not found.
+    """
+    for feature in self.get_all_features():
+      if feature.id == feature_id:
+        return feature
     return None
 
 
