@@ -1,60 +1,64 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
-#    Copyright 2024 Google LLC
+#  Copyright 2024 Google LLC
 #
-#    Licensed under the Apache License, Version 2.0 (the "License");
-#    you may not use this file except in compliance with the License.
-#    You may obtain a copy of the License at
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
 #
-#            https://www.apache.org/licenses/LICENSE-2.0
+#      https://www.apache.org/licenses/LICENSE-2.0
 #
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    See the License for the specific language governing permissions and
-#    limitations under the License.
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
 #
 ###########################################################################
 
-"""Service factory that implements a factory class to retrieve/register
-providers for the different creative data sources"""
+"""Factory class to register and retrieve creative providers."""
 
-from creative_providers.creative_provider_proto import CreativeProviderProto
-from models import CreativeProviderType
+from typing import Any
+
+from creative_providers import creative_provider_proto
+import models
 
 
 class CreativeProviderFactory:
-  """Service factory that implements a factory class to retrieve/register
-  services for the different content generation types"""
+  """Factory to register and retrieve creative providers by source type."""
 
-  def __init__(self):
-    """Init method for CreativeProviderFactory."""
-    self._providers = {}
+  def __init__(self) -> None:
+    """Initializes the CreativeProviderFactory."""
+    self._providers: dict[models.CreativeProviderType | str, Any] = {}
 
   def register_provider(
-      self, provider_type: CreativeProviderType, provider: CreativeProviderProto
+      self,
+      provider_type: models.CreativeProviderType | str,
+      provider: Any,
   ) -> None:
-    """Register creative provider
+    """Registers a creative provider for a given provider type.
 
     Args:
-        provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
-        provider: an instance (concrete implementation) of the provider
+      provider_type: CreativeProviderType enum or string key.
+      provider: Class or factory implementing CreativeProviderProto.
     """
     self._providers[provider_type] = provider
 
   def get_provider(
-      self, provider_type: CreativeProviderType
-  ) -> CreativeProviderProto:
-    """Get content generation service by type
+      self, provider_type: models.CreativeProviderType | str
+  ) -> creative_provider_proto.CreativeProviderProto:
+    """Gets an instantiated creative provider by type.
 
     Args:
-        provider_type: the type of the provider (e.g. GCS, Youtube, etc.)
+      provider_type: CreativeProviderType enum or string key.
+
     Returns:
-        provider: an instance (concrete implementation) of the service
+      Instantiated provider conforming to CreativeProviderProto.
+
+    Raises:
+      ValueError: If provider_type is not registered in the factory.
     """
     provider = self._providers.get(provider_type)
     if not provider:
-      raise ValueError(provider_type)
+      raise ValueError(f"Provider not found for type: {provider_type}")
     return provider()

@@ -1,12 +1,20 @@
 [project]
-name = "<YOUR_PROJECT_NAME>"
-description = "<YOUR_PROJECT_DESCRIPTION>"
-version = "0.0.0"
+name = "abcd-detector"
+description = "ABCD Detector for evaluating video creatives against Google ABCD guidelines"
+version = "0.1.0"
 requires-python = ">=3.11"
 readme = "README.md"
 license = { file = "LICENSE" }
-authors = [{ name = "<YOUR_NAME>", email = "<YOUR_EMAIL>" }]
-dependencies = []
+authors = [{ name = "Google LLC" }]
+dependencies = [
+    "google-genai==2.28.0",
+    "google-cloud-storage==3.16.0",
+    "google-cloud-bigquery==3.46.1",
+    "google-api-python-client==2.201.0",
+    "pandas==3.0.6",
+    "pyarrow==25.0.1",
+    "pyopenssl==26.4.0",
+]
 
 [project.optional-dependencies]
 dev = [

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -20,145 +18,171 @@
 
 """BigQuery service to write data to BigQuery using the specified client."""
 
+import logging
+from typing import Any
+
 from google.cloud import bigquery
 from google.cloud import exceptions as cloud_exceptions
+
+logger = logging.getLogger("abcd_detector")
 
 
 class BigQueryAPIService:
   """BigQuery service to write data to BigQuery using the specified client."""
 
-  def __init__(self, project_id):
+  def __init__(self, project_id: str) -> None:
+    """Initializes the BigQueryAPIService.
+
+    Args:
+      project_id: Google Cloud project ID.
+    """
     self.gcs_project_id = project_id
 
-  def __get_full_table_name(self, dataset_name: str, table_name: str) -> str:
-    """Generates a full table name by concatenating project, dataset, and table.
-    Args:
-      table_name: The name of the table.
-    Returns:
-      Full table name.
-    """
-    return self.gcs_project_id + "." + dataset_name + "." + table_name
+  def _get_full_table_name(self, dataset_name: str, table_name: str) -> str:
+    """Generates a full table ID by concatenating project, dataset, and table.
 
-  def __get_full_dataset_name(self, dataset_name: str) -> str:
-    """Generates a full dataset name by concatenating project and dataset
     Args:
-      dataset_name: The name of the dataset.
+      dataset_name: BigQuery dataset name.
+      table_name: BigQuery table name.
+
     Returns:
-      Full dataset name.
+      Fully qualified table ID string (project.dataset.table).
     """
-    return self.gcs_project_id + "." + dataset_name
+    return f"{self.gcs_project_id}.{dataset_name}.{table_name}"
+
+  def _get_full_dataset_name(self, dataset_name: str) -> str:
+    """Generates a full dataset ID by concatenating project and dataset.
+
+    Args:
+      dataset_name: BigQuery dataset name.
+
+    Returns:
+      Fully qualified dataset ID string (project.dataset).
+    """
+    return f"{self.gcs_project_id}.{dataset_name}"
 
   def create_dataset(self, dataset_name: str, location: str) -> None:
-    """Creates a new dataset in the specified region
+    """Creates a new BigQuery dataset in the specified region.
+
     Args:
-      dataset_name: The name of the dataset to create.
-      location: The location where the table will be created
+      dataset_name: Name of the dataset to create.
+      location: Regional location for the dataset.
     """
     client = bigquery.Client()
-    full_dataset_name = self.__get_full_dataset_name(dataset_name)
-    # Construct a full Dataset object to send to the API.
+    full_dataset_name = self._get_full_dataset_name(dataset_name)
     dataset = bigquery.Dataset(full_dataset_name)
     dataset.location = location
-    # Raises google.api_core.exceptions.Conflict if the Dataset already exists
     try:
-      # Send the dataset to the API for creation, with an explicit timeout.
       dataset = client.create_dataset(dataset, timeout=30)
-      dataset_created = True if dataset and dataset.dataset_id else False
+      dataset_created = bool(dataset and dataset.dataset_id)
       if dataset_created:
-        print(f"The dataset {full_dataset_name} was successfully created. \n")
+        logger.info(
+            "The dataset %s was successfully created.", full_dataset_name
+        )
     except cloud_exceptions.Conflict:
-      print(f"The dataset {full_dataset_name} already exists. \n")
+      logger.info("The dataset %s already exists.", full_dataset_name)
 
   def create_table(
       self,
       dataset_name: str,
       table_name: str,
       schema: list[bigquery.SchemaField],
-  ) -> bigquery.Table:
-    """Creates a new table with the columns provided.
+  ) -> bool:
+    """Creates a new BigQuery table with the provided schema.
+
     Args:
-      dataset_name: the dataset containing the table
-      table_name: The name of the table to create.
-      schema: The schema for the table.
+      dataset_name: Dataset containing the table.
+      table_name: Name of the table to create.
+      schema: List of BigQuery SchemaField objects defining columns.
+
+    Returns:
+      True if the table was created or already exists.
     """
     client = bigquery.Client(project=self.gcs_project_id)
-    full_table_name = self.__get_full_table_name(dataset_name, table_name)
+    full_table_name = self._get_full_table_name(dataset_name, table_name)
     table = bigquery.Table(full_table_name, schema=schema)
     try:
       table = client.create_table(table)
-      table_created = True if table and table.full_table_id else False
+      table_created = bool(table and table.full_table_id)
       if table_created:
-        print(f"The table {full_table_name} was successfully created. \n")
+        logger.info("The table %s was successfully created.", full_table_name)
       return table_created
     except cloud_exceptions.Conflict:
-      print(f"The table {full_table_name} already exists. \n")
+      logger.info("The table %s already exists.", full_table_name)
       return True
 
-  def get_table_by_name(self, dataset_name: str, table_name: str) -> any:
-    """Gets a table by the provided name
+  def get_table_by_name(
+      self, dataset_name: str, table_name: str
+  ) -> bigquery.Table | None:
+    """Retrieves a BigQuery table reference by name.
+
     Args:
-      dataset_name: The dataset containing the table.
-      table_name: The name of the table to delete.
+      dataset_name: Dataset containing the table.
+      table_name: Name of the table to retrieve.
+
+    Returns:
+      BigQuery Table object if found, otherwise None.
     """
     client = bigquery.Client()
-    full_table_name = self.__get_full_table_name(dataset_name, table_name)
+    full_table_name = self._get_full_table_name(dataset_name, table_name)
     try:
       table = client.get_table(full_table_name)
       return table
     except cloud_exceptions.NotFound:
-      print(f"Table {full_table_name} not found!")
+      logger.warning("Table %s not found!", full_table_name)
       return None
 
   def delete_table(self, dataset_name: str, table_name: str) -> None:
-    """Deletes a table with the provided name
+    """Deletes a BigQuery table with the provided name.
+
     Args:
-      dataset_name: the dataset containing the table
-      table_name: The name of the table to delete.
+      dataset_name: Dataset containing the table.
+      table_name: Name of the table to delete.
     """
     client = bigquery.Client()
-    full_table_name = self.__get_full_table_name(dataset_name, table_name)
-    # If the table does not exist, delete_table raises
-    # google.api_core.exceptions.NotFound unless not_found_ok is True.
+    full_table_name = self._get_full_table_name(dataset_name, table_name)
     try:
       client.delete_table(full_table_name, not_found_ok=True)
-      print(f"Deleted table {full_table_name}")
+      logger.info("Deleted table %s", full_table_name)
     except cloud_exceptions.NotFound:
-      print(f"Table {full_table_name} not found!")
+      logger.warning("Table %s not found!", full_table_name)
 
   def load_table_from_dataframe(
       self,
       dataset_name: str,
       table_name: str,
-      dataframe: any,
+      dataframe: Any,
       schema: list[bigquery.SchemaField],
       write_disposition: str = "WRITE_TRUNCATE",
-  ):
-    """Loads the provided dataframe into a BQ table
+  ) -> None:
+    """Loads a pandas DataFrame into a BigQuery table.
+
     Args:
-      dataset_name: the dataset containing the table
-      table_name: The name of the table to create.
-      dataframe: A list of user roles
+      dataset_name: Target dataset name.
+      table_name: Target table name.
+      dataframe: pandas DataFrame containing rows to load.
+      schema: List of BigQuery SchemaField objects.
+      write_disposition: BigQuery write disposition strategy.
     """
     client = bigquery.Client(project=self.gcs_project_id)
-    full_table_name = self.__get_full_table_name(dataset_name, table_name)
+    full_table_name = self._get_full_table_name(dataset_name, table_name)
     job_config = bigquery.LoadJobConfig(
         schema=schema, write_disposition=write_disposition
     )
-    # Make API request to load data
     job = client.load_table_from_dataframe(
         dataframe, full_table_name, job_config=job_config
     )
-    # Wait for the job to complete.
     job.result()
-    # Check if table was created
     table = client.get_table(full_table_name)
     if table:
-      print(
-          f"Rows inserted in {full_table_name} successfully! Total rows in"
-          f" table {table.num_rows}. \n"
+      logger.info(
+          "Rows inserted in %s successfully! Total rows in table %s.",
+          full_table_name,
+          table.num_rows,
       )
     else:
-      print(
-          "There was an error loading the users to the table"
-          f" {full_table_name}. The table could not be created."
+      logger.error(
+          "There was an error loading the rows to the table %s. The table"
+          " could not be created.",
+          full_table_name,
       )
