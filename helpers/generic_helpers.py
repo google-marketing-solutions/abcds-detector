@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -18,253 +16,151 @@
 #
 ###########################################################################
 
-"""Module to load generic helper functions"""
+"""Module to load generic helper functions and BigQuery persistence."""
 
-import json
-import os
-import urllib
+from concurrent import futures
+import dataclasses
 import datetime
-from concurrent.futures import ThreadPoolExecutor
-import pandas
+import json
 import logging
+import sys
+from typing import Any, Callable
+
 from google.cloud import bigquery
-from moviepy.editor import VideoFileClip
+import pandas
+
+import configuration
 from gcp_api_services import bigquery_api_service
-from gcp_api_services import gcs_api_service
-from configuration import FFMPEG_BUFFER, FFMPEG_BUFFER_REDUCED, Configuration
 import models
 
 
-def get_knowledge_graph_entities(
-    config: Configuration, queries: list[str]
-) -> dict[str, dict]:
-  """Get the knowledge Graph Entities for a list of queries
+def setup_logger(level: int = logging.INFO) -> logging.Logger:
+  """Configures and returns the main application logger.
+
   Args:
-      config: All the parameters
-      queries: a list of entities to find in KG
+    level: Logging level threshold (default: logging.INFO).
+
   Returns:
-      kg_entities: entities found in KG
-      Format example: entity id is the key and entity details the value
-      kg_entities = {
-          "mcy/12": {} TODO (ae) add here
-      }
+    Configured Logger instance for the application.
   """
-  kg_entities = {}
-  try:
-    for query in queries:
-      service_url = "https://kgsearch.googleapis.com/v1/entities:search"
-      params = {
-          "query": query,
-          "limit": 10,
-          "indent": True,
-          "key": config.knowledge_graph_api_key,
-      }
-      url = f"{service_url}?{urllib.parse.urlencode(params)}"
-      response = json.loads(urllib.request.urlopen(url).read())
-      for element in response["itemListElement"]:
-        kg_entity_name = element["result"]["name"]
-        # To only add the exact KG entity
-        if query.lower() == kg_entity_name.lower():
-          kg_entities[element["result"]["@id"][3:]] = element["result"]
-    return kg_entities
-  except Exception as ex:
-    print(
-        "\n\x1b[31mERROR: There was an error fetching the Knowledge Graph"
-        " entities. Please check that your API key is correct. ERROR:"
-        f" {ex}\x1b[0m"
+  logger = logging.getLogger("abcd_detector")
+  logger.setLevel(level)
+
+  if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    formatter = logging.Formatter(
+        "[%(asctime)s] [%(levelname)s] [ABCD] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-    raise
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+  return logger
 
 
-def remove_local_video_files():
-  """Removes local video files"""
-  if os.path.exists(FFMPEG_BUFFER):
-    os.remove(FFMPEG_BUFFER)
-  if os.path.exists(FFMPEG_BUFFER_REDUCED):
-    os.remove(FFMPEG_BUFFER_REDUCED)
+logger = setup_logger()
 
 
-def trim_video(config: Configuration, video_uri: str):
-  """Trims videos to create new versions of 5 secs
+def player(video_url: str) -> None:
+  """Placeholder function to test video playback locally or in a notebook.
+
   Args:
-      config: all the parameters
-      video_uri: the video to trim the length for
+    video_url: URL or URI of the video to play.
   """
-  reduced_uri = gcs_api_service.gcs_api_service.get_reduced_uri(
-      config, video_uri
-  )
-  reduced_blob = gcs_api_service.gcs_api_service.get_blob(reduced_uri)
-  print(f"REDUCED: {reduced_uri} \n")
-  if reduced_blob is None:
-    print(f"Shortening video {video_uri}. \n")
-
-    # download
-    with open(FFMPEG_BUFFER, "wb") as f:
-      blob = gcs_api_service.gcs_api_service.get_blob(video_uri)
-      if blob:
-        f.write(blob.download_as_string(client=None))
-      else:
-        msg = f"Video URI: {video_uri} does not exist. Skipping execution."
-        logging.error(msg)
-        raise ValueError(msg)
-
-    # trim
-    clip = VideoFileClip(FFMPEG_BUFFER)
-    clip = clip.subclip(0, 5)
-    clip.write_videofile(FFMPEG_BUFFER_REDUCED)
-
-    # upload
-    gcs_api_service.gcs_api_service.upload_blob(
-        reduced_uri, FFMPEG_BUFFER_REDUCED
-    )
-
-  else:
-    print(f"Video {video_uri} has already been trimmed. Skipping...\n")
-
-
-def player(video_url: str):
-  """Placeholder function to test locally"""
-  print(f"{video_url} \n")
+  logger.info("Video player target: %s", video_url)
 
 
 def print_abcd_assessment(
     brand_name: str,
     video_uri: str,
     evaluated_features: list[models.FeatureEvaluation],
+    timing_info: dict[str, Any] | None = None,
 ) -> None:
-  """Print ABCD Assessments"""
-  bucket_name, path = video_uri.replace("gs://", "").split("/", 1)
-  video_url = f"/content/{bucket_name}/{path}"
-  # Play Video
-  player(video_url)
-  print(f"***** ABCD Assessment for brand {brand_name} ***** \n")
-  print(f"Asset name: {video_uri} \n")
+  """Prints ABCD Assessments in human-readable console format.
+
+  Args:
+    brand_name: Evaluated brand name.
+    video_uri: URI of the analyzed video.
+    evaluated_features: List of feature evaluation results to display.
+    timing_info: Optional dictionary containing start_time, end_time, duration.
+  """
+  print(f"\n***** ABCD Assessment for brand: {brand_name} *****")
+  print(f"Asset URI: {video_uri}")
+  if timing_info and "start_time" in timing_info and "end_time" in timing_info:
+    duration = timing_info.get("duration_seconds", 0.0)
+    start_t = timing_info["start_time"]
+    end_t = timing_info["end_time"]
+    print(
+        f"Execution Time: {duration:.2f}s "
+        f"(Start: {start_t} | End: {end_t})"
+    )
+  print()
   print_score_details(evaluated_features)
 
 
 def print_score_details(
     evaluated_features: list[models.FeatureEvaluation],
 ) -> None:
-  """Print score details"""
+  """Prints adherence score and feature pass/fail details.
+
+  Args:
+    evaluated_features: List of evaluated features to summarize.
+  """
   total_features = len(evaluated_features)
-  total_features_detected = len(
-      [feature for feature in evaluated_features if feature.detected]
-  )
+  total_detected = sum(1 for f in evaluated_features if f.is_detected)
   score = calculate_score(evaluated_features)
+
   print(
-      f"Video score: {round(score, 2)}%, adherence"
-      f" ({total_features_detected}/{total_features})\n"
+      f"Video Adherence Score: {score:.1f}% "
+      f"({total_detected}/{total_features} features passed)\n"
   )
+
   if score >= 80:
-    print("Asset result: ✅ Excellent \n")
-  elif score >= 65 and score < 80:
-    print("Asset result: ⚠ Might Improve \n")
+    print("Rating: ✅ Excellent\n")
+  elif score >= 65:
+    print("Rating: ⚠️ Might Improve\n")
   else:
-    print("Asset result: ❌ Needs Review \n")
+    print("Rating: ❌ Needs Review\n")
 
-  print("Evaluated Features: \n")
+  print("Evaluated Features:")
   for eval_feature in evaluated_features:
-    if eval_feature.detected:
-      print(f" * ✅ {eval_feature.feature.name}")
-    else:
-      print(f" * ❌ {eval_feature.feature.name}")
+    icon = "✅" if eval_feature.is_detected else "❌"
+    print(f" * {icon} {eval_feature.feature.name}")
+    if eval_feature.evidence:
+      print(f"     Evidence: {eval_feature.evidence}")
   print("\n")
-
-
-def get_call_to_action_api_list() -> list[str]:
-  """Gets a list of call to actions
-
-  Returns
-      list: call to actions
-  """
-  return [
-      "LEARN MORE",
-      "GET QUOTE",
-      "APPLY NOW",
-      "SIGN UP",
-      "CONTACT US",
-      "SUBSCRIBE",
-      "DOWNLOAD",
-      "BOOK NOW",
-      "SHOP NOW",
-      "BUY NOW",
-      "DONATE NOW",
-      "ORDER NOW",
-      "PLAY NOW",
-      "SEE MORE",
-      "START NOW",
-      "VISIT SITE",
-      "WATCH NOW",
-  ]
-
-
-def get_call_to_action_verbs_api_list() -> list[str]:
-  """Gets a list of call to action verbs
-
-  Returns
-      list: call to action verbs
-  """
-  return [
-      "LEARN",
-      "QUOTE",
-      "APPLY",
-      "SIGN UP",
-      "CONTACT",
-      "SUBSCRIBE",
-      "DOWNLOAD",
-      "BOOK",
-      "SHOP",
-      "BUY",
-      "DONATE",
-      "ORDER",
-      "PLAY",
-      "SEE",
-      "START",
-      "VISIT",
-      "WATCH",
-  ]
 
 
 def calculate_score(
     evaluated_features: list[models.FeatureEvaluation],
 ) -> float:
-  """Calculate ABCD final score"""
-  total_features = len(evaluated_features)
-  passed_features_count = 0
-  for feature in evaluated_features:
-    if feature.detected:
-      passed_features_count += 1
-  # Get score
-  score = (
-      ((passed_features_count * 100) / total_features)
-      if total_features > 0
-      else 0
-  )
-  return score
+  """Calculates ABCD adherence score percentage.
+
+  Args:
+    evaluated_features: List of FeatureEvaluation results.
+
+  Returns:
+    Percentage of detected features (0.0 to 100.0).
+  """
+  if not evaluated_features:
+    return 0.0
+  passed_count = sum(1 for f in evaluated_features if f.is_detected)
+  return (passed_count * 100.0) / len(evaluated_features)
 
 
-def get_feature_by_id(features: list[str], feature_id: str) -> list[str]:
-  """Get feature configs by id"""
-  features_found = [
-      feature_config
-      for feature_config in features
-      if feature_config.get("feature_id") == feature_id
-  ]
-  if len(features_found) > 0:
-    return features_found[0]
-  return None
+def get_table_columns_schema() -> list[dict[str, Any]]:
+  """Gets the standardized table columns schema for BigQuery.
 
-
-def get_shorts_table_columns_schema() -> list[dict]:
-  """Gets the table columns schema for the Shorts assessments table in BQ."""
+  Returns:
+    List of dicts defining column names and their BigQuery SqlTypeNames.
+  """
   return [
       {
           "column": "execution_timestamp",
           "data_type": bigquery.enums.SqlTypeNames.TIMESTAMP,
       },
       {"column": "brand_name", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "video_id", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "video_name", "data_type": bigquery.enums.SqlTypeNames.STRING},
       {"column": "video_uri", "data_type": bigquery.enums.SqlTypeNames.STRING},
       {"column": "feature_id", "data_type": bigquery.enums.SqlTypeNames.STRING},
       {
@@ -280,31 +176,23 @@ def get_shorts_table_columns_schema() -> list[dict]:
           "data_type": bigquery.enums.SqlTypeNames.STRING,
       },
       {
-          "column": "feature_video_segment",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
           "column": "feature_evaluation_criteria",
           "data_type": bigquery.enums.SqlTypeNames.STRING,
       },
       {
-          "column": "detected",
+          "column": "is_detected",
           "data_type": bigquery.enums.SqlTypeNames.BOOLEAN,
       },
       {
           "column": "confidence_score",
           "data_type": bigquery.enums.SqlTypeNames.FLOAT,
       },
-      {
-          "column": "detected_evidence",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
+      {"column": "rationale", "data_type": bigquery.enums.SqlTypeNames.STRING},
+      {"column": "evidence", "data_type": bigquery.enums.SqlTypeNames.STRING},
+      {"column": "strengths", "data_type": bigquery.enums.SqlTypeNames.STRING},
+      {"column": "weaknesses", "data_type": bigquery.enums.SqlTypeNames.STRING},
       {
           "column": "recommended_actions",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "strengths_to_keep",
           "data_type": bigquery.enums.SqlTypeNames.STRING,
       },
       {
@@ -324,320 +212,138 @@ def get_shorts_table_columns_schema() -> list[dict]:
           "data_type": bigquery.enums.SqlTypeNames.STRING,
       },
       {
-          "column": "brand_metadata",
+          "column": "brand_context",
           "data_type": bigquery.enums.SqlTypeNames.STRING,
       },
-      {"column": "config", "data_type": bigquery.enums.SqlTypeNames.STRING},
   ]
 
 
-def get_table_columns_schema() -> list[str]:
-  """Gets the table columns schema for the assessments table in BQ."""
+def get_table_schema() -> list[bigquery.SchemaField]:
+  """Builds BigQuery SchemaField list for assessments table.
+
+  Returns:
+    List of bigquery.SchemaField instances for table creation.
+  """
   return [
-      {
-          "column": "execution_timestamp",
-          "data_type": bigquery.enums.SqlTypeNames.TIMESTAMP,
-      },
-      {"column": "brand_name", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "video_id", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "video_name", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "video_uri", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "feature_id", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {
-          "column": "feature_name",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "feature_category",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "feature_sub_category",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "feature_video_segment",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "feature_evaluation_criteria",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {
-          "column": "detected",
-          "data_type": bigquery.enums.SqlTypeNames.BOOLEAN,
-      },
-      {
-          "column": "confidence_score",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {"column": "evidence", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "rationale", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "strengths", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {"column": "weaknesses", "data_type": bigquery.enums.SqlTypeNames.STRING},
-      {
-          "column": "brand_metadata",
-          "data_type": bigquery.enums.SqlTypeNames.STRING,
-      },
-      {"column": "config", "data_type": bigquery.enums.SqlTypeNames.STRING},
+      bigquery.SchemaField(col["column"], col["data_type"])
+      for col in get_table_columns_schema()
   ]
 
 
 def get_table_columns() -> list[str]:
-  """Gets the table columns for the assessments table in BQ."""
-  columns = []
-  for column_schema in get_table_columns_schema():
-    columns.append(column_schema.get("column"))
-  return columns
+  """Returns list of column names for assessments table.
 
-
-def get_table_schema() -> list[bigquery.SchemaField]:
-  """Gets the schema for the assessments table in BQ."""
-  schema = []
-  for column_schema in get_table_columns_schema():
-    schema.append(
-        bigquery.SchemaField(
-            column_schema.get("column"), column_schema.get("data_type")
-        )
-    )
-  return schema
-
-
-def get_shorts_table_columns() -> list[str]:
-  """Gets the table columns for the Shorts assessments table in BQ."""
-  columns = []
-  for column_schema in get_shorts_table_columns_schema():
-    columns.append(column_schema.get("column"))
-  return columns
-
-
-def get_shorts_table_schema() -> list[bigquery.SchemaField]:
-  """Gets the schema for the Shorts assessments table in BQ."""
-  schema = []
-  for column_schema in get_shorts_table_columns_schema():
-    schema.append(
-        bigquery.SchemaField(
-            column_schema.get("column"), column_schema.get("data_type")
-        )
-    )
-  return schema
-
-
-def update_annotations_evaluated_features(
-    assessment_bq: list[dict], annotations_evaluation: list[dict]
-) -> None:
-  """Updates default values with annotations evaluated features values
-  Finds the feature in assessment_bq and updates with annotations evaluation
+  Returns:
+    List of string column names.
   """
-  if annotations_evaluation:
-    for annotations_eval_feature in annotations_evaluation.get(
-        "evaluated_features"
-    ):
-      feature_found = get_feature_by_id(
-          assessment_bq, annotations_eval_feature.get("id")
-      )
-      if feature_found:
-        feature_found["using_annotations"] = True
-        feature_found["annotations_evaluation"] = annotations_eval_feature.get(
-            "detected"
-        )
-      else:
-        print(
-            "Annotations evaluation: Feature"
-            f" {annotations_eval_feature.get('id')} not found. Skipping from"
-            " storing it in BQ. \n"
-        )
-  else:
-    print("No annotations_evaluation found. Skipping from storing it in BQ. \n")
+  return [col["column"] for col in get_table_columns_schema()]
 
 
-def update_llms_evaluated_features(
-    assessment_bq: list[dict],
-    llms_evaluation: list[dict],
-    prompt_params: dict,
-    llm_params: dict,
+def store_in_bq(
+    request: configuration.EvaluationRequest,
+    video_assessment: models.VideoAssessment,
 ) -> None:
-  """Updates default values with llms evaluated features values
-  Finds the feature in assessment_bq and updates with llms evaluation
+  """Stores ABCD assessment results in BigQuery.
+
+  Args:
+    request: EvaluationRequest containing GCP and BigQuery configurations.
+    video_assessment: VideoAssessment containing evaluation results.
   """
-  if llms_evaluation:
-    for llms_eval_feature in llms_evaluation.get("evaluated_features"):
-      feature_found = get_feature_by_id(
-          assessment_bq, llms_eval_feature.get("id")
-      )
+  if not request.bigquery_settings:
+    return
 
-      if feature_found:
-        feature_found["using_llms"] = True
-        feature_found["llms_evaluation"] = llms_eval_feature.get("detected")
-        feature_found["llm_explanation"] = llms_eval_feature.get(
-            "llm_explanation"
-        )
-        feature_found["prompt_params"] = str(prompt_params)
-        feature_found["llm_params"] = str(llm_params)
-      else:
-        print(
-            f"LLMs evaluation: Feature {llms_eval_feature.get('id')} not found."
-            " Skipping from storing it in BQ. \n"
-        )
-  else:
-    print("No llms_evaluation found. Skipping from storing it in BQ. \n")
+  bq_settings = request.bigquery_settings
+  bq_service = bigquery_api_service.BigQueryAPIService(bq_settings.project_id)
+  bq_service.create_dataset(
+      bq_settings.dataset_name, request.gcp_config.location
+  )
 
+  now = datetime.datetime.now(datetime.timezone.utc)
+  schema = get_table_schema()
+  columns = get_table_columns()
+  table_name = bq_settings.table_name
 
-def _store_rows_in_bq(config, bq_api_service, assessment_bq, table_name, is_shorts):
-  """Helper to store rows in BQ using either Shorts or Long Form schema."""
-  if len(assessment_bq) > 0:
-    if is_shorts:
-      columns = get_shorts_table_columns()
-      schema = get_shorts_table_schema()
-    else:
-      columns = get_table_columns()
-      schema = get_table_schema()
+  rows = []
+  brand_ctx = video_assessment.brand_context or request.brand_context
+  brand_ctx_dict = dataclasses.asdict(brand_ctx)
+  brand_context_str = json.dumps(brand_ctx_dict)
 
-    dataframe = pandas.DataFrame(
-        assessment_bq,
-        columns=columns,
-    )
-    bq_api_service.create_dataset(config.bq_dataset_name, config.project_zone)
-    table_created = bq_api_service.create_table(
-        config.bq_dataset_name, table_name, schema
+  for eval_list in video_assessment.slice_evaluations.values():
+    for eval_item in eval_list:
+      row = {
+          "execution_timestamp": now,
+          "brand_name": video_assessment.brand_name,
+          "video_uri": video_assessment.video_uri,
+          "feature_id": eval_item.feature.id,
+          "feature_name": eval_item.feature.name,
+          "feature_category": (
+              eval_item.feature.category.value
+              if hasattr(eval_item.feature.category, "value")
+              else str(eval_item.feature.category)
+          ),
+          "feature_sub_category": (
+              eval_item.feature.sub_category.value
+              if hasattr(eval_item.feature.sub_category, "value")
+              else str(eval_item.feature.sub_category)
+          ),
+          "feature_evaluation_criteria": (
+              eval_item.feature.evaluation_criteria
+          ),
+          "is_detected": eval_item.is_detected,
+          "confidence_score": eval_item.confidence_score,
+          "rationale": eval_item.rationale,
+          "evidence": eval_item.evidence,
+          "strengths": eval_item.strengths,
+          "weaknesses": eval_item.weaknesses,
+          "recommended_actions": eval_item.recommended_actions,
+          "first_appearance_timestamp": str(
+              eval_item.first_appearance_timestamp or ""
+          ),
+          "feature_density_score": eval_item.feature_density_score,
+          "feature_quality_score": eval_item.feature_quality_score,
+          "feature_specifics": json.dumps(eval_item.feature_specifics or {}),
+          "brand_context": brand_context_str,
+      }
+      rows.append(row)
+
+  if rows:
+    df = pandas.DataFrame(rows, columns=columns)
+    table_created = bq_service.create_table(
+        bq_settings.dataset_name, table_name, schema
     )
     if table_created:
-      print(f"Inserting {len(assessment_bq)} rows into {table_name}... \n")
-      bq_api_service.load_table_from_dataframe(
-          config.bq_dataset_name,
+      logger.info(
+          "Inserting %d rows into BigQuery table '%s'...", len(rows), table_name
+      )
+      bq_service.load_table_from_dataframe(
+          bq_settings.dataset_name,
           table_name,
-          dataframe,
+          df,
           schema,
           "WRITE_APPEND",
       )
     else:
-      print(
-          f"Error: ABCD assessments not loaded to table"
-          f" {config.bq_dataset_name}.{table_name} because the table"
-          " could not be created. \n"
+      logger.error(
+          "Failed to create or access BigQuery table '%s'.", table_name
       )
-  else:
-    print(f"There are no rows to insert into BQ for table {table_name}. \n")
 
 
-def store_in_bq(
-    config: Configuration,
-    video_assessment: models.VideoAssessment,
-):
-  """Store ABCD assessment results in BQ"""
+def execute_tasks_in_parallel(tasks: list[Callable[[], Any]]) -> list[Any]:
+  """Executes a list of callable tasks in parallel using ThreadPoolExecutor.
 
-  bq_api_service = bigquery_api_service.BigQueryAPIService(config.project_id)
+  Args:
+    tasks: List of zero-argument callable tasks to execute.
 
-  # Process Long Form Features
-  if video_assessment.long_form_abcd_evaluated_features:
-    print(f"Storing Long Form ABCD assessment for video {video_assessment.video_uri} in BigQuery... \n")
-    assessment_bq = build_features_for_bq(config, video_assessment, is_shorts=False)
-    _store_rows_in_bq(config, bq_api_service, assessment_bq, config.bq_table_name, is_shorts=False)
+  Returns:
+    List of results returned by each completed task in original order.
+  """
+  if not tasks:
+    return []
 
-  # Process Shorts Features
-  if video_assessment.shorts_evaluated_features:
-    print(f"Storing Shorts ABCD assessment for video {video_assessment.video_uri} in BigQuery... \n")
-    assessment_bq = build_features_for_bq(config, video_assessment, is_shorts=True)
-    _store_rows_in_bq(config, bq_api_service, assessment_bq, config.bq_table_name + "_shorts", is_shorts=True)
-
-
-def build_features_for_bq(
-    config: Configuration, video_assessment: models.VideoAssessment, is_shorts: bool
-) -> list[dict]:
-  """Builds features schema with values and default values for table in BQ"""
-  assessment_bq = []
-  if is_shorts:
-    evaluated_features = video_assessment.shorts_evaluated_features
-  else:
-    evaluated_features = video_assessment.long_form_abcd_evaluated_features
-  # Insert all feature configs first
-  for eval_feature in evaluated_features:
-    if config.creative_provider_type == models.CreativeProviderType:
-      video_name = gcs_api_service.gcs_api_service.get_video_name_from_uri(
-          video_assessment.video_uri
-      )
-    else:
-      video_name = video_assessment.video_uri
-    # Get Category
-    if hasattr(eval_feature.feature.category, "value"):
-      category = eval_feature.feature.category.value
-    else:
-      category = eval_feature.feature.category
-    # Get Sub category
-    if hasattr(eval_feature.feature.sub_category, "value"):
-      sub_category = eval_feature.feature.sub_category.value
-    else:
-      sub_category = eval_feature.feature.sub_category
-
-    if is_shorts:
-      assessment_bq.append({
-          "execution_timestamp": datetime.datetime.now(),
-          "brand_name": video_assessment.brand_name,
-          "video_id": video_assessment.video_uri,
-          "video_name": video_name,
-          "video_uri": video_assessment.video_uri,
-          "feature_id": eval_feature.feature.id,
-          "feature_name": eval_feature.feature.name,
-          "feature_category": category,
-          "feature_sub_category": sub_category,
-          "feature_video_segment": eval_feature.feature.video_segment.value,
-          "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
-          "detected": eval_feature.detected,
-          "confidence_score": eval_feature.confidence_score,
-          "detected_evidence": eval_feature.detected_evidence,
-          "recommended_actions": eval_feature.recommended_actions,
-          "strengths_to_keep": eval_feature.strengths_to_keep,
-          "first_appearance_timestamp": eval_feature.first_appearance_timestamp,
-          "feature_density_score": eval_feature.feature_density_score,
-          "feature_quality_score": eval_feature.feature_quality_score,
-          "feature_specifics": json.dumps(eval_feature.feature_specifics) if eval_feature.feature_specifics else "{}",
-          "brand_metadata": str({
-              "brand_name": config.brand_name,
-              "brand_variations": ",".join(config.brand_variations),
-              "branded_products": ",".join(config.branded_products),
-              "branded_product_categories": ",".join(config.branded_products_categories),
-          }),
-          "config": str(config.__dict__),
-      })
-    else:
-      assessment_bq.append({
-          "execution_timestamp": datetime.datetime.now(),
-          "brand_name": video_assessment.brand_name,
-          "video_id": video_assessment.video_uri,
-          "video_name": video_name,
-          "video_uri": video_assessment.video_uri,
-          "feature_id": eval_feature.feature.id,
-          "feature_name": eval_feature.feature.name,
-          "feature_category": category,
-          "feature_sub_category": sub_category,
-          "feature_video_segment": eval_feature.feature.video_segment.value,
-          "feature_evaluation_criteria": eval_feature.feature.evaluation_criteria,
-          "detected": eval_feature.detected,
-          "confidence_score": str(
-              eval_feature.confidence_score
-          ),  # TODO (ae) convert to str for now to avoid pandas issue
-          "evidence": eval_feature.evidence,
-          "rationale": eval_feature.rationale,
-          "strengths": eval_feature.strengths,
-          "weaknesses": eval_feature.weaknesses,
-          "brand_metadata": str({
-              "brand_name": config.brand_name,
-              "brand_variations": ",".join(config.brand_variations),
-              "branded_products": ",".join(config.branded_products),
-              "branded_product_categories": ",".join(
-                  config.branded_products_categories
-              ),
-          }),
-          "config": str(config.__dict__),
-      })
-  return assessment_bq
-
-
-def execute_tasks_in_parallel(tasks: list[any]) -> None:
-  """Executes a list of tasks in parallel"""
   results = []
-  with ThreadPoolExecutor() as executor:
-    running_tasks = [executor.submit(task) for task in tasks]
-    for running_task in running_tasks:
-      results.append(running_task.result())
+  max_workers = min(len(tasks), 10)
+  with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    task_futures = [executor.submit(task) for task in tasks]
+    for task_future in task_futures:
+      results.append(task_future.result())
   return results

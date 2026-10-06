@@ -1,195 +1,229 @@
-"""Service that handles video evaluations using AI (LLMs and/or Annotations)"""
+###########################################################################
+#
+#  Copyright 2024 Google LLC
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+###########################################################################
 
-import logging
+"""Service that handles ABCD video evaluations across slices and modes."""
+
+import datetime
 import functools
-import models
+import logging
+
 import configuration
-from features_repository import feature_configs_handler
-from llms_evaluation import llms_detector
 from custom_evaluation import custom_detector
+from features_repository import feature_configs_handler
+from gcp_api_services import gemini_api_service
 from helpers import generic_helpers
-from gcp_api_services import gcs_api_service
+from llm_evaluation import llm_detector
+import models
+
+logger = logging.getLogger("abcd_detector")
 
 
 class VideoEvaluationService:
-  """Service that handles video evaluations using AI (LLMs and/or Annotations)"""
+  """Service that orchestrates ABCD video evaluations in a 4-step pipeline."""
 
-  def __init__(self):
-    pass
-
-  def evaluate_features(
+  def __init__(
       self,
-      config: configuration.Configuration,
+      detector_custom: custom_detector.CustomDetector | None = None,
+      detector_llm: llm_detector.LLMDetector | None = None,
+  ) -> None:
+    """Initializes the VideoEvaluationService.
+
+    Args:
+      detector_custom: Optional CustomDetector for custom evaluation functions.
+      detector_llm: Optional LLMDetector for Gemini LLM evaluations.
+    """
+    self.custom_detector = detector_custom or custom_detector.CustomDetector()
+    self.llm_detector = detector_llm or llm_detector.LLMDetector()
+
+  def evaluate_video(
+      self,
+      request: configuration.EvaluationRequest,
       video_uri: str,
-      features_category: models.VideoFeatureCategory,
-  ):
-    """Run ABCD evaluation on videos for Full ABCD features or Shorts"""
+      gemini_service: gemini_api_service.GeminiAPIService,
+  ) -> models.VideoAssessment:
+    """Evaluates all requested slices for a single video using a pipeline.
 
-    if config.extract_brand_metadata:
-      metadata = llms_detector.llms_detector.get_video_metadata(
-          config, video_uri
-      )
-      config.brand_name = metadata.get("brand_name")
-      config.brand_variations = metadata.get("brand_variations")
-      config.branded_products = metadata.get("branded_products")
-      config.branded_products_categories = metadata.get(
-          "branded_products_categories"
-      )
-      config.branded_call_to_actions = metadata.get("branded_call_to_actions")
+    Args:
+      request: EvaluationRequest specifying slices, mode, and configs.
+      video_uri: Cloud Storage URI of the video to evaluate.
+      gemini_service: Client service instance for calling Gemini.
 
-    feature_evaluations: list[models.FeatureEvaluation] = []
-    tasks = []
-    feature_groups = feature_configs_handler.features_configs_handler.get_features_by_category_by_group_config(
-        features_category
+    Returns:
+      VideoAssessment containing evaluation results grouped by slice.
+    """
+    start_time = datetime.datetime.now(datetime.timezone.utc)
+    start_str = start_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+    logger.info(
+        "Starting ABCD evaluation for video: %s (Start: %s)",
+        video_uri,
+        start_str,
     )
-    uri = video_uri  # use full video uri by default
 
-    for group_key in feature_groups:
-      feature_configs: list[models.VideoFeature] = feature_groups.get(group_key)
+    # Step 1: Resolve Brand Context
+    if request.extract_brand_metadata:
+      brand_context = gemini_service.extract_brand_metadata(video_uri)
+    else:
+      brand_context = request.brand_context
 
-      # Use LLM evaluation method only
-      if config.use_llms and not config.use_annotations:
-        feature_configs_handler.features_configs_handler.change_evaluation_method_to_llms_only(
-            feature_configs
-        )
+    slice_evaluations: dict[str, list[models.FeatureEvaluation]] = {}
 
-      # Process the features that are not grouped individually
-      # meaning, each will be a separate request to the LLM
+    for slice_name in request.slices:
+      slice_start_time = datetime.datetime.now(datetime.timezone.utc)
+      slice_start_str = slice_start_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+      logger.info(
+          "Processing slice '%s' for video: %s (Start: %s)",
+          slice_name,
+          video_uri,
+          slice_start_str,
+      )
+
+      # Step 2: Filter features for this slice
+      slice_filter = None
       if (
-          group_key == "NO_GROUPING"
-          and config.use_annotations
-          and config.creative_provider_type == models.CreativeProviderType.GCS
-          # For now only GCS creative providers using annotations can be processed individually
+          request.features_to_evaluate
+          and slice_name in request.features_to_evaluate
       ):
-        for f_config in feature_configs:
-          if (
-              f_config.video_segment.value
-              == models.VideoSegment.FIRST_5_SECS_VIDEO.value
-          ):
-            uri = gcs_api_service.gcs_api_service.get_reduced_uri(
-                config, video_uri
-            )
-          else:
-            uri = video_uri
+        slice_filter = request.features_to_evaluate[slice_name]
 
-          # Build function to execute in parallel
-          # If custom detector was not defined, default to LLMs
-          if self.is_custom_evaluation(f_config.evaluation_function):
-            func = functools.partial(
-                custom_detector.custom_detector.evaluate_features,
-                config,
-                f_config,
-                uri,
-            )
-          else:
-            func = functools.partial(
-                llms_detector.llms_detector.evaluate_features,
-                config,
-                {
-                    "category": features_category,
-                    "group_by": f"{group_key}-{f_config.id}",
-                    "video_uri": uri,
-                    "feature_configs": (
-                        feature_configs
-                    ),  # process feature individually
-                },
-            )
-          # Add task to be process
-          tasks.append(func)
-      else:
-        # Use full video for Public URL videos
-        if (
-            group_key == models.VideoSegment.FIRST_5_SECS_VIDEO.value
-            and config.creative_provider_type == models.CreativeProviderType.GCS
-        ):
-          uri = gcs_api_service.gcs_api_service.get_reduced_uri(
-              config, video_uri
+      features = (
+          feature_configs_handler.features_configs_handler
+          .get_features_for_slice(
+              slice_name=slice_name,
+              features_filter=slice_filter,
           )
-        else:
-          uri = video_uri
+      )
 
-        # Build function to execute in parallel
-        func = functools.partial(
-            llms_detector.llms_detector.evaluate_features,
-            config,
-            {
-                "category": features_category,
-                "group_by": f"{group_key} for video {uri}",
-                "video_uri": uri,
-                "feature_configs": (
-                    feature_configs
-                ),  # process feature individually
-            },
+      if not features:
+        logger.info(
+            "No active features found for slice '%s'. Skipping.", slice_name
         )
-        # Add task to be process
+        slice_evaluations[slice_name] = []
+        continue
+
+      # Step 3: Partition features into Custom and Gemini groups
+      custom_features: list[models.VideoFeature] = []
+      gemini_features: list[models.VideoFeature] = []
+
+      for f in features:
+        if f.evaluation_function:
+          custom_features.append(f)
+        else:
+          gemini_features.append(f)
+
+      # Step 4: Build dispatch tasks
+      tasks = []
+
+      # 4a. Custom features: evaluated via registered custom functions
+      for cf in custom_features:
+        func = functools.partial(
+            self.custom_detector.evaluate_feature,
+            gemini_config=request.gemini_config,
+            feature_config=cf,
+            video_uri=video_uri,
+            brand_context=brand_context,
+        )
         tasks.append(func)
 
-    logging.info("Starting ABCD evaluation for features... \n")
-
-    llm_evals = generic_helpers.execute_tasks_in_parallel(tasks)
-
-    # Process LLM results and create feature objs in the required format
-    for evals in llm_evals:
-      for evaluated_feature in evals:
-        feature: models.VideoFeature = (
-            feature_configs_handler.features_configs_handler.get_feature_by_id(
-                evaluated_feature.get("id")
-            )
-        )
-        if feature:
-          if features_category == models.VideoFeatureCategory.SHORTS:
-            feature_evaluations.append(
-                models.ShortsFeatureEvaluation(
-                    feature=feature,
-                    detected=evaluated_feature.get("detected"),
-                    confidence_score=evaluated_feature.get("confidence_score") or 0.0,
-                    rationale="",
-                    evidence=evaluated_feature.get("detected_evidence") or "",
-                    strengths=evaluated_feature.get("strengths_to_keep") or "",
-                    weaknesses=evaluated_feature.get("recommended_actions") or "",
-                    detected_evidence=evaluated_feature.get("detected_evidence"),
-                    recommended_actions=evaluated_feature.get("recommended_actions"),
-                    strengths_to_keep=evaluated_feature.get("strengths_to_keep"),
-                    first_appearance_timestamp=evaluated_feature.get("first_appearance_timestamp") if evaluated_feature.get("detected") else None,
-                    feature_density_score=evaluated_feature.get("feature_density_score"),
-                    feature_quality_score=evaluated_feature.get("feature_quality_score"),
-                    feature_specifics=evaluated_feature.get("feature_specifics"),
-                )
-            )
-          else:
-            feature_evaluations.append(
-                models.FeatureEvaluation(
-                    feature=feature,
-                    detected=evaluated_feature.get("detected"),
-                    confidence_score=evaluated_feature.get("confidence_score"),
-                    rationale=evaluated_feature.get("rationale"),
-                    evidence=evaluated_feature.get("evidence"),
-                    strengths=evaluated_feature.get("strengths"),
-                    weaknesses=evaluated_feature.get("weaknesses"),
-                )
-            )
-        else:
-          logging.warning(
-              "Feature %s not found. Feature was not added to"
-              " feature_evaluations.",
-              evaluated_feature.get("id"),
+      # 4b. Gemini features: evaluated in BULK or INDIVIDUAL mode
+      if gemini_features:
+        if request.execution_mode == configuration.ExecutionMode.BULK:
+          func = functools.partial(
+              self.llm_detector.evaluate_features,
+              gemini_service=gemini_service,
+              video_uri=video_uri,
+              feature_configs=gemini_features,
+              slice_name=slice_name,
+              brand_context=brand_context,
           )
+          tasks.append(func)
+        else:
+          for gf in gemini_features:
+            func = functools.partial(
+                self.llm_detector.evaluate_features,
+                gemini_service=gemini_service,
+                video_uri=video_uri,
+                feature_configs=[gf],
+                slice_name=slice_name,
+                brand_context=brand_context,
+            )
+            tasks.append(func)
 
-    # Sort features by category and id for presentation
-    if features_category == models.VideoFeatureCategory.LONG_FORM_ABCD:
-      feature_evaluations = sorted(
-          feature_evaluations,
-          key=lambda feature_eval: (
-              feature_eval.feature.category.value,
-              feature_eval.feature.id,
-          ),
-          reverse=False,
+      # Execute parallel tasks
+      logger.info(
+          "Dispatching %d evaluation task(s) for slice '%s'...",
+          len(tasks),
+          slice_name,
+      )
+      task_results = generic_helpers.execute_tasks_in_parallel(tasks)
+
+      # Step 5: Aggregate results
+      evaluations_for_slice: list[models.FeatureEvaluation] = []
+
+      for result in task_results:
+        if isinstance(result, list):
+          evaluations_for_slice.extend(
+              item
+              for item in result
+              if isinstance(item, models.FeatureEvaluation)
+          )
+        elif isinstance(result, models.FeatureEvaluation):
+          evaluations_for_slice.append(result)
+
+      # Sort for consistent presentation
+      evaluations_for_slice.sort(
+          key=lambda e: (e.feature.sub_category.value, e.feature.id)
+      )
+      slice_evaluations[slice_name] = evaluations_for_slice
+
+      slice_end_time = datetime.datetime.now(datetime.timezone.utc)
+      slice_end_str = slice_end_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+      slice_duration = (slice_end_time - slice_start_time).total_seconds()
+      logger.info(
+          "Slice '%s' completed in %.2fs (Start: %s, End: %s).",
+          slice_name,
+          slice_duration,
+          slice_start_str,
+          slice_end_str,
       )
 
-    return feature_evaluations
+    end_time = datetime.datetime.now(datetime.timezone.utc)
+    end_str = end_time.strftime("%Y-%m-%d %H:%M:%S UTC")
+    total_duration = (end_time - start_time).total_seconds()
+    logger.info(
+        "Completed ABCD evaluation for video: %s in %.2fs (Start: %s, End:"
+        " %s).",
+        video_uri,
+        total_duration,
+        start_str,
+        end_str,
+    )
 
-  def is_custom_evaluation(self, function_name):
-    return function_name != ""
+    timing_metadata = {
+        "start_time": start_str,
+        "end_time": end_str,
+        "duration_seconds": round(total_duration, 2),
+    }
 
-
-video_evaluation_service = VideoEvaluationService()
+    brand_name = brand_context.brand_name if brand_context else ""
+    return models.VideoAssessment(
+        brand_name=brand_name,
+        video_uri=video_uri,
+        slice_evaluations=slice_evaluations,
+        metadata=timing_metadata,
+        brand_context=brand_context,
+    )
