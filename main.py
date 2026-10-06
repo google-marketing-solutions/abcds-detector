@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 ###########################################################################
 #
 #  Copyright 2024 Google LLC
@@ -18,166 +16,138 @@
 #
 ###########################################################################
 
-"""Module to execute the ABCD Detector Assessment"""
+"""Main module to execute the ABCD Detector Assessment."""
 
-import time
-import traceback
-import logging
+import datetime
+
+import configuration
+from creative_providers import gcs_creative_provider
+from evaluation_services import video_evaluation_service
+from gcp_api_services import gemini_api_service
+from helpers import generic_helpers
 import models
 import utils
-from annotations_evaluation import annotations_generation
-from helpers import generic_helpers
-from configuration import Configuration
-from creative_providers import creative_provider_proto
-from creative_providers import creative_provider_registry
-from evaluation_services import video_evaluation_service
+
+logger = generic_helpers.setup_logger()
 
 
-def execute_abcd_assessment_for_videos(config: Configuration):
-  """Execute ABCD Assessment for all brand videos retrieved by the Creative Provider"""
-
-  creative_provider: creative_provider_proto.CreativeProviderProto = (
-      creative_provider_registry.provider_factory.get_provider(
-          config.creative_provider_type.value
-      )
-  )
-
-  video_uris = creative_provider.get_creative_uris(config)
-
-  for video_uri in video_uris:
-
-    # Validate that creative provides match the video uris
-    if (
-        config.creative_provider_type == models.CreativeProviderType.GCS
-        and "gs://" not in video_uri
-    ):
-      logging.error(
-          "The creative provider GCS does not match with the video uri"
-          f" {video_uri}. Stopping execution. Please check."
-      )
-      break
-
-    if (
-        config.creative_provider_type == models.CreativeProviderType.YOUTUBE
-        and "https://www.youtube.com" not in video_uri
-    ):
-      logging.error(
-          "The creative provider YOUTUBE does not match with the video uri"
-          f" {video_uri}. Stopping execution. Please check."
-      )
-      break
-
-    print(f"\n\nProcessing ABCD Assessment for video {video_uri}... \n")
-
-    # Generate video annotations for custom features. Annotations are supported only for GCS providers
-    if (
-        config.use_annotations
-        and config.creative_provider_type == models.CreativeProviderType.GCS
-    ):
-      annotations_generation.generate_video_annotations(config, video_uri)
-
-    # Full ABCD features require 1st_5_secs videos only for GCS providers
-    if (
-        config.run_long_form_abcd
-        and config.creative_provider_type == models.CreativeProviderType.GCS
-    ):
-      generic_helpers.trim_video(config, video_uri)
-
-    # Execute ABCD Assessment
-    long_form_abcd_evaluated_features: models.FeatureEvaluation = []
-    shorts_evaluated_features: models.FeatureEvaluation = []
-
-    if config.run_long_form_abcd:
-      long_form_abcd_evaluated_features = (
-          video_evaluation_service.video_evaluation_service.evaluate_features(
-              config=config,
-              video_uri=video_uri,
-              features_category=models.VideoFeatureCategory.LONG_FORM_ABCD,
-          )
-      )
-
-    if config.run_shorts:
-      shorts_evaluated_features = (
-          video_evaluation_service.video_evaluation_service.evaluate_features(
-              config=config,
-              video_uri=video_uri,
-              features_category=models.VideoFeatureCategory.SHORTS,
-          )
-      )
-
-    video_assessment: models.VideoAssessment = models.VideoAssessment(
-        brand_name=config.brand_name,
-        video_uri=video_uri,
-        long_form_abcd_evaluated_features=long_form_abcd_evaluated_features,
-        shorts_evaluated_features=shorts_evaluated_features,
-        config=config,
-    )
-
-    # Print assessments for Full ABCD and Shorts and store results
-    if len(long_form_abcd_evaluated_features) > 0:
-      generic_helpers.print_abcd_assessment(
-          video_assessment.brand_name,
-          video_assessment.video_uri,
-          long_form_abcd_evaluated_features,
-      )
-    else:
-      logging.info(
-          "There are not Full ABCD evaluated features results to display."
-      )
-    if len(shorts_evaluated_features) > 0:
-      generic_helpers.print_abcd_assessment(
-          video_assessment.brand_name,
-          video_assessment.video_uri,
-          shorts_evaluated_features,
-      )
-    else:
-      logging.info(
-          "There are not Shorts evaluated features results to display."
-      )
-
-    if config.bq_table_name:
-      generic_helpers.store_in_bq(config, video_assessment)
-
-    # Remove local version of video files
-    generic_helpers.remove_local_video_files()
-
-
-def main(arg_list: list[str] | None = None) -> None:
-  """Main ABCD Assessment execution. See docstring and args.
+def execute_abcd_assessment_for_videos(
+    request: configuration.EvaluationRequest,
+) -> list[models.VideoAssessment]:
+  """Executes ABCD assessment for all videos specified in the request.
 
   Args:
-    arg_list: A list of command line arguments
+    request: Validated EvaluationRequest containing videos and configurations.
 
+  Returns:
+    List of VideoAssessment results for each processed video.
   """
+  gemini_service = gemini_api_service.GeminiAPIService(
+      request.gcp_config, request.gemini_config
+  )
+  evaluation_service = video_evaluation_service.VideoEvaluationService()
+  assessments: list[models.VideoAssessment] = []
 
+  # Expand GCS folder URIs into individual video files if any folder is provided
+  has_folder = any(
+      u.startswith("gs://") and u.endswith("/") for u in request.video_uris
+  )
+  video_uris = (
+      list(
+          gcs_creative_provider.GCSCreativeProvider().get_creative_uris(request)
+      )
+      if has_folder
+      else request.video_uris
+  )
+
+  for video_uri in video_uris:
+    video_start = datetime.datetime.now(datetime.timezone.utc)
+    start_str = video_start.strftime("%Y-%m-%d %H:%M:%S UTC")
+    logger.info(
+        "Processing ABCD assessment for video: %s (Start: %s)",
+        video_uri,
+        start_str,
+    )
+
+    assessment = evaluation_service.evaluate_video(
+        request=request,
+        video_uri=video_uri,
+        gemini_service=gemini_service,
+    )
+    assessments.append(assessment)
+
+    video_end = datetime.datetime.now(datetime.timezone.utc)
+    end_str = video_end.strftime("%Y-%m-%d %H:%M:%S UTC")
+    duration = (video_end - video_start).total_seconds()
+    logger.info(
+        "Finished ABCD assessment for video: %s in %.2fs (Start: %s, End:"
+        " %s)",
+        video_uri,
+        duration,
+        start_str,
+        end_str,
+    )
+
+    # Print assessment details to console / Colab output
+    for slice_name, evaluations in assessment.slice_evaluations.items():
+      if evaluations:
+        print("\n" + "=" * 56)
+        print(f"  SLICE ASSESSMENT: {slice_name.upper()}")
+        print("=" * 56)
+        generic_helpers.print_abcd_assessment(
+            assessment.brand_name,
+            video_uri,
+            evaluations,
+            timing_info=assessment.metadata,
+        )
+
+    # Store in BigQuery if configured
+    if request.bigquery_settings:
+      generic_helpers.store_in_bq(request, assessment)
+
+  return assessments
+
+
+def main(arg_list: list[str] | None = None) -> list[models.VideoAssessment]:
+  """Main entry point for command-line and programmatic ABCD execution.
+
+  Args:
+    arg_list: Optional explicit list of command-line arguments.
+
+  Returns:
+    List of completed VideoAssessment objects.
+  """
   try:
     args = utils.parse_args(arg_list)
+    request = utils.build_evaluation_request(args)
 
-    config = utils.build_abcd_params_config(args)
-
-    if utils.invalid_brand_metadata(config):
-      logging.error(
-          "The Extract Brand Metadata option is disabled and no brand details"
-          " were defined. \n"
-      )
-      logging.error("Please enable the option or define brand details. \n")
-      return
-
-    start_time = time.time()
-    logging.info("Starting ABCD assessment... \n")
-
-    if config.video_uris:
-      execute_abcd_assessment_for_videos(config)
-      logging.info("Finished ABCD assessment. \n")
-    else:
-      logging.info("There are no videos to process. \n")
-
-    logging.info(
-        "ABCD assessment took - %s mins. - \n", (time.time() - start_time) / 60
+    start_dt = datetime.datetime.now(datetime.timezone.utc)
+    start_str = start_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    logger.info(
+        "Starting ABCD Assessment pipeline (Start: %s)...", start_str
     )
+
+    assessments = execute_abcd_assessment_for_videos(request)
+
+    end_dt = datetime.datetime.now(datetime.timezone.utc)
+    end_str = end_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+    elapsed_secs = (end_dt - start_dt).total_seconds()
+    logger.info(
+        "ABCD assessment completed in %.2fs (%.2f mins) (Start: %s, End:"
+        " %s).",
+        elapsed_secs,
+        elapsed_secs / 60.0,
+        start_str,
+        end_str,
+    )
+    return assessments
+
+  except ValueError as err:
+    logger.error("Configuration / validation error: %s", err)
+    raise
   except Exception as ex:
-    logging.error("ERROR: %s", ex)
-    traceback.print_exc()
+    logger.exception("Assessment execution failed: %s", ex)
+    raise
 
 
 if __name__ == "__main__":

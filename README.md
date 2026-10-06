@@ -16,248 +16,403 @@ limitations under the License.
 
 ABCDs Detector is NOT an official Google product.
 
-## May, 2026 Update: Enhanced Capabilities and Flexibility
+---
 
-We're excited to announce major enhancements to the ABCDs Detector, significantly expanding its capabilities and offering greater flexibility in how you analyze your video creatives.
+# ABCD Detector
 
-### What's New:
+The **ABCD Detector** solution automates the assessment of video advertising creatives against Google and YouTube's **ABCD framework** (Attract, Brand, Connect, Direct). Powered by Google's state-of-the-art **Multimodal Gemini AI**, this solution evaluates video and audio creatives with high precision, providing deep creative scoring, evidence timestamps, strengths, weaknesses, and actionable creative recommendations.
 
-1.  **YouTube Shorts Evaluation with Research-Backed Top 20 Features:**
-    *  Introducing SHORTS evaluation, specifically tailored for YouTube Shorts. Advanced research has identified the top 20 creative attributes that explain video performance variation, enabling more efficient creative optimization.
+---
 
-    **Top 20 YouTube Shorts Evaluation Features:**
-    * **Tight Framing & Visual Dominance** - Quantifies spatial dominance of the primary subject (≥60% of frame).
-    * **Human Voice Presence** - Quantifies the presence, duration, and quality of human speech.
-    * **Direct to Camera** - Quantifies the duration and intensity of direct eye contact with the lens.
-    * **Supers & Text-Audio Synchronicity** - Quantifies presence and synchronization of text overlays with spoken audio.
-    * **Product Close-Up** - Quantifies segments where the product occupies at least 30% of the frame.
-    * **Product Extreme Close-Up** - Quantifies segments where the product occupies 60% or more of the frame.
-    * **Product Context & Usage Quality** - Evaluates physical interaction and authentic utility demonstration.
-    * **Casual Language** - Quantifies script informality, everyday language, and conversational filler.
-    * **Humor & Comedic Timing** - Detects attempts at humor, physical comedy, satire, or comedic timing.
-    * **Character-Driven** - Evaluates a relatable character whose journey resonates with the audience.
-    * **Call to Action (Audio)** - Detects spoken instructions that direct the viewer to take action.
-    * **Special Offer (Speech)** - Detects audio announcements of a special offer, discount, or deal.
-    * **Production Style** - Quantifies 'Lo-Fi' aesthetics and User Generated Content (UGC) authenticity.
-    * **SFV Native Adaptation** - Measures how effectively the video mimics organic social content.
-    * **Emoji Usage** - Detects intentional, creative use of emojis, stickers, and animated effects.
-    * **Direct to Camera Character Talk** - Evaluates the intimacy and continuity of direct lens address.
-    * **Brand Secondary Element** - Evaluates if the brand feels like a natural, secondary part of the environment.
-    * **Everyday Persona Validation** - Verifies the video is led by an authentic, relatable 'everyday person'.
-    * **Secondary Product Context** - Evaluates if the product appears naturally as a secondary element.
-    * **Vertical Format Designed For Mobile** - Verifies 9:16 portrait optimization and detects letter/pillarboxing.
+## What's New & Architecture Refresh
 
-    **BigQuery Output Schema for Shorts:**
-    The Shorts evaluation stores a comprehensive set of columns in BigQuery for each feature evaluated:
-    * **Video & Brand Info:** `execution_timestamp`, `brand_name`, `video_id`, `video_name`, `video_uri`.
-    * **Feature Definition:** `feature_id`, `feature_name`, `feature_category`, `feature_sub_category`, `feature_video_segment`, `feature_evaluation_criteria`.
-    * **Standard Evaluation:**
-        * `detected` (Boolean): Indicates whether the video adhered to the specific ABCD rule.
-        * `confidence_score` (Float): How certain the LLM is about the detection (0.0 to 1.0).
-        * `detected_evidence` (String): Description of the visual/audio cues and full timestamps supporting the decision.
-        * `recommended_actions` (String): Actionable next steps for the editor to improve the video.
-        * `strengths_to_keep` (String): What the editor did right and shouldn't change.
-    * **Advanced Shorts Metrics:** 
-        * `first_appearance_timestamp` (String): When did this feature first appear in the video? (Format MM:SS).
-        * `feature_density_score` (Float): Percentage of video duration where the feature is present.
-        * `feature_quality_score` (Float): Quantifies the creative quality of the execution (0.0 to 1.0).
-        * `feature_specifics` (JSON): The nested metrics and full temporal arrays for deep-dives (e.g., readability scores, vocal clarity).
-    * **Context Info:** `brand_metadata` (JSON string of brand details), `config` (JSON string of execution config).
+### 1. Multimodal Gemini & Custom Evaluation
+* **Video Intelligence API Deprecation & Removal**: Following the deprecation of the Google Cloud Video Intelligence API, all legacy annotation pipelines (`annotations_evaluation`, `VideoIntelligenceAPIService`, etc.) have been completely retired.
+* **Direct Multimodal Analysis**: Video and audio streams are now analyzed natively end-to-end by **Gemini Multimodal AI** (`google-genai` SDK) or extensible **Custom Evaluators**, eliminating multi-stage annotation latency and delivering richer contextual reasoning.
+* **Unified 20-Column BigQuery Schema**: Both Universal and Shorts evaluations output to an identical, standardized BigQuery table schema.
 
+### 2. Updated ABCD Feature Slices
+* **12 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
+* **18 YouTube Shorts Features**: Research-backed creative attributes specifically calibrated for short-form, mobile-first video performance.
 
+---
 
+## Supported ABCD Features
 
-2.  **Direct YouTube URL Support:**
-    *   You can now directly provide **YouTube URLs** for evaluation. This is applicable for public YouTube videos or videos from channels where the user is the owner.
-    *   **Important Note:** Currently, YouTube URLs are evaluated using **LLMs only**. Annotation-based evaluation for YouTube URLs is not supported.
+### 1. Universal Features (12)
+Defined in [`features_repository/universal_features.py`](features_repository/universal_features.py):
 
-3.  **Flexible Creative Provisioning with Factory Pattern:**
-    *   A new **Creative Provider** architecture, built on a factory pattern, allows developers to easily integrate and pull creatives from various data sources.
-    *   **Supported Providers:**
-        *   **Google Cloud Storage Creative Provider:** Retrieve individual videos or folders of videos from a GCS bucket.
-        *   **YouTube Creative Provider:** Designed to retrieve a list of YouTube URLs. This can be adapted to integrate with the YouTube API for automated retrieval.
-    *   **Custom Providers:** Implement your own creative providers by registering them in the `creative_provider_registry.py` file. Ensure your custom provider class implements the `get_creative_uris` method as specified in the `creative_provider_proto.py` file to return a list of creative URIs. Configuration in the system's `configuration.py` file is required to specify the provider type, please see the `set_parameters` function.
+| Feature ID | Name | Category | Description |
+|---|---|---|---|
+| `a_heartbeat_story_arc` | Heartbeat Story Arc | ATTRACT | Evaluates narrative pacing and dramatic tension curves (hook, conflict, peaks, resolution). |
+| `a_tightly_framed_overall` | Tight Framing (Overall) | ATTRACT | Measures visual prominence and close framing of primary subjects. |
+| `a_has_audio` | Audio Presence | ATTRACT | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
+| `a_has_supers` | Supers (Text Overlays) | ATTRACT | Detects visible on-screen text overlays reinforcing the core message. |
+| `a_supers_w_audio` | Supers with Audio | ATTRACT | Measures audio-visual synchronicity between on-screen text and spoken dialogue. |
+| `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRAND | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
+| `b_brand_mention` | Brand Mention | BRAND | Evaluates spoken or textual mentions of the brand name. |
+| `b_brand_mention_speech_see_and_say_first_5s` | See & Say Brand Mention (First 5s) | BRAND | Evaluates concurrent visual and auditory brand cues within the first 5 seconds. |
+| `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRAND | Evaluates consistent brand color palettes, visual cues, and distinctive brand assets. |
+| `c_people_overall` | Presence of People | CONNECT | Quantifies human presence, face visibility, and emotional character connection. |
+| `c_casual_language` | Casual Language | CONNECT | Evaluates script informality, conversational language, contractions, and natural dialogue. |
+| `d_visual_cta` | Visual Call To Action | DIRECT | Detects prominent on-screen visual CTA prompts guiding the viewer to the next step. |
 
-4.  **Feature Evaluation Methods:**
-    *   Features are now evaluated using one of three methods:
-        *   **LLMs Only:** Ideal for abstract concepts or when annotations are not available.
-        *   **Annotations Only:** For features that can be reliably extracted or calculated from video metadata and vision models.
-        *   **Combination of LLMs and Annotations:** For features requiring both structured data and nuanced understanding, especially those involving reasoning and calculations.
-    *   The specific evaluation method for each feature is determined by extensive research and testing during pipeline implementation.
+### 2. YouTube Shorts Features (18)
+Defined in [`features_repository/shorts_features.py`](features_repository/shorts_features.py):
 
-5.  **Custom Evaluation Functions for Core ABCDs:**
-    *   For **Core ABCDs evaluation**, users can now implement their own custom evaluation functions for individual features. This is particularly useful for scenarios requiring a unique combination of LLMs and Annotations.
-    *   Simply ensure your custom function complies with the defined interface and returns the expected standard evaluation response. You can return either True/False or an object with the evaluation details, please see the `VIDEO_RESPONSE_SCHEMA` object in `models.py` for more details.
+| Feature ID | Name | Category | Description |
+|---|---|---|---|
+| `a_tight_framing` | Tight Framing & Visual Dominance | ATTRACT | Subject-to-Frame Ratio ≥60%, measuring visual dominance in 9:16 framing. |
+| `a_human_voice` | Human Voice Presence | ATTRACT | Measures vocal density, speech clarity, and speech starting in the first 3 seconds. |
+| `a_direct_camera` | Direct to Camera | ATTRACT | Evaluates eye-contact intensity, face-to-lens address, and immediate hook connection. |
+| `b_product_closeup` | Product Close-Up | BRAND | Quantifies product presence occupying 30% to 59% of the frame. |
+| `b_product_extreme_closeup` | Product Extreme Close-Up | BRAND | Quantifies macro product dominance occupying ≥60% of the frame area. |
+| `c_people_using_product` | Product Context & Usage Quality | CONNECT | Evaluates "Show, Don't Tell" physical engagement, utility demonstration, and realism. |
+| `c_humor` | Humor & Comedic Timing | CONNECT | Detects comedic setups, timing, deadpan delivery, physical humor, and edge factor. |
+| `c_character_driven` | Character-Driven | CONNECT | Evaluates relatable protagonist prominence, narrative journey, and transformation. |
+| `d_audio_cta` | Call to Action (Audio) | DIRECT | Detects verbal commands, urgency level, and spoken directives to act. |
+| `d_special_offer_speech` | Special Offer (Speech) | DIRECT | Evaluates spoken announcements of promotions, discounts, deals, or incentives. |
+| `shorts_production_style` | Production Style (UGC) | NONE | Evaluates authentic User Generated Content (UGC) markers vs. commercial polish. |
+| `shorts_sfv_adaptation_high` | SFV Native Adaptation | NONE | Quantifies how convincingly the creative mimics organic short-form social video. |
+| `shorts_emoji_usage` | Emoji Usage | NONE | Detects intentional creative use of emojis, animated stickers, and native overlays. |
+| `shorts_personal_character_talk` | Direct to Camera Character Talk | NONE | Measures continuous conversational delivery and breaking the fourth wall. |
+| `shorts_native_brand_context` | Brand Secondary Element | NONE | Evaluates natural narrative integration of the brand to avoid ad-blindness. |
+| `shorts_personal_character_type` | Everyday Persona Validation | NONE | Validates if on-screen creator feels like an authentic everyday person vs. actor. |
+| `shorts_product_context` | Secondary Product Context | NONE | Evaluates product in practical utility within realistic, lived-in environments. |
+| `shorts_video_format` | Vertical Format (Mobile 9:16) | NONE | Verifies native 9:16 aspect ratio, mobile UI safe zones, and absence of letterboxing. |
 
-6.  **Dynamic and Configurable Features:**
-    *   All features are now **dynamic and configurable** via the `features_repository.py` file.
-    *   To introduce a new feature, simply add it to the feature array within `features_repository.py` and configure its parameters; ABCD Detector will automatically evaluate it.
-    *   Features can be **grouped** to be evaluated in a single prompt for efficiency, or configured with `NO_GROUPING` for individual evaluation (One API request per feature). Users should consider the potential cost implications when opting for individual evaluation.
+---
 
-# ABCDs Detector
+## Evaluation Methods: Gemini vs. Custom
 
-The ABCDs Detector solution streamlines the assessment of your video ads against YouTube's ABCD framework. Powered by Google AI, this tool automates the evaluation process, providing detailed reports on how well your ads align with key attention-driving metrics. Simplify your YouTube ad analysis and gain valuable insights for optimization with the ABCDs Detector.
+The ABCD Detector supports two complementary evaluation mechanisms via the `EvaluationMethod` enum:
 
-## The Approach
+```
+                      ┌──────────────────────────────────────┐
+                      │            Video Creative            │
+                      └──────────────────┬───────────────────┘
+                                         │
+                 ┌───────────────────────┴───────────────────────┐
+                 ▼                                               ▼
+   ┌───────────────────────────┐                   ┌───────────────────────────┐
+   │  EvaluationMethod.GEMINI  │                   │  EvaluationMethod.CUSTOM  │
+   │  (Multimodal AI Analysis) │                   │ (Programmatic / Heuristic)│
+   └─────────────┬─────────────┘                   └─────────────┬─────────────┘
+                 │                                               │
+                 │ Direct multimodal reasoning                   │ Custom Python function
+                 │ over video frames + audio                     │ from registry
+                 ▼                                               ▼
+   ┌───────────────────────────────────────────────────────────────────────────┐
+   │                   Standardized FeatureEvaluation Object                   │
+   │  (detected, confidence_score, evidence, recommendations, metrics, etc.)   │
+   └───────────────────────────────────────────────────────────────────────────┘
+```
 
-### Overview
+### 1. Multimodal Gemini (`EvaluationMethod.GEMINI`)
+* **How it works**: Sends video URIs (GCS or YouTube) directly to Gemini models (`gemini-3.8-flash`, etc.) using structured JSON schemas.
+* **Capabilities**: Evaluates visual context, audio cues, speech transcription, text overlays, and narrative flow in a single multimodal pass.
+* **Modes**:
+  * `BULK` (default): Evaluates all requested features in a single prompt for speed and cost efficiency.
+  * `INDIVIDUAL`: Sends an isolated prompt per feature for granular debugging.
 
-The solution leverages:
+### 2. Custom Evaluators (`EvaluationMethod.CUSTOM`)
+* **How it works**: Executes registered Python functions for specialized business rules, deterministic heuristic scripts, external API calls, or domain-specific computer vision models.
+* **Interface**: Custom functions take `(gemini_config, feature_config, video_uri, brand_context)` and return a validated `FeatureEvaluation` object.
 
-**Video content annotation:** Google AI extracts features and identifies key moments within your video ads.
+### Implementing a Custom Evaluator
 
-**Large Language Model (LLM) integration:** LLMs are used to assess features against YouTube's ABCD framework rubrics. This enables the detector to "ask questions" and determine if the ad adheres to each rubric.
+1. **Define and Register Your Function**:
+   Create a detector file inside `custom_evaluation/evaluations/` (for example, `custom_evaluation/evaluations/has_audio_detector.py` or `<feature_name>_detector.py`) and decorate your function with `@register_evaluator("evaluator_name")`. 
+   
+   > **Note:** All `.py` files inside `custom_evaluation/evaluations/` are **automatically discovered and imported** by `CustomDetector`. If your function is defined in an external module, simply import that module in your application so the decorator executes.
 
-By combining these techniques, ABCDs Detector automates the evaluation process and delivers comprehensive reports on how well your ads align with the ABCD framework. This empowers you to optimize your YouTube ad campaigns for maximum impact.
+   ```python
+   # custom_evaluation/evaluations/has_audio_detector.py
+   from configuration import BrandContext, GeminiConfig
+   from custom_evaluation.custom_detector import register_evaluator
+   from models import FeatureEvaluation, VideoFeature
 
-### Detailed approach
+   @register_evaluator("detect_custom_audio_cue")
+   def detect_custom_audio_cue(
+       gemini_config: GeminiConfig,
+       feature_config: VideoFeature,
+       video_uri: str,
+       brand_context: BrandContext | None = None,
+   ) -> FeatureEvaluation:
+       # Implement your custom logic (e.g. audio processing, heuristics, or external APIs)
+       is_cue_present = True
+       confidence = 0.92
 
-1. Video Intelligence API: To get annotations for the following features:
-  - Label annotations
-  - Face annotations
-  - Text annotations
-  - Object annotations
-  - People annotations
-  - Speech annotations
-  - Shot annotations
-  - Logo annotations
+       return FeatureEvaluation(
+           feature_id=feature_config.id,
+           feature_name=feature_config.name,
+           feature_category=feature_config.category.value,
+           feature_sub_category=feature_config.sub_category.value,
+           video_segment=feature_config.video_segment.value,
+           detected=is_cue_present,
+           confidence_score=confidence,
+           detected_evidence="Detected target sound signature between 00:01 and 00:03.",
+           rationale="Sound signature matches brand audio benchmark.",
+           strengths_to_keep="Clear audio cue in the opening seconds.",
+           weaknesses_to_improve="",
+           recommended_actions="Great job! This feature is fully optimized.",
+       )
+   ```
 
+2. **Configure the Feature**:
+   In your feature repository (`universal_features.py` or `shorts_features.py`), instantiate `VideoFeature` pointing to your registered evaluator name:
 
-2. Gemini: To perform video Q&A about the features to evaluate if the video adheres to the ABCD rubrics. The colab will send a request to Gemini with tailored prompts to evaluate each rubric.
+   ```python
+   VideoFeature(
+       id="custom_audio_cue",
+       name="Custom Audio Signature",
+       category=VideoFeatureCategory.UNIVERSAL,
+       sub_category=VideoFeatureSubCategory.ATTRACT,
+       video_segment=VideoSegment.FULL_VIDEO,
+       evaluation_criteria="Detects custom sonic branding cues in the opening seconds.",
+       prompt_template="",
+       evaluation_method=EvaluationMethod.CUSTOM,
+       evaluation_function="detect_custom_audio_cue",
+   )
+   ```
 
-ABCDs Detector will perform 2 verifications, first with annotations and then with LLMs. Since the LLM approach is prone to hallucinations, False Positives or False Negatives will be expected. The solution will still require human QA if 100% accuracy is required for the evaluation.
+---
 
-ABCDs Detector MVP supports a single video evaluation for the following features/rubrics:
-  - Quick Pacing
-  - Quick Pacing (First 5 seconds)
-  - Dynamic Start
-  - Supers
-  - Supers with Audio
-  - Brand Visuals
-  - Brand Visuals (First 5 seconds)
-  - Brand Mention (Speech)
-  - Brand Mention (Speech) (First 5 seconds)
-  - Product Visuals
-  - Product Visuals (First 5 seconds)
-  - Product Mention (Text)
-  - Product Mention (Text) (First 5 seconds)
-  - Product Mention (Speech)
-  - Product Mention (Speech) (First 5 seconds)
-  - Visible Face (First 5 seconds)
-  - Visible Face (Close Up)
-  - Presence of People
-  - Presence of People (First 5 seconds)
-  - Overall Pacing
-  - Audio Speech Early
-  - Call To Action (Text)
-  - Call To Action (Speech)
+## Creative Sourcing: GCS & YouTube
 
-For a definition for each of these signals please take a look at the [long_form_abc_features.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/features_repository/long_form_abcd_features.py) and [shorts_features.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/features_repository/shorts_features.py) files.
+Videos can be sourced from Google Cloud Storage or YouTube via the **Creative Provider** architecture:
 
-The final result of the assessment (Excellent, Might Improve or Needs Review) is defined in the [generics_helpers.py](https://github.com/google-marketing-solutions/abcds-detector/blob/main/helpers/generic_helpers.py?plain=1#L186) and can be customized based on preferences.
+1. **Google Cloud Storage (`gcs`)**:
+   * Direct video file: `gs://my-bucket/videos/ad_01.mp4`
+   * Bucket directory / prefix: `gs://my-bucket/campaign_q2/` (automatically discovers all `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm` videos in the path).
+2. **YouTube (`youtube`)**:
+   * Public or channel-owned YouTube URLs: `https://www.youtube.com/watch?v=VIDEO_ID` or short URLs `https://youtu.be/VIDEO_ID`.
 
-### Google Cloud Cost breakdown
+### Registering a New Creative Provider
 
-1. Video Intelligence API: Prices are per minute. Partial minutes are rounded up to the next full minute. Volume is per month. For more details please check the official [documentation](https://cloud.google.com/video-intelligence/pricing).
+To add support for a new video source (e.g. Amazon S3, Azure Blob Storage, or an internal DAM/MAM):
 
-2. Gemini: With the Multimodal models in Vertex AI, you can input either text or media (images, video). Text input is charged by every 1,000 characters of input (prompt) and every 1,000 characters of output (response). Characters are counted by UTF-8 code points and white space is excluded from the count. Prediction requests that lead to filtered responses are charged for the input only. At the end of each billing cycle, fractions of one cent ($0.01) are rounded to one cent. Media input is charged per image or per second (video). For more details please check the official documentation: https://cloud.google.com/vertex-ai/generative-ai/pricing
+1. **Implement `CreativeProviderProto`**:
+   ```python
+   # creative_providers/my_custom_provider.py
+   from configuration import EvaluationRequest
 
-For questions, please reach out to: abcds-detector@google.com
+   class MyCustomCreativeProvider:
+       def get_creative_uris(self, request: EvaluationRequest) -> list[str]:
+           # Logic to resolve custom source paths into downloadable or streamable URIs
+           return ["https://my-dam.internal/assets/video1.mp4"]
+   ```
 
-## Requirements
-Please esure you have access to all of the following before starting:
+2. **Register in Factory**:
+   Add the provider to `creative_providers/creative_provider_registry.py`:
+   ```python
+   from creative_providers.my_custom_provider import MyCustomCreativeProvider
+
+   provider_factory.register_provider("my_dam", MyCustomCreativeProvider)
+   ```
+
+3. **Use in Configuration**:
+   Pass `--source_type "my_dam"` via CLI or configure `CreativeProviderConfig(source_type="my_dam", creative_paths=[...])`.
+
+---
+
+## How to Run: CLI Script vs. API / Programmatic Call
+
+### Option A: Standard CLI Script Execution (`main.py`)
+
+Run `main.py` directly from your terminal or automated pipeline:
+
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "gs://my-bucket/ads/summer_sale.mp4,https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
+  --slices "universal,shorts" \
+  --mode "BULK" \
+  --brand_name "Acme" \
+  --branded_products "Acme Cloud,Acme Runner" \
+  --bigquery_dataset "abcd_evaluations" \
+  --bigquery_table "video_results"
+```
+
+#### Key Command-Line Parameters:
+
+| Group | Flag / Alias | Description | Default |
+|---|---|---|---|
+| **GCP** | `--project_id`, `-pi` | Google Cloud Project ID (or set `PROJECT_ID` env var). | *Required* |
+| **GCP** | `--location` | Google Cloud region/location. | `us-central1` |
+| **Gemini** | `--api_key`, `-k` | Gemini API Key (or set `GEMINI_API_KEY` env var). | *Required* |
+| **Gemini** | `--model_name`, `-m` | Model identifier (e.g., `gemini-3.8-flash`, `gemini-2.5-flash`). | `gemini-3.8-flash` |
+| **Execution** | `--video_uris`, `-vu` | Comma-delimited list of GCS paths or YouTube URLs. | *Required* |
+| **Execution** | `--slices`, `-s` | Comma-delimited ABCD slices to evaluate (`universal,shorts`). | `universal,shorts` |
+| **Execution** | `--features_to_evaluate` | JSON filter mapping slices to feature ID lists. | All in slice |
+| **Execution** | `--mode` | Execution mode: `BULK` (single combined prompt) or `INDIVIDUAL`. | `BULK` |
+| **Brand** | `--brand_name`, `-brn` | Brand name (required if `--no_extract_brand_metadata` is set). | None |
+| **Brand** | `--branded_products` | Comma-delimited list of brand products. | None |
+| **BigQuery** | `--bigquery_dataset`, `-bd` | BigQuery dataset for storing results (or `BQ_DATASET` env var). | None |
+| **BigQuery** | `--bigquery_table`, `-bt` | BigQuery table name for results (or `BQ_TABLE` env var). | None |
+
+### Option B: Programmatic API / Python Service Call
+
+Integrate ABCD evaluation directly into your Python backend, Cloud Run service, or Celery task:
+
+```python
+from configuration import (
+    EvaluationRequest,
+    GCPConfig,
+    GeminiConfig,
+    BrandContext,
+    BigQuerySettings,
+    ExecutionMode,
+)
+from evaluation_services.video_evaluation_service import VideoEvaluationService
+from gcp_api_services.gemini_api_service import GeminiAPIService
+
+# 1. Build the validated configuration request
+request = EvaluationRequest(
+    gcp_config=GCPConfig(project_id="your-gcp-project-id", location="us-central1"),
+    gemini_config=GeminiConfig(
+        api_key="your-gemini-api-key",
+        model_name="gemini-3.8-flash",
+    ),
+    video_uris=[
+        "gs://my-ad-bucket/video_ad_01.mp4",
+        "https://www.youtube.com/watch?v=EXAMPLE_ID",
+    ],
+    slices=["universal", "shorts"],
+    execution_mode=ExecutionMode.BULK,
+    brand_context=BrandContext(
+        brand_name="Acme",
+        branded_products=["Acme Phone", "Acme Buds"],
+    ),
+    # Optional BigQuery persistence:
+    bigquery_settings=BigQuerySettings(
+        project_id="your-gcp-project-id",
+        dataset_name="abcd_evaluations",
+        table_name="video_results",
+    ),
+)
+
+# 2. Execute evaluation
+gemini_service = GeminiAPIService(request.gcp_config, request.gemini_config)
+evaluation_service = VideoEvaluationService()
+
+for video_uri in request.video_uris:
+    assessment = evaluation_service.evaluate_video(
+        request=request,
+        video_uri=video_uri,
+        gemini_service=gemini_service,
+    )
+    print(f"Video: {assessment.video_name} | Brand: {assessment.brand_name}")
+    for slice_name, evals in assessment.slice_evaluations.items():
+        print(f"  Slice {slice_name}: {len(evals)} features evaluated.")
+```
+
+---
+
+## BigQuery Output Schema
+
+Results are written to BigQuery using a consolidated schema across both Universal and Shorts evaluations:
+
+| # | Column Name | Type | Description |
+|---|---|---|---|
+| 1 | `execution_timestamp` | TIMESTAMP | Timestamp when the evaluation pipeline ran. |
+| 2 | `brand_name` | STRING | Target brand name evaluated. |
+| 3 | `video_uri` | STRING | Source URI (`gs://...` or `https://...`). |
+| 4 | `feature_id` | STRING | Unique feature ID (e.g., `a_tight_framing`, `b_brand_mention`). |
+| 5 | `feature_name` | STRING | Human-readable name of the evaluated feature. |
+| 6 | `feature_category` | STRING | ABCD Category (`ATTRACT`, `BRAND`, `CONNECT`, `DIRECT`). |
+| 7 | `feature_sub_category` | STRING | ABCD Subcategory or `NONE`. |
+| 8 | `feature_evaluation_criteria` | STRING | Creative rubric definition used by the model. |
+| 9 | `is_detected` | BOOLEAN | `True` if the video adheres to the rubric, `False` otherwise. |
+| 10 | `confidence_score` | FLOAT | Model confidence score between `0.0` and `1.0`. |
+| 11 | `rationale` | STRING | Model reasoning explaining the evaluation verdict. |
+| 12 | `evidence` | STRING | Verbatim cues, actions, and exact timestamps supporting the decision. |
+| 13 | `strengths` | STRING | Creative elements executed well that should be retained. |
+| 14 | `weaknesses` | STRING | Creative gaps or missed opportunities detected. |
+| 15 | `recommended_actions` | STRING | Actionable creative optimization recommendation. |
+| 16 | `first_appearance_timestamp` | STRING | First timestamp where the feature appeared (`MM:SS` or seconds). |
+| 17 | `feature_density_score` | FLOAT | Ratio of video duration where feature is active (`0.0` to `1.0`). |
+| 18 | `feature_quality_score` | FLOAT | Creative quality execution score (`0.0` to `1.0`). |
+| 19 | `feature_specifics` | STRING (JSON) | Detailed rubric metrics, scores, and temporal markers. |
+| 20 | `brand_context` | STRING (JSON) | Full brand context (brand name, branded products, and CTAs). |
+
+---
+
+## Requirements & Prerequisites
+
+Please ensure access to the following before starting:
+
 * [Google Cloud Project](https://cloud.google.com) with enabled APIs:
-    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com) - Optional if you are only using LLMs.
-    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com) - Optional if you are only using Annotations.
-    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com) - Optional if you are only using LLMs.
-    * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
-    * [BigQuery](https://cloud.google.com/bigquery/docs/reference/rest) - Optional if you don't want to store the results in BQ.
-* [API Key](https://cloud.google.com/docs/authentication/api-keys) provisioned. - Optional if you are only using LLMs.
-* [Project Billing](https://cloud.google.google.com/billing/) enabled.
-* Python libraries:
-    * `google-cloud-videointelligence`
-    * `google-cloud-aiplatform`
-* FFMPEG (not needed for colab)
-  * Save the platform specific [FFMPEG Binary](https://evermeet.cx/ffmpeg/) locally.
-  * Set the **IMAGEIO_FFMPEG_EXE** variable to the FFMPEG binary path.
+  * [Vertex AI API / Gemini API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
+  * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
+  * [BigQuery API](https://console.cloud.google.com/marketplace/product/google/bigquery.googleapis.com) (Optional, for storing assessment results)
+* [Gemini API Key](https://aistudio.google.com/app/apikey) from Google AI Studio or Vertex AI service credentials.
+* [Google Cloud Project Billing](https://cloud.google.com/billing/) enabled.
+* Python 3.11+ runtime.
 
-You can see more on the ABCD methodology [here.](https://www.thinkwithgoogle.com/intl/en-emea/future-of-marketing/creativity/youtube-video-ad-best-practices/)
+### Python Dependencies
 
-## Where to start?
+Install the required packages using **uv** (recommended) or **pip**:
+
+```bash
+# Using uv (recommended)
+uv sync
+
+# Or using uv pip
+uv pip install -r requirements.txt
+
+# Or using standard pip
+pip install -r requirements.txt
+```
+
+You can execute CLI commands directly within the managed environment using `uv run`:
+```bash
+uv run python main.py [ARGS]
+```
+
+Core dependencies in `requirements.txt`:
+* `google-genai` (Official Google Gemini SDK)
+* `google-cloud-storage` (GCS client library)
+* `google-cloud-bigquery` (BigQuery client library)
+* `google-api-python-client` (YouTube Data API support)
+* `pandas` & `pyarrow` (Data processing & BQ transport)
+* `pyopenssl` (Secure TLS)
+
+---
+
+## Where to Start: Google Colab Quickstart
+
+The easiest way to get started with interactive evaluations:
 
 1. Navigate to [colab.research.google.com](http://colab.research.google.com).
-2. In the dialog, open a Notebook from GitHub.
-3. Enter the url from this page.
+2. In the dialog, select **GitHub**.
+3. Enter the URL of this repository (`https://github.com/google-marketing-solutions/abcds-detector`).
+4. Open the `[GitHub]_ABCDs_Detector.ipynb` notebook.
+5. Follow the step-by-step cells to configure your API key, video paths, and run the ABCD assessment.
 
-**Note:** This repository provides python modules that can be executed on local machines for easier debugging and troubleshooting.
+---
 
-## Instructions
-Please follow the steps below before executing the ABCDs Detector solution. Every **[VARIABLE]** is a parameter you can configure in the **Define ABCDs Detector Parameters** section.
+## Instructions & Video Bucket Setup
 
-1. Store your videos on [Google Cloud Storage](https://console.cloud.google.com/storage/browser) with the following folder structure:
-  * **[BUCKET_NAME]** - name of bucket, ensure you have write permission. Same as paramter below.
-    * **[brand_name]** - a folder, must be same as parameter below.
-      * **videos** - a folder called videos, hard coded. Consider only **10-15 videos max** due to processing time limitations.
-        * **some_video.mp4** - upload video to analyze, must be **mp4** and must be **[<= 50 MB](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models)**.
-      * **annotations** - a folder created by this tool to store AI data. No need to create this.
+1. **Prepare Video Sources**:
+   * **Cloud Storage**: Upload video files to a Google Cloud Storage bucket (e.g. `gs://[BUCKET_NAME]/ad.mp4` or folder `gs://[BUCKET_NAME]/campaign/`). Ensure the service account or authenticated user has `Storage Object Viewer` permissions on the bucket.
+   * **YouTube**: Prepare public or channel-owned YouTube URLs.
 
-1. Make sure the requirements are met:
-  * Enable APIs:
-    * [Video Intelligence API](https://console.cloud.google.com/marketplace/product/google/videointelligence.googleapis.com)
-    * [Vertex AI API](https://console.cloud.google.com/marketplace/product/google/aiplatform.googleapis.com)
-    * [Knowledge Graph API](https://console.cloud.google.com/marketplace/product/google/kgsearch.googleapis.com)
-    * [Cloud Storage API](https://console.cloud.google.com/marketplace/product/google/storage.googleapis.com)
-    * [BigQuery](https://console.cloud.google.com/marketplace/product/google/bigquery.googleapis.com)
-  * Provision [An API Key](https://cloud.google.com/docs/authentication/api-keys):
-    1. Visit [Credentials Page](https://cloud.console.google.com/apis/credentials).
-    1. Create a **New API Key** and copy it into **[KNOWLEDGE_GRAPH_API_KEY]** below.
-    1. We recommend editing and restricting the key to the above APIs.
+2. **Configure Parameters**:
+   * Set your GCP `project_id` and `api_key`.
+   * Provide `brand_name` and `branded_products` (or enable dynamic brand extraction).
+   * Specify ABCD slices (`universal`, `shorts`, or both).
 
-1. Define all the parameters.
-  * Required:
-    * Google Cloud Project Details
-    * Brand And Product Details
-  * Optional
-    * Solution Setup
-    * ABCD Framework Details
-    * LLM Configuration
+3. **Run the Assessment**:
+   * In Colab: run cells sequentially through the **Execute Bulk ABCD Assessment** step.
+   * In CLI: run `python main.py` with your arguments.
 
-1. Run all of the steps in sequence.
-  * Some steps do not produce output, they only define functions.
-  * If a step asks you to **Restart Runtime**, do so.
-  * If a step displays an error, stop and debug it. Debug the following:
-    * APIs are enabled.
-    * Storage bucket is correctly configured.
-    * The video is the correct size.
-    * API Key has correct restrictions.
-    * Previous colab sections completed.
-    * Select _Runtime > Reset Session and Run All_ as a last resort.
-  * The **Execute Bulk ABCD Assessment** produces the video analysis.
+---
 
-1. For questions, please reach out to: abcds-detector@google.com
+## Additional Resources
 
-**Note:** Please check the official [Gemini API documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini) to learn more about the LLM parameters (temperature, top_k, top_p, etc) that are used in this colab.
-
-## Customization:
-
-* Change the default parameters used for the ABCDs detection.
-* Modify the ABCDs signals detection logic to fit yours.
-* Add or remove ABCDs signals.
-* Specify your own logic for calculating ABCDs score per video.
-* ABCD features are dynamically added to a JSON list. If you want to add/remove features, please do that directly in the features_config/features.py file.
-* To optimize LLM execution, features support grouping by 'full_video' and 'first_5_secs_video'. If you want to execute the features separately, please specify 'no_grouping' in the "group_by" field.
-
-**Note:**
-
-* This notebook is a starting point and can be further customized to fit your specific needs.
-
-## Roadmap
-
-1. Improvement: cut the video in shorter segments to improve LLM accuracy.
-2. Improvement: leverage a [consensus approach](https://arxiv.org/pdf/2310.20151.pdf) to increase response confidence.
-
-## Additional Resources:
-
-* [Google Video Intelligence API](https://cloud.google.com/video-intelligence?hl=en)
-* [Vertex AI](https://cloud.google.com/vertex-ai)
-* [ABCD Framework best practices](https://www.thinkwithgoogle.com/intl/en-emea/future-of-marketing/creativity/youtube-video-ad-best-practices/)
+* [Think with Google: YouTube ABCD Framework Best Practices](https://www.thinkwithgoogle.com/intl/en-emea/future-of-marketing/creativity/youtube-video-ad-best-practices/)
+* [Google Gemini API Documentation](https://ai.google.dev/docs)
+* [Google Cloud Vertex AI](https://cloud.google.com/vertex-ai)
+* [Vertex AI Generative AI Pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing)
