@@ -65,6 +65,19 @@ class TestFeaturesRepository(unittest.TestCase):
     )
     self.assertIsNone(missing)
 
+  def test_universal_features_count_and_brand_visualized(self) -> None:
+    """Tests that Universal slice has 13 features including brand_visualized."""
+    features = (
+        feature_configs_handler.features_configs_handler.get_features_for_slice(
+            slice_name="universal"
+        )
+    )
+    self.assertEqual(len(features), 13)
+    feature_ids = {f.id for f in features}
+    self.assertIn("b_brand_visualized", feature_ids)
+    self.assertIn("b_brand_visualized_in_first_5_sec", feature_ids)
+
+
 
 if __name__ == "__main__":
   unittest.main()

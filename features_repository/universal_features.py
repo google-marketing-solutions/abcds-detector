@@ -34,12 +34,12 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.ATTRACT,
           evaluation_criteria=(
-              "Heartbeat Story Arc: Message, strong scene/tease or conclusion "
-              "revealed within the first 5 seconds (up to 4.99s)."
+              "Message, strong scene/tease or conclusion revealed within the "
+              "first 5 seconds (up to 4.99s)."
           ),
           prompt_template=(
-              "Heartbeat Story Arc: Message, strong scene/tease or conclusion "
-              "revealed within the first 5 seconds (up to 4.99s)."
+              "Message, strong scene/tease or conclusion revealed within the "
+              "first 5 seconds (up to 4.99s)."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -55,19 +55,68 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           evaluation_method=models.EvaluationMethod.GEMINI,
       ),
       models.VideoFeature(
+          id="a_has_audio",
+          name="Has Sound",
+          category=models.VideoFeatureCategory.UNIVERSAL,
+          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          evaluation_criteria=(
+              "Video includes audible sound, speech, voiceover, dialogue, "
+              "music, or sound effects."
+          ),
+          prompt_template=(
+              "Video includes audible sound, speech, voiceover, dialogue, "
+              "music, or sound effects."
+          ),
+          extra_instructions=[
+              "Consider the following criteria for your answer: {criteria}.",
+              (
+                  "1. Analyze Audio Track & Transcript: Check if the video has "
+                  "an audible soundtrack, dialogue, music, or sound effects."
+              ),
+              (
+                  "2. Final Verdict: If audible sound is detected, the "
+                  "condition is met."
+              ),
+          ],
+          evaluation_method=models.EvaluationMethod.GEMINI,
+      ),
+      models.VideoFeature(
+          id="a_supers_w_audio",
+          name="Supers w/ Audio",
+          category=models.VideoFeatureCategory.UNIVERSAL,
+          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          evaluation_criteria=(
+              "Videos meet this criteria if any supers (text overlays) have "
+              "been incorporated into the video."
+          ),
+          prompt_template=(
+              "Videos meet this criteria if any supers (text overlays) have "
+              "been incorporated into the video."
+          ),
+          extra_instructions=[
+              "Consider the following criteria for your answer: {criteria}.",
+              "1. Consult Key Frames: Directly examine the key frames.",
+              (
+                  "2. Final Verdict: If any text overlays are visible, the "
+                  "condition is met."
+              ),
+          ],
+          evaluation_method=models.EvaluationMethod.GEMINI,
+      ),
+      models.VideoFeature(
           id="a_tightly_framed_overall",
           name="Tightly Framed (Overall)",
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.ATTRACT,
           evaluation_criteria=(
-              "Tightly Framed (Overall): One or more shots showcase the "
-              "largest subject(s), product(s), animation(s), environment(s) "
-              "or any object are tightly framed at any time."
+              "One or more shots showcase the largest subject(s), product(s), "
+              "animation(s), environment(s) or any object are tightly framed "
+              "at any time."
           ),
           prompt_template=(
-              "Tightly Framed (Overall): One or more shots showcase the "
-              "largest subject(s), product(s), animation(s), environment(s) "
-              "or any object are tightly framed at any time."
+              "One or more shots showcase the largest subject(s), product(s), "
+              "animation(s), environment(s) or any object are tightly framed "
+              "at any time."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -87,45 +136,17 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           evaluation_method=models.EvaluationMethod.GEMINI,
       ),
       models.VideoFeature(
-          id="a_has_audio",
-          name="Has Sound",
-          category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
-          evaluation_criteria=(
-              "Has Sound: Video includes any audible sound, including music, "
-              "sound effects (water splashing, ‘crunch’ sound, etc.), "
-              "voice-over, etc."
-          ),
-          prompt_template=(
-              "Has Sound: Video includes any audible sound, including music, "
-              "sound effects (water splashing, ‘crunch’ sound, etc.), "
-              "voice-over, etc."
-          ),
-          extra_instructions=[
-              "Consider the following criteria for your answer: {criteria}.",
-              (
-                  "1. Analyze Transcript: Check if the provided transcript has "
-                  "any text content at all."
-              ),
-              (
-                  "2. Final Verdict: If the transcript is not empty, sound is "
-                  "present."
-              ),
-          ],
-          evaluation_method=models.EvaluationMethod.GEMINI,
-      ),
-      models.VideoFeature(
           id="a_has_supers",
           name="Supers",
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.ATTRACT,
           evaluation_criteria=(
-              "Supers: Videos meet this criteria if any supers (text "
-              "overlays) have been incorporated into the video."
+              "Videos meet this criteria if any supers (text overlays) have "
+              "been incorporated into the video."
           ),
           prompt_template=(
-              "Supers: Videos meet this criteria if any supers (text "
-              "overlays) have been incorporated into the video."
+              "Videos meet this criteria if any supers (text overlays) have "
+              "been incorporated into the video."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -138,33 +159,28 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           evaluation_method=models.EvaluationMethod.GEMINI,
       ),
       models.VideoFeature(
-          id="a_supers_w_audio",
-          name="Supers w/ Audio",
+          id="b_brand_visualized",
+          name="Brand Visualized",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.BRAND,
           evaluation_criteria=(
-              "Supers w/ Audio: Supers Augment OR Match the audio Creative "
-              "meets this criteria, if the speech heard in the ad matches OR "
-              "is contextually supportive of the overlaid text shown on screen."
+              "Videos meet this criteria if branding, defined as the brand "
+              "name or brand logo, or branded products and packaging are shown "
+              "in-situation or overlaid within the ad at any time."
           ),
           prompt_template=(
-              "Supers w/ Audio: Supers Augment OR Match the audio Creative "
-              "meets this criteria, if the speech heard in the ad matches OR "
-              "is contextually supportive of the overlaid text shown on screen."
+              "Videos meet this criteria if branding, defined as the brand "
+              "name or brand logo, or branded products and packaging are shown "
+              "in-situation or overlaid within the ad at any time."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
               (
-                  "1. See & Say (Match): Determine if spoken words in the "
-                  "transcript EXACTLY match on-screen text in the key frames "
-                  "at the same time."
+                  "1. Visual Confirmation: Look at all key frames for the brand"
+                  " name, logo, or product packaging."
               ),
               (
-                  "2. Augmented (Support): Determine if the speech is "
-                  "contextually supportive of the on-screen text."
-              ),
-              (
-                  "3. Final Verdict: If either condition 1 OR 2 is met, the "
+                  "2. Final Verdict: If any clear branding is confirmed, the "
                   "condition is met."
               ),
           ],
@@ -176,16 +192,16 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.BRAND,
           evaluation_criteria=(
-              "Brand Visualized (First 5s): Videos meet this criteria if "
-              "branding, defined as the brand name or brand logo, or branded "
-              "products and packaging are shown in-situation or overlaid "
-              "within the ad in the first 5 seconds (up to 4.99s)."
+              "Videos meet this criteria if branding, defined as the brand "
+              "name or brand logo, or branded products and packaging are shown "
+              "in-situation or overlaid within the ad in the first 5 seconds "
+              "(up to 4.99s)."
           ),
           prompt_template=(
-              "Brand Visualized (First 5s): Videos meet this criteria if "
-              "branding, defined as the brand name or brand logo, or branded "
-              "products and packaging are shown in-situation or overlaid "
-              "within the ad in the first 5 seconds (up to 4.99s)."
+              "Videos meet this criteria if branding, defined as the brand "
+              "name or brand logo, or branded products and packaging are shown "
+              "in-situation or overlaid within the ad in the first 5 seconds "
+              "(up to 4.99s)."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -206,14 +222,14 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.BRAND,
           evaluation_criteria=(
-              "Brand Mentioned: Meets criteria if it has included an audible "
-              "logo or if a brand-specific logo (i.e. jingle) is heard at any "
-              "time. This DOES include a voice over mention of the brand name."
+              "Meets criteria if it has included an audible logo or if a "
+              "brand-specific logo (i.e. jingle) is heard at any time. This "
+              "DOES include a voice over mention of the brand name."
           ),
           prompt_template=(
-              "Brand Mentioned: Meets criteria if it has included an audible "
-              "logo or if a brand-specific logo (i.e. jingle) is heard at any "
-              "time. This DOES include a voice over mention of the brand name."
+              "Meets criteria if it has included an audible logo or if a "
+              "brand-specific logo (i.e. jingle) is heard at any time. This "
+              "DOES include a voice over mention of the brand name."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -233,12 +249,12 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.BRAND,
           evaluation_criteria=(
-              "Brand Mention (Speech) (See & Say) (First 5s): Is the Brand "
-              "mentioned and visualized in the same frame in the First 5s?"
+              "Is the Brand mentioned and visualized in the same frame in the "
+              "First 5s?"
           ),
           prompt_template=(
-              "Brand Mention (Speech) (See & Say) (First 5s): Is the Brand "
-              "mentioned and visualized in the same frame in the First 5s?"
+              "Is the Brand mentioned and visualized in the same frame in the "
+              "First 5s?"
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -267,12 +283,12 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.BRAND,
           evaluation_criteria=(
-              "Brand Palette Multiple Brand Elements: Does the ad include the "
-              "brand in 2 or more different audio or visual ways?"
+              "Does the ad include the brand in 2 or more different audio or "
+              "visual ways?"
           ),
           prompt_template=(
-              "Brand Palette Multiple Brand Elements: Does the ad include the "
-              "brand in 2 or more different audio or visual ways?"
+              "Does the ad include the brand in 2 or more different audio or "
+              "visual ways?"
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
@@ -293,8 +309,8 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           name="People (Overall)",
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.CONNECT,
-          evaluation_criteria="People (Overall): Are there People in the ad?",
-          prompt_template="People (Overall): Are there People in the ad?",
+          evaluation_criteria="Are there People in the ad?",
+          prompt_template="Are there People in the ad?",
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
               (
@@ -313,12 +329,8 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           name="Casual Language",
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.CONNECT,
-          evaluation_criteria=(
-              "Casual Language: Does the ad use everyday language?"
-          ),
-          prompt_template=(
-              "Casual Language: Does the ad use everyday language?"
-          ),
+          evaluation_criteria="Does the ad use everyday language?",
+          prompt_template="Does the ad use everyday language?",
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
               "1. Analyze Transcript Language: Read the transcript.",
@@ -334,12 +346,8 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           name="Call to Action (Text)",
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.DIRECT,
-          evaluation_criteria=(
-              "Call to Action (Text): Is the CTA visualized in supers?"
-          ),
-          prompt_template=(
-              "Call to Action (Text): Is the CTA visualized in supers?"
-          ),
+          evaluation_criteria="Is the CTA visualized in supers?",
+          prompt_template="Is the CTA visualized in supers?",
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
               (
