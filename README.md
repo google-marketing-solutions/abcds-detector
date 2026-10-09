@@ -32,14 +32,14 @@ The **ABCD Detector** solution automates the assessment of video advertising cre
 * **Unified 20-Column BigQuery Schema**: Both Universal and Shorts evaluations output to an identical, standardized BigQuery table schema.
 
 ### 2. Updated ABCD Feature Slices
-* **12 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
+* **13 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
 * **18 YouTube Shorts Features**: Research-backed creative attributes specifically calibrated for short-form, mobile-first video performance.
 
 ---
 
 ## Supported ABCD Features
 
-### 1. Universal Features (12)
+### 1. Universal Features (13)
 Defined in [`features_repository/universal_features.py`](features_repository/universal_features.py):
 
 | Feature ID | Name | Category | Description |
@@ -48,11 +48,12 @@ Defined in [`features_repository/universal_features.py`](features_repository/uni
 | `a_tightly_framed_overall` | Tight Framing (Overall) | ATTRACT | Measures visual prominence and close framing of primary subjects. |
 | `a_has_audio` | Audio Presence | ATTRACT | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
 | `a_has_supers` | Supers (Text Overlays) | ATTRACT | Detects visible on-screen text overlays reinforcing the core message. |
-| `a_supers_w_audio` | Supers with Audio | ATTRACT | Measures audio-visual synchronicity between on-screen text and spoken dialogue. |
+| `a_supers_w_audio` | Supers with Audio | ATTRACT | Measures on-screen text overlays incorporated into the video. |
+| `b_brand_visualized` | Brand Visualized | BRAND | Verifies clear visual brand presence (logo, name, packaging) shown at any time in the ad. |
 | `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRAND | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
-| `b_brand_mention` | Brand Mention | BRAND | Evaluates spoken or textual mentions of the brand name. |
+| `b_brand_mention` | Brand Mention | BRAND | Evaluates spoken or textual mentions of the brand name or jingle. |
 | `b_brand_mention_speech_see_and_say_first_5s` | See & Say Brand Mention (First 5s) | BRAND | Evaluates concurrent visual and auditory brand cues within the first 5 seconds. |
-| `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRAND | Evaluates consistent brand color palettes, visual cues, and distinctive brand assets. |
+| `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRAND | Evaluates inclusion of the brand in 2 or more different audio or visual ways. |
 | `c_people_overall` | Presence of People | CONNECT | Quantifies human presence, face visibility, and emotional character connection. |
 | `c_casual_language` | Casual Language | CONNECT | Evaluates script informality, conversational language, contractions, and natural dialogue. |
 | `d_visual_cta` | Visual Call To Action | DIRECT | Detects prominent on-screen visual CTA prompts guiding the viewer to the next step. |
