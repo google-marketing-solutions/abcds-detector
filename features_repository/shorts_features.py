@@ -96,7 +96,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="a_tight_framing",
           name="Tight Framing & Visual Dominance",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Quantifies the spatial dominance of the primary subject.
@@ -160,7 +160,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="a_human_voice",
           name="Human Voice Presence",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Quantifies the presence, duration, and quality of human
@@ -230,7 +230,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="a_direct_camera",
           name="Direct to Camera",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Quantifies the duration and intensity of direct eye contact
@@ -299,7 +299,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="b_product_closeup",
           name="Product Close-Up",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Quantifies segments where the product occupies at least 30% of
@@ -358,7 +358,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="b_product_extreme_closeup",
           name="Product Extreme Close-Up",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Quantifies segments where the product is the dominant visual
@@ -420,7 +420,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="c_people_using_product",
           name="Product Context & Usage Quality",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.CONNECT,
+          sub_category=models.VideoFeatureSubCategory.CONNECTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Evaluates the 'Show, Don't Tell' quality. Quantifies physical
@@ -490,7 +490,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="c_humor",
           name="Humor & Comedic Timing",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.CONNECT,
+          sub_category=models.VideoFeatureSubCategory.CONNECTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Detects and quantifies attempts at humor, including wit,
@@ -546,7 +546,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="c_character_driven",
           name="Character-Driven",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.CONNECT,
+          sub_category=models.VideoFeatureSubCategory.CONNECTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Video features a relatable character whose journey or
@@ -618,7 +618,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="d_audio_cta",
           name="Call to Action (Audio)",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.DIRECT,
+          sub_category=models.VideoFeatureSubCategory.DIRECTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Detects and quantifies spoken instructions that direct the
@@ -688,7 +688,7 @@ def get_shorts_feature_configs() -> list[models.VideoFeature]:
           id="d_special_offer_speech",
           name="Special Offer (Speech)",
           category=models.VideoFeatureCategory.SHORTS,
-          sub_category=models.VideoFeatureSubCategory.DIRECT,
+          sub_category=models.VideoFeatureSubCategory.DIRECTION,
           video_segment=models.VideoSegment.FULL_VIDEO,
           evaluation_criteria="""
                 Audio/voiceover explicitly announces special offer, discount,

@@ -32,46 +32,47 @@ The **ABCD Detector** solution automates the assessment of video advertising cre
 * **Unified 20-Column BigQuery Schema**: Both Universal and Shorts evaluations output to an identical, standardized BigQuery table schema.
 
 ### 2. Updated ABCD Feature Slices
-* **12 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
+* **13 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
 * **18 YouTube Shorts Features**: Research-backed creative attributes specifically calibrated for short-form, mobile-first video performance.
 
 ---
 
 ## Supported ABCD Features
 
-### 1. Universal Features (12)
+### 1. Universal Features (13)
 Defined in [`features_repository/universal_features.py`](features_repository/universal_features.py):
 
 | Feature ID | Name | Category | Description |
 |---|---|---|---|
-| `a_heartbeat_story_arc` | Heartbeat Story Arc | ATTRACT | Evaluates narrative pacing and dramatic tension curves (hook, conflict, peaks, resolution). |
-| `a_tightly_framed_overall` | Tight Framing (Overall) | ATTRACT | Measures visual prominence and close framing of primary subjects. |
-| `a_has_audio` | Audio Presence | ATTRACT | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
-| `a_has_supers` | Supers (Text Overlays) | ATTRACT | Detects visible on-screen text overlays reinforcing the core message. |
-| `a_supers_w_audio` | Supers with Audio | ATTRACT | Measures audio-visual synchronicity between on-screen text and spoken dialogue. |
-| `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRAND | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
-| `b_brand_mention` | Brand Mention | BRAND | Evaluates spoken or textual mentions of the brand name. |
-| `b_brand_mention_speech_see_and_say_first_5s` | See & Say Brand Mention (First 5s) | BRAND | Evaluates concurrent visual and auditory brand cues within the first 5 seconds. |
-| `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRAND | Evaluates consistent brand color palettes, visual cues, and distinctive brand assets. |
-| `c_people_overall` | Presence of People | CONNECT | Quantifies human presence, face visibility, and emotional character connection. |
-| `c_casual_language` | Casual Language | CONNECT | Evaluates script informality, conversational language, contractions, and natural dialogue. |
-| `d_visual_cta` | Visual Call To Action | DIRECT | Detects prominent on-screen visual CTA prompts guiding the viewer to the next step. |
+| `a_heartbeat_story_arc` | Heartbeat Story Arc | ATTENTION | Evaluates narrative pacing and dramatic tension curves (hook, conflict, peaks, resolution). |
+| `a_tightly_framed_overall` | Tight Framing (Overall) | ATTENTION | Measures visual prominence and close framing of primary subjects. |
+| `a_has_audio` | Audio Presence | ATTENTION | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
+| `a_has_supers` | Supers (Text Overlays) | ATTENTION | Detects visible on-screen text overlays reinforcing the core message. |
+| `a_supers_w_audio` | Supers with Audio | ATTENTION | Measures on-screen text overlays incorporated into the video. |
+| `b_brand_visualized` | Brand Visualized | BRANDING | Verifies clear visual brand presence (logo, name, packaging) shown at any time in the ad. |
+| `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRANDING | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
+| `b_brand_mention` | Brand Mention | BRANDING | Evaluates spoken or textual mentions of the brand name or jingle. |
+| `b_brand_mention_speech_see_and_say_first_5s` | See & Say Brand Mention (First 5s) | BRANDING | Evaluates concurrent visual and auditory brand cues within the first 5 seconds. |
+| `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRANDING | Evaluates inclusion of the brand in 2 or more different audio or visual ways. |
+| `c_people_overall` | Presence of People | CONNECTION | Quantifies human presence, face visibility, and emotional character connection. |
+| `c_casual_language` | Casual Language | CONNECTION | Evaluates script informality, conversational language, contractions, and natural dialogue. |
+| `d_visual_cta` | Visual Call To Action | DIRECTION | Detects prominent on-screen visual CTA prompts guiding the viewer to the next step. |
 
 ### 2. YouTube Shorts Features (18)
 Defined in [`features_repository/shorts_features.py`](features_repository/shorts_features.py):
 
 | Feature ID | Name | Category | Description |
 |---|---|---|---|
-| `a_tight_framing` | Tight Framing & Visual Dominance | ATTRACT | Subject-to-Frame Ratio ≥60%, measuring visual dominance in 9:16 framing. |
-| `a_human_voice` | Human Voice Presence | ATTRACT | Measures vocal density, speech clarity, and speech starting in the first 3 seconds. |
-| `a_direct_camera` | Direct to Camera | ATTRACT | Evaluates eye-contact intensity, face-to-lens address, and immediate hook connection. |
-| `b_product_closeup` | Product Close-Up | BRAND | Quantifies product presence occupying 30% to 59% of the frame. |
-| `b_product_extreme_closeup` | Product Extreme Close-Up | BRAND | Quantifies macro product dominance occupying ≥60% of the frame area. |
-| `c_people_using_product` | Product Context & Usage Quality | CONNECT | Evaluates "Show, Don't Tell" physical engagement, utility demonstration, and realism. |
-| `c_humor` | Humor & Comedic Timing | CONNECT | Detects comedic setups, timing, deadpan delivery, physical humor, and edge factor. |
-| `c_character_driven` | Character-Driven | CONNECT | Evaluates relatable protagonist prominence, narrative journey, and transformation. |
-| `d_audio_cta` | Call to Action (Audio) | DIRECT | Detects verbal commands, urgency level, and spoken directives to act. |
-| `d_special_offer_speech` | Special Offer (Speech) | DIRECT | Evaluates spoken announcements of promotions, discounts, deals, or incentives. |
+| `a_tight_framing` | Tight Framing & Visual Dominance | ATTENTION | Subject-to-Frame Ratio ≥60%, measuring visual dominance in 9:16 framing. |
+| `a_human_voice` | Human Voice Presence | ATTENTION | Measures vocal density, speech clarity, and speech starting in the first 3 seconds. |
+| `a_direct_camera` | Direct to Camera | ATTENTION | Evaluates eye-contact intensity, face-to-lens address, and immediate hook connection. |
+| `b_product_closeup` | Product Close-Up | BRANDING | Quantifies product presence occupying 30% to 59% of the frame. |
+| `b_product_extreme_closeup` | Product Extreme Close-Up | BRANDING | Quantifies macro product dominance occupying ≥60% of the frame area. |
+| `c_people_using_product` | Product Context & Usage Quality | CONNECTION | Evaluates "Show, Don't Tell" physical engagement, utility demonstration, and realism. |
+| `c_humor` | Humor & Comedic Timing | CONNECTION | Detects comedic setups, timing, deadpan delivery, physical humor, and edge factor. |
+| `c_character_driven` | Character-Driven | CONNECTION | Evaluates relatable protagonist prominence, narrative journey, and transformation. |
+| `d_audio_cta` | Call to Action (Audio) | DIRECTION | Detects verbal commands, urgency level, and spoken directives to act. |
+| `d_special_offer_speech` | Special Offer (Speech) | DIRECTION | Evaluates spoken announcements of promotions, discounts, deals, or incentives. |
 | `shorts_production_style` | Production Style (UGC) | NONE | Evaluates authentic User Generated Content (UGC) markers vs. commercial polish. |
 | `shorts_sfv_adaptation_high` | SFV Native Adaptation | NONE | Quantifies how convincingly the creative mimics organic short-form social video. |
 | `shorts_emoji_usage` | Emoji Usage | NONE | Detects intentional creative use of emojis, animated stickers, and native overlays. |
@@ -167,7 +168,7 @@ The ABCD Detector supports two complementary evaluation mechanisms via the `Eval
        id="custom_audio_cue",
        name="Custom Audio Signature",
        category=VideoFeatureCategory.UNIVERSAL,
-       sub_category=VideoFeatureSubCategory.ATTRACT,
+       sub_category=VideoFeatureSubCategory.ATTENTION,
        video_segment=VideoSegment.FULL_VIDEO,
        evaluation_criteria="Detects custom sonic branding cues in the opening seconds.",
        prompt_template="",
@@ -321,8 +322,8 @@ Results are written to BigQuery using a consolidated schema across both Universa
 | 3 | `video_uri` | STRING | Source URI (`gs://...` or `https://...`). |
 | 4 | `feature_id` | STRING | Unique feature ID (e.g., `a_tight_framing`, `b_brand_mention`). |
 | 5 | `feature_name` | STRING | Human-readable name of the evaluated feature. |
-| 6 | `feature_category` | STRING | ABCD Category (`ATTRACT`, `BRAND`, `CONNECT`, `DIRECT`). |
-| 7 | `feature_sub_category` | STRING | ABCD Subcategory or `NONE`. |
+| 6 | `feature_category` | STRING | Video slice category (`UNIVERSAL`, `SHORTS`). |
+| 7 | `feature_sub_category` | STRING | ABCD Sub-category (`ATTENTION`, `BRANDING`, `CONNECTION`, `DIRECTION`, `NONE`). |
 | 8 | `feature_evaluation_criteria` | STRING | Creative rubric definition used by the model. |
 | 9 | `is_detected` | BOOLEAN | `True` if the video adheres to the rubric, `False` otherwise. |
 | 10 | `confidence_score` | FLOAT | Model confidence score between `0.0` and `1.0`. |

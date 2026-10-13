@@ -31,11 +31,18 @@ class VideoFeatureCategory(enum.Enum):
 
 class VideoFeatureSubCategory(enum.Enum):
   """Enum that represents video feature sub-categories in ABCD framework."""
-  ATTRACT = "ATTRACT"
-  BRAND = "BRAND"
-  CONNECT = "CONNECT"
-  DIRECT = "DIRECT"
+  ATTENTION = "ATTENTION"
+  BRANDING = "BRANDING"
+  CONNECTION = "CONNECTION"
+  DIRECTION = "DIRECTION"
   NONE = "NONE"
+
+  # Backwards compatibility aliases
+  ATTRACT = "ATTENTION"
+  BRAND = "BRANDING"
+  CONNECT = "CONNECTION"
+  DIRECT = "DIRECTION"
+
 
 
 class VideoSegment(enum.Enum):
