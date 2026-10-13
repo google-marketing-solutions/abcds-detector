@@ -36,7 +36,7 @@ class TestDetectors(unittest.TestCase):
         id="a_dynamic_start",
         name="Dynamic Start",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Criteria",
     )
     mock_gemini_service = mock.MagicMock()
@@ -119,7 +119,7 @@ class TestDetectors(unittest.TestCase):
         id="test_custom_feature",
         name="Test Custom Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Test criteria",
         evaluation_function="test_dummy_evaluator",
     )
@@ -153,7 +153,7 @@ class TestDetectors(unittest.TestCase):
         id="test_invalid_feature",
         name="Test Invalid Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Test criteria",
         evaluation_function="test_dict_evaluator",
     )

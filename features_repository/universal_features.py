@@ -32,7 +32,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="a_heartbeat_story_arc",
           name="Heartbeat Story Arc",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
               "Message, strong scene/tease or conclusion revealed within the "
               "first 5 seconds (up to 4.99s)."
@@ -58,7 +58,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="a_has_audio",
           name="Has Sound",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
               "Video includes audible sound, speech, voiceover, dialogue, "
               "music, or sound effects."
@@ -84,7 +84,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="a_supers_w_audio",
           name="Supers w/ Audio",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
               "Videos meet this criteria if any supers (text overlays) have "
               "been incorporated into the video."
@@ -107,7 +107,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="a_tightly_framed_overall",
           name="Tightly Framed (Overall)",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
               "One or more shots showcase the largest subject(s), product(s), "
               "animation(s), environment(s) or any object are tightly framed "
@@ -139,7 +139,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="a_has_supers",
           name="Supers",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.ATTRACT,
+          sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
               "Videos meet this criteria if any supers (text overlays) have "
               "been incorporated into the video."
@@ -162,7 +162,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="b_brand_visualized",
           name="Brand Visualized",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           evaluation_criteria=(
               "Videos meet this criteria if branding, defined as the brand "
               "name or brand logo, or branded products and packaging are shown "
@@ -190,7 +190,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="b_brand_visualized_in_first_5_sec",
           name="Brand Visualized (First 5s)",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           evaluation_criteria=(
               "Videos meet this criteria if branding, defined as the brand "
               "name or brand logo, or branded products and packaging are shown "
@@ -220,7 +220,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="b_brand_mention",
           name="Brand Mentioned",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           evaluation_criteria=(
               "Meets criteria if it has included an audible logo or if a "
               "brand-specific logo (i.e. jingle) is heard at any time. This "
@@ -247,7 +247,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="b_brand_mention_speech_see_and_say_first_5s",
           name="Brand Mention (Speech) (See & Say) (First 5s)",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           evaluation_criteria=(
               "Is the Brand mentioned and visualized in the same frame in the "
               "First 5s?"
@@ -281,7 +281,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="b_brand_palette_multiple_brand_elements",
           name="Brand Palette Multiple Brand Elements",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRAND,
+          sub_category=models.VideoFeatureSubCategory.BRANDING,
           evaluation_criteria=(
               "Does the ad include the brand in 2 or more different audio or "
               "visual ways?"
@@ -308,7 +308,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="c_people_overall",
           name="People (Overall)",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.CONNECT,
+          sub_category=models.VideoFeatureSubCategory.CONNECTION,
           evaluation_criteria="Are there People in the ad?",
           prompt_template="Are there People in the ad?",
           extra_instructions=[
@@ -328,7 +328,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="c_casual_language",
           name="Casual Language",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.CONNECT,
+          sub_category=models.VideoFeatureSubCategory.CONNECTION,
           evaluation_criteria="Does the ad use everyday language?",
           prompt_template="Does the ad use everyday language?",
           extra_instructions=[
@@ -345,7 +345,7 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           id="d_visual_cta",
           name="Call to Action (Text)",
           category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.DIRECT,
+          sub_category=models.VideoFeatureSubCategory.DIRECTION,
           evaluation_criteria="Is the CTA visualized in supers?",
           prompt_template="Is the CTA visualized in supers?",
           extra_instructions=[

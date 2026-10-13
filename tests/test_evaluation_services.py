@@ -55,7 +55,7 @@ class TestVideoEvaluationService(unittest.TestCase):
         id="test_feature",
         name="Test Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Test criteria",
     )
     eval_result = models.FeatureEvaluation(
@@ -125,7 +125,7 @@ class TestVideoEvaluationService(unittest.TestCase):
         id="custom_feat",
         name="Custom Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Custom criteria",
         evaluation_function="detect_custom",
     )
@@ -133,7 +133,7 @@ class TestVideoEvaluationService(unittest.TestCase):
         id="llm_feat",
         name="LLM Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.BRAND,
+        sub_category=models.VideoFeatureSubCategory.BRANDING,
         evaluation_criteria="LLM criteria",
     )
     mock_get_features.return_value = [custom_feat, llm_feat]

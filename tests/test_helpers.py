@@ -88,14 +88,14 @@ class TestHelpers(unittest.TestCase):
         id="f_univ",
         name="Universal Feature",
         category=models.VideoFeatureCategory.UNIVERSAL,
-        sub_category=models.VideoFeatureSubCategory.ATTRACT,
+        sub_category=models.VideoFeatureSubCategory.ATTENTION,
         evaluation_criteria="Test criteria",
     )
     feature_s = models.VideoFeature(
         id="f_short",
         name="Shorts Feature",
         category=models.VideoFeatureCategory.SHORTS,
-        sub_category=models.VideoFeatureSubCategory.BRAND,
+        sub_category=models.VideoFeatureSubCategory.BRANDING,
         evaluation_criteria="Test shorts criteria",
     )
 
