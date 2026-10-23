@@ -86,18 +86,28 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           category=models.VideoFeatureCategory.UNIVERSAL,
           sub_category=models.VideoFeatureSubCategory.ATTENTION,
           evaluation_criteria=(
-              "Videos meet this criteria if any supers (text overlays) have "
-              "been incorporated into the video."
+              "Supers Augment OR Match the audio Creative meets this criteria, "
+              "if the speech heard in the ad matches OR is contextually "
+              "supportive of the overlaid text shown on screen."
           ),
           prompt_template=(
-              "Videos meet this criteria if any supers (text overlays) have "
-              "been incorporated into the video."
+              "Supers Augment OR Match the audio Creative meets this criteria, "
+              "if the speech heard in the ad matches OR is contextually "
+              "supportive of the overlaid text shown on screen."
           ),
           extra_instructions=[
               "Consider the following criteria for your answer: {criteria}.",
-              "1. Consult Key Frames: Directly examine the key frames.",
               (
-                  "2. Final Verdict: If any text overlays are visible, the "
+                  "1. See & Say (Match): Determine if spoken words in the "
+                  "transcript EXACTLY match on-screen text in the key frames "
+                  "at the same time."
+              ),
+              (
+                  "2. Augmented (Support): Determine if the speech is "
+                  "contextually supportive of the on-screen text."
+              ),
+              (
+                  "3. Final Verdict: If either condition 1 OR 2 is met, the "
                   "condition is met."
               ),
           ],

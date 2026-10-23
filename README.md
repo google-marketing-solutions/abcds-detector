@@ -48,7 +48,7 @@ Defined in [`features_repository/universal_features.py`](features_repository/uni
 | `a_tightly_framed_overall` | Tight Framing (Overall) | ATTENTION | Measures visual prominence and close framing of primary subjects. |
 | `a_has_audio` | Audio Presence | ATTENTION | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
 | `a_has_supers` | Supers (Text Overlays) | ATTENTION | Detects visible on-screen text overlays reinforcing the core message. |
-| `a_supers_w_audio` | Supers with Audio | ATTENTION | Measures on-screen text overlays incorporated into the video. |
+| `a_supers_w_audio` | Supers with Audio | ATTENTION | Measures whether speech heard in the ad matches or contextually supports on-screen text overlays. |
 | `b_brand_visualized` | Brand Visualized | BRANDING | Verifies clear visual brand presence (logo, name, packaging) shown at any time in the ad. |
 | `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRANDING | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
 | `b_brand_mention` | Brand Mention | BRANDING | Evaluates spoken or textual mentions of the brand name or jingle. |
