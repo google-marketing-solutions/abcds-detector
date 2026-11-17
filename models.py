@@ -27,6 +27,7 @@ class VideoFeatureCategory(enum.Enum):
   """Enum that represents video feature categories / slices."""
   UNIVERSAL = "UNIVERSAL"
   SHORTS = "SHORTS"
+  PARTNERSHIP_ADS = "PARTNERSHIP_ADS"
 
 
 class VideoFeatureSubCategory(enum.Enum):

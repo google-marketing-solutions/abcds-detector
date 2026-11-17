@@ -169,34 +169,6 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
           evaluation_method=models.EvaluationMethod.GEMINI,
       ),
       models.VideoFeature(
-          id="b_brand_visualized",
-          name="Brand Visualized",
-          category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRANDING,
-          evaluation_criteria=(
-              "Videos meet this criteria if branding, defined as the brand "
-              "name or brand logo, or branded products and packaging are shown "
-              "in-situation or overlaid within the ad at any time."
-          ),
-          prompt_template=(
-              "Videos meet this criteria if branding, defined as the brand "
-              "name or brand logo, or branded products and packaging are shown "
-              "in-situation or overlaid within the ad at any time."
-          ),
-          extra_instructions=[
-              "Consider the following criteria for your answer: {criteria}.",
-              (
-                  "1. Visual Confirmation: Look at all key frames for the brand"
-                  " name, logo, or product packaging."
-              ),
-              (
-                  "2. Final Verdict: If any clear branding is confirmed, the "
-                  "condition is met."
-              ),
-          ],
-          evaluation_method=models.EvaluationMethod.GEMINI,
-      ),
-      models.VideoFeature(
           id="b_brand_visualized_in_first_5_sec",
           name="Brand Visualized (First 5s)",
           category=models.VideoFeatureCategory.UNIVERSAL,
@@ -249,40 +221,6 @@ def get_universal_feature_configs() -> list[models.VideoFeature]:
               ),
               (
                   "2. Final Verdict: If either is found, the condition is met."
-              ),
-          ],
-          evaluation_method=models.EvaluationMethod.GEMINI,
-      ),
-      models.VideoFeature(
-          id="b_brand_mention_speech_see_and_say_first_5s",
-          name="Brand Mention (Speech) (See & Say) (First 5s)",
-          category=models.VideoFeatureCategory.UNIVERSAL,
-          sub_category=models.VideoFeatureSubCategory.BRANDING,
-          evaluation_criteria=(
-              "Is the Brand mentioned and visualized in the same frame in the "
-              "First 5s?"
-          ),
-          prompt_template=(
-              "Is the Brand mentioned and visualized in the same frame in the "
-              "First 5s?"
-          ),
-          extra_instructions=[
-              "Consider the following criteria for your answer: {criteria}.",
-              (
-                  "1. Find Audio Mentions: Identify all times the brand is "
-                  "spoken in the transcript in the first 5s."
-              ),
-              (
-                  "2. Find Visuals: Identify all key frames where the brand is "
-                  "visible in the first 5s."
-              ),
-              (
-                  "3. Check for Overlap: Determine if any audio mention occurs "
-                  "at the same time as a visual appearance."
-              ),
-              (
-                  "4. Final Verdict: If an overlap exists in the first 5s, the "
-                  "condition is met."
               ),
           ],
           evaluation_method=models.EvaluationMethod.GEMINI,
