@@ -32,14 +32,15 @@ The **ABCD Detector** solution automates the assessment of video advertising cre
 * **Unified 20-Column BigQuery Schema**: Both Universal and Shorts evaluations output to an identical, standardized BigQuery table schema.
 
 ### 2. Updated ABCD Feature Slices
-* **13 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
+* **11 Core Universal Features**: Covering fundamental ABCD storytelling, branding, pacing, and calls-to-action across all video formats.
 * **18 YouTube Shorts Features**: Research-backed creative attributes specifically calibrated for short-form, mobile-first video performance.
+* **5 Partnership Ads Features**: Research-backed partnership creative attributes.
 
 ---
 
 ## Supported ABCD Features
 
-### 1. Universal Features (13)
+### 1. Universal Features (11)
 Defined in [`features_repository/universal_features.py`](features_repository/universal_features.py):
 
 | Feature ID | Name | Category | Description |
@@ -49,10 +50,8 @@ Defined in [`features_repository/universal_features.py`](features_repository/uni
 | `a_has_audio` | Audio Presence | ATTENTION | Evaluates intentional audio design (voiceover, dialogue, music, sound design). |
 | `a_has_supers` | Supers (Text Overlays) | ATTENTION | Detects visible on-screen text overlays reinforcing the core message. |
 | `a_supers_w_audio` | Supers with Audio | ATTENTION | Measures whether speech heard in the ad matches or contextually supports on-screen text overlays. |
-| `b_brand_visualized` | Brand Visualized | BRANDING | Verifies clear visual brand presence (logo, name, packaging) shown at any time in the ad. |
 | `b_brand_visualized_in_first_5_sec` | Brand Visualized (First 5s) | BRANDING | Verifies clear visual brand presence (logo, product, package) in the opening 5 seconds. |
 | `b_brand_mention` | Brand Mention | BRANDING | Evaluates spoken or textual mentions of the brand name or jingle. |
-| `b_brand_mention_speech_see_and_say_first_5s` | See & Say Brand Mention (First 5s) | BRANDING | Evaluates concurrent visual and auditory brand cues within the first 5 seconds. |
 | `b_brand_palette_multiple_brand_elements` | Brand Palette & Elements | BRANDING | Evaluates inclusion of the brand in 2 or more different audio or visual ways. |
 | `c_people_overall` | Presence of People | CONNECTION | Quantifies human presence, face visibility, and emotional character connection. |
 | `c_casual_language` | Casual Language | CONNECTION | Evaluates script informality, conversational language, contractions, and natural dialogue. |
@@ -81,6 +80,17 @@ Defined in [`features_repository/shorts_features.py`](features_repository/shorts
 | `shorts_personal_character_type` | Everyday Persona Validation | NONE | Validates if on-screen creator feels like an authentic everyday person vs. actor. |
 | `shorts_product_context` | Secondary Product Context | NONE | Evaluates product in practical utility within realistic, lived-in environments. |
 | `shorts_video_format` | Vertical Format (Mobile 9:16) | NONE | Verifies native 9:16 aspect ratio, mobile UI safe zones, and absence of letterboxing. |
+
+### 3. Partnership Ads Features (5)
+Defined in [`features_repository/partnership_ads_features.py`](features_repository/partnership_ads_features.py):
+
+| Feature ID | Name | Category | Description |
+|---|---|---|---|
+| `b_brand_visual_3_plus_times` | Brand Visual 3+ Times | BRANDING | Verifies branding is present on at least 3 non-consecutive frames. |
+| `b_product_mention_speech_or_text` | Product Mention (Speech or Text) | BRANDING | Detects product featured in audio (VO / characters) or on-screen text overlays (supers). |
+| `b_product_visualized_first_5s` | Product Visualized (First 5s) | BRANDING | Detects product or branded packaging present in the first 5 seconds (up to 4.99s). |
+| `c_has_face_in_first_5_sec` | Has Face in First 5s | CONNECTION | Detects one or more clearly identifiable human faces in the first 5 seconds. |
+| `c_people_using_product` | People Using Product | CONNECTION | Verifies characters physically interacting with or using the product. |
 
 ---
 
@@ -228,7 +238,7 @@ python main.py \
   --project_id "your-gcp-project-id" \
   --api_key "your-gemini-api-key" \
   --video_uris "gs://my-bucket/ads/summer_sale.mp4,https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
-  --slices "universal,shorts" \
+  --slices "universal,shorts,partnership_ads" \
   --mode "BULK" \
   --brand_name "Acme" \
   --branded_products "Acme Cloud,Acme Runner" \
@@ -245,13 +255,72 @@ python main.py \
 | **Gemini** | `--api_key`, `-k` | Gemini API Key (or set `GEMINI_API_KEY` env var). | *Required* |
 | **Gemini** | `--model_name`, `-m` | Model identifier (e.g., `gemini-3.8-flash`, `gemini-2.5-flash`). | `gemini-3.8-flash` |
 | **Execution** | `--video_uris`, `-vu` | Comma-delimited list of GCS paths or YouTube URLs. | *Required* |
-| **Execution** | `--slices`, `-s` | Comma-delimited ABCD slices to evaluate (`universal,shorts`). | `universal,shorts` |
+| **Execution** | `--slices`, `-s` | Comma-delimited ABCD slices to evaluate (`universal,shorts,partnership_ads`). | `universal,shorts` |
 | **Execution** | `--features_to_evaluate` | JSON filter mapping slices to feature ID lists. | All in slice |
 | **Execution** | `--mode` | Execution mode: `BULK` (single combined prompt) or `INDIVIDUAL`. | `BULK` |
 | **Brand** | `--brand_name`, `-brn` | Brand name (required if `--no_extract_brand_metadata` is set). | None |
 | **Brand** | `--branded_products` | Comma-delimited list of brand products. | None |
 | **BigQuery** | `--bigquery_dataset`, `-bd` | BigQuery dataset for storing results (or `BQ_DATASET` env var). | None |
 | **BigQuery** | `--bigquery_table`, `-bt` | BigQuery table name for results (or `BQ_TABLE` env var). | None |
+
+#### Command-Line Examples:
+
+**1. Minimal Quickstart (using Environment Variables):**
+```bash
+export PROJECT_ID="your-gcp-project-id"
+export GEMINI_API_KEY="your-gemini-api-key"
+
+python main.py --video_uris "gs://my-bucket/ads/summer_sale.mp4"
+```
+
+**2. Evaluating Partnership Ads Slice Only:**
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "gs://my-bucket/ads/partnership_ad.mp4" \
+  --slices "partnership_ads"
+```
+
+**3. Evaluating All Slices (Universal, Shorts, Partnership Ads):**
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "gs://my-bucket/ads/campaign_video.mp4" \
+  --slices "universal,shorts,partnership_ads"
+```
+
+**4. Filtering for Specific Features across Slices (`--features_to_evaluate`):**
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "gs://my-bucket/ads/ad.mp4" \
+  --slices "universal,partnership_ads" \
+  --features_to_evaluate '{"universal": ["a_heartbeat_story_arc"], "partnership_ads": ["b_brand_visual_3_plus_times", "c_people_using_product"]}'
+```
+
+**5. Batch Evaluating an Entire Google Cloud Storage Folder:**
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "gs://my-bucket/q4_campaign_creatives/" \
+  --slices "universal,partnership_ads" \
+  --bigquery_dataset "abcd_evaluations" \
+  --bigquery_table "video_results"
+```
+
+**6. Granular Feature Debugging with Individual Prompts:**
+```bash
+python main.py \
+  --project_id "your-gcp-project-id" \
+  --api_key "your-gemini-api-key" \
+  --video_uris "https://www.youtube.com/watch?v=EXAMPLE_ID" \
+  --slices "partnership_ads" \
+  --mode "INDIVIDUAL"
+```
 
 ### Option B: Programmatic API / Python Service Call
 

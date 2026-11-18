@@ -47,6 +47,7 @@ class TestFeaturesRepository(unittest.TestCase):
     categories = {f.category for f in all_features}
     self.assertIn(models.VideoFeatureCategory.UNIVERSAL, categories)
     self.assertIn(models.VideoFeatureCategory.SHORTS, categories)
+    self.assertIn(models.VideoFeatureCategory.PARTNERSHIP_ADS, categories)
 
   def test_get_feature_by_id_found_and_not_found(self) -> None:
     """Tests retrieving features by unique ID."""
@@ -66,16 +67,19 @@ class TestFeaturesRepository(unittest.TestCase):
     self.assertIsNone(missing)
 
   def test_universal_features_count_and_brand_visualized(self) -> None:
-    """Tests that Universal slice has 13 features including brand_visualized."""
+    """Tests that Universal slice has 11 features without OR logic."""
     features = (
         feature_configs_handler.features_configs_handler.get_features_for_slice(
             slice_name="universal"
         )
     )
-    self.assertEqual(len(features), 13)
+    self.assertEqual(len(features), 11)
     feature_ids = {f.id for f in features}
-    self.assertIn("b_brand_visualized", feature_ids)
     self.assertIn("b_brand_visualized_in_first_5_sec", feature_ids)
+    self.assertNotIn("b_brand_visualized", feature_ids)
+    self.assertNotIn(
+        "b_brand_mention_speech_see_and_say_first_5s", feature_ids
+    )
 
   def test_universal_subcategories_mapping(self) -> None:
     """Tests that Universal features map to ABCD subcategories."""
@@ -103,10 +107,8 @@ class TestFeaturesRepository(unittest.TestCase):
 
     # Branding features
     branding_ids = [
-        "b_brand_visualized",
         "b_brand_visualized_in_first_5_sec",
         "b_brand_mention",
-        "b_brand_mention_speech_see_and_say_first_5s",
         "b_brand_palette_multiple_brand_elements",
     ]
     for fid in branding_ids:
@@ -135,7 +137,67 @@ class TestFeaturesRepository(unittest.TestCase):
         "Expected d_visual_cta to have sub_category DIRECTION",
     )
 
+  def test_partnership_ads_features_count_and_retrieval(self) -> None:
+    """Tests that Partnership Ads slice returns 5 features with correct IDs."""
+    handler = feature_configs_handler.features_configs_handler
+    features = handler.get_features_for_slice(slice_name="partnership_ads")
+    self.assertEqual(len(features), 5)
 
+    expected_ids = {
+        "b_brand_visual_3_plus_times",
+        "b_product_mention_speech_or_text",
+        "b_product_visualized_first_5s",
+        "c_has_face_in_first_5_sec",
+        "c_people_using_product",
+    }
+    feature_ids = {f.id for f in features}
+    self.assertEqual(feature_ids, expected_ids)
+
+    for feature in features:
+      self.assertEqual(
+          feature.category,
+          models.VideoFeatureCategory.PARTNERSHIP_ADS,
+          f"Expected {feature.id} to have category PARTNERSHIP_ADS",
+      )
+
+  def test_partnership_ads_subcategories_mapping(self) -> None:
+    """Tests that Partnership Ads features map to ABCD subcategories."""
+    handler = feature_configs_handler.features_configs_handler
+    features = handler.get_features_for_slice(slice_name="partnership_ads")
+    feature_map = {f.id: f.sub_category for f in features}
+
+    branding_ids = [
+        "b_brand_visual_3_plus_times",
+        "b_product_mention_speech_or_text",
+        "b_product_visualized_first_5s",
+    ]
+    for fid in branding_ids:
+      self.assertEqual(
+          feature_map[fid],
+          models.VideoFeatureSubCategory.BRANDING,
+          f"Expected {fid} to have sub_category BRANDING",
+      )
+
+    connection_ids = [
+        "c_has_face_in_first_5_sec",
+        "c_people_using_product",
+    ]
+    for fid in connection_ids:
+      self.assertEqual(
+          feature_map[fid],
+          models.VideoFeatureSubCategory.CONNECTION,
+          f"Expected {fid} to have sub_category CONNECTION",
+      )
+
+  def test_partnership_ads_filtering(self) -> None:
+    """Tests filtering Partnership Ads features by ID."""
+    handler = feature_configs_handler.features_configs_handler
+    filtered = handler.get_features_for_slice(
+        slice_name="partnership_ads",
+        features_filter=["b_brand_visual_3_plus_times"],
+    )
+    self.assertEqual(len(filtered), 1)
+    self.assertEqual(filtered[0].id, "b_brand_visual_3_plus_times")
 
 
 if __name__ == "__main__":
