@@ -20,7 +20,7 @@
 
 import logging
 
-from features_repository import partnership_features
+from features_repository import partnership_ads_features
 from features_repository import shorts_features
 from features_repository import universal_features
 import models
@@ -51,7 +51,7 @@ class FeaturesConfigsHandler:
     elif normalized_slice == "shorts":
       features = shorts_features.get_shorts_feature_configs()
     elif normalized_slice == "partnership_ads":
-      features = partnership_features.get_partnership_feature_configs()
+      features = partnership_ads_features.get_partnership_ads_feature_configs()
     else:
       logger.warning(
           "Slice '%s' is not recognized. Returning empty features.",
@@ -83,7 +83,7 @@ class FeaturesConfigsHandler:
     if category.value == models.VideoFeatureCategory.SHORTS.value:
       return shorts_features.get_shorts_feature_configs()
     if category.value == models.VideoFeatureCategory.PARTNERSHIP_ADS.value:
-      return partnership_features.get_partnership_feature_configs()
+      return partnership_ads_features.get_partnership_ads_feature_configs()
     return universal_features.get_universal_feature_configs()
 
   def get_all_features(self) -> list[models.VideoFeature]:
@@ -96,7 +96,7 @@ class FeaturesConfigsHandler:
     feature_configs.extend(universal_features.get_universal_feature_configs())
     feature_configs.extend(shorts_features.get_shorts_feature_configs())
     feature_configs.extend(
-        partnership_features.get_partnership_feature_configs()
+        partnership_ads_features.get_partnership_ads_feature_configs()
     )
     return feature_configs
 

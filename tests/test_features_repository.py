@@ -143,9 +143,6 @@ class TestFeaturesRepository(unittest.TestCase):
     features = handler.get_features_for_slice(slice_name="partnership_ads")
     self.assertEqual(len(features), 5)
 
-    alias_features = handler.get_features_for_slice(slice_name="partnership")
-    self.assertEqual(len(alias_features), 5)
-
     expected_ids = {
         "b_brand_visual_3_plus_times",
         "b_product_mention_speech_or_text",

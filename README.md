@@ -82,7 +82,7 @@ Defined in [`features_repository/shorts_features.py`](features_repository/shorts
 | `shorts_video_format` | Vertical Format (Mobile 9:16) | NONE | Verifies native 9:16 aspect ratio, mobile UI safe zones, and absence of letterboxing. |
 
 ### 3. Partnership Ads Features (5)
-Defined in [`features_repository/partnership_features.py`](features_repository/partnership_features.py):
+Defined in [`features_repository/partnership_ads_features.py`](features_repository/partnership_ads_features.py):
 
 | Feature ID | Name | Category | Description |
 |---|---|---|---|

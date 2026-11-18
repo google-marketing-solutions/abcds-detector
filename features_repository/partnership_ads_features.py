@@ -21,7 +21,7 @@
 import models
 
 
-def get_partnership_feature_configs() -> list[models.VideoFeature]:
+def get_partnership_ads_feature_configs() -> list[models.VideoFeature]:
   """Gets all supported Partnership Ads ABCD feature configurations.
 
   Returns:
@@ -176,3 +176,4 @@ def get_partnership_feature_configs() -> list[models.VideoFeature]:
       ),
   ]
   return feature_configs
+
